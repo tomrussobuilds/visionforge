@@ -346,7 +346,7 @@ def get_model(device: torch.device) -> nn.Module:
         "(3×3 conv1 + maxpool removed + head changed to 8 classes)"
     )
 
-    return model.to(device)
+    return model
 
 # =========================================================================== #
 #                               MIXUP UTILITY
