@@ -8,7 +8,7 @@
 
 **97.22% Test Accuracy • 96.95 Macro F1 • Single pretrained ResNet-18 • 28×28 images**
 
-This repository contains a complete, reproducible training pipeline for the **BloodMNIST** (from MedMNIST v2) using a carefully adapted pretrained ResNet-18, achieving **state-of-the-art-level performance** with minimal tricks.
+This repository provides a reproducible training pipeline for the BloodMNIST (from MedMNIST v2) using an adapted pretrained ResNet-18, demonstrating solid performance with a straightforward setup.
 
 ### Confusion Matrix
 <img src="figures/confusion_matrix_resnet18.png" width="400">
