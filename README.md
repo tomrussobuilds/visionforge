@@ -89,7 +89,7 @@ Install dependencies easily with pip, or check the full list here:
 
 ```bash
 git clone https://github.com/tomrussobuilds/bloodmnist.git
-cd bloodmnist-resnet18
+cd bloodmnist
 python train_bloodmnist.py
 ```
 
