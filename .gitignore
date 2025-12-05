@@ -7,29 +7,25 @@ __pycache__/
 *.pyd
 *.so
 
-# Virtual envs
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Build
+# Build artifacts
 build/
 dist/
 *.egg-info/
 *.egg
 
 # ========================
-# IDE / Editors
+# IDE / Editor files
 # ========================
-# VSCode
 .vscode/
-
-# PyCharm / JetBrains
 .idea/
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb_checkpoints
 
 # ========================
 # Logs & temp files
@@ -47,11 +43,12 @@ logs/
 *.pth
 *.pt
 *.ckpt
+wandb/
+runs/
 
 # ========================
 # Project-specific folders
 # ========================
-# Generated figures, reports, datasets, models
 figures/
 reports/
 models/
@@ -59,43 +56,27 @@ med_mnist/
 dataset/
 data/
 
-# If you want to keep the repo clean but still allow empty folders:
+# Keep empty folders or important generated files
 !figures/.gitkeep
 !reports/.gitkeep
 !models/.gitkeep
-
 !figures/confusion_matrix_resnet18.png
 !figures/training_curves.png
 !figures/sample_predictions.png
 
-
 # ========================
 # OS files
 # ========================
-# macOS
 .DS_Store
-
-# Windows
 Thumbs.db
 desktop.ini
-
-# Linux
 *~
 
 # ========================
-# Misc
+# Misc / Profiling / Temporary scripts
 # ========================
-# Python profiling
 .prof
 .profile
-
-wandb/
-runs/
-
-# ========================
-# Temporary scripts
-# ========================
-
 check_pytorch.py
 check_ram.py
 checksum.py
