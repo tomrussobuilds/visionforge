@@ -13,6 +13,8 @@ from typing import Final, List, Tuple, Sequence
 
 # Third Party
 import psutil
+# Use Agg backend for matplotlib (non-interactive)
+# Can comment out these two lines if interactive plotting or GUI is desired
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
