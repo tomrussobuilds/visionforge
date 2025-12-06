@@ -34,7 +34,7 @@ This repository provides a reproducible training pipeline for the BloodMNIST (fr
 
 I wanted to see how far a **single pretrained ResNet-18** could go on the tiny 28×28 BloodMNIST dataset with proper adaptation and modern training practices — no Ensembles, no ViTs, no custom backbones.
 
-Spoiler: it goes *very* far.
+Spoiler: a carefully adapted ResNet-18 performs surprisingly well, even on 28×28 medical images.
 
 ---
 
@@ -61,18 +61,34 @@ Spoiler: it goes *very* far.
 
 ---
 
-### The "Born from Pain" Utilities
+### The Small Utilities That Save Large Headaches
 
-These tiny functions saved my sanity more than once:
+A few tiny helpers included in this repo were added after very real 5AM debugging incidents:
 
-- `get_base_dir()` – because once, at 5 AM, after deleting the `figures/` folder to test a clean run, the script happily saved all plots directly into the system trash. I laughed for 10 minutes straight when I realized.
-- `kill_duplicate_processes()` – prevents accidentally launching 17 identical trainings that eat all RAM
-- `ensure_mnist_npz()` – downloads with retries, atomic write, strict MD5 + ZIP header check (never train on a half-downloaded files again)
-- MD5 checksum, graceful process killing, etc.
+- **`get_base_dir()`** — ensures outputs never end up in unexpected system locations  
+- **`kill_duplicate_processes()`** — stops accidental multi-launches that hog all RAM  
+- **`ensure_mnist_npz()`** — safe dataset download with retries, MD5 check, and atomic write  
+- Graceful process cleanup, checksum utilities, debug-safe file creation, etc.
 
-They look overkill. They are. They are also the reason this script can run unattended overnight without exploding.
+They may look overkill, but they make the whole training pipeline safe to run unattended.
 
 ---
+
+### Project Structure
+
+```bash
+bloodmnist/
+│
+├── train_bloodmnist.py       # Main training script
+├── model.py                  # Adapted ResNet-18
+├── data_utils.py             # Loading, augmentation, dataloaders
+├── training_utils.py         # Training loop, scheduler logic
+├── tta.py                    # Test-Time Augmentation
+│
+├── figures/                  # Auto-generated plots
+├── reports/                  # Excel report + logs
+└── models/                   # Saved checkpoints
+```
 
 ### Requirements
 
@@ -109,10 +125,21 @@ The script will:
 
 Everything is deterministic (seed 42). Run the script twice → same validation curve, same final accuracy.
 
+### Citation
+
+If you use this repository in academic work or derivative projects:
+
+@misc{bloodmnist_resnet18,
+  title  = {BloodMNIST Classification with Adapted ResNet-18},
+  author = {Tommaso Russo},
+  year   = {2025},
+  url    = {https://github.com/tomrussobuilds/bloodmnist}
+}
+
 ### Conclusion
 
-This project shows how a simple, well-understood architecture like ResNet-18 can still perform very well on a compact dataset such as BloodMNIST when combined with a careful training setup and reproducible utilities.
-The goal was not to push the limits of the benchmark, but to build a clean, reliable and fully deterministic pipeline that others can reuse or adapt with minimal effort.
+This project shows how a classic, lightweight architecture like ResNet-18 can perform extremely well on a compact medical-image dataset when paired with a careful training setup.  
 
-If this repository is helpful or you decide to build on it, feedback and suggestions are always welcome.
-Thanks for taking the time to explore the project.
+The goal is not to chase leaderboard scores, but to provide a **clean, stable, reproducible** pipeline that others can reuse or extend with minimal friction.
+
+If you find this project useful, feedback and suggestions are always welcome.
