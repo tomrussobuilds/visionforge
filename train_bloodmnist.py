@@ -25,6 +25,7 @@ import hashlib
 import logging
 import random
 import time
+import argparse
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
@@ -444,117 +445,199 @@ def tta_predict(
 #                               TRAINING
 # =========================================================================== #
 
-def train(
-    model: nn.Module,
-    train_loader: DataLoader,
-    val_loader: DataLoader,
-    device: torch.device,
-) -> Tuple[Path, List[float], List[float]]:
-    """Train the model and return (best_model_path, train_losses, val_accuracies)."""
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(
-        model.parameters(),
-        lr=LEARNING_RATE,
-        momentum=0.9,
-        weight_decay=5e-4
-    )
-    cosine_scheduler = CosineAnnealingLR(
-        optimizer,
-        T_max=EPOCHS*1.5,
-        eta_min=1e-4
-    )
-    plateau_scheduler = ReduceLROnPlateau(
-        optimizer,
-        mode='max',
-        factor=0.5,
-        patience=3,
-        threshold=1e-4,
-        cooldown=0,
-        min_lr=1e-5,
-    )
+class ModelTrainer:
+    def __init__(
+        self,
+        model: nn.Module,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+        device: torch.device,
+        epochs: int = EPOCHS,
+        patience: int = PATIENCE,
+        learning_rate: float = LEARNING_RATE,
+        mixup_alpha: float = MIXUP_ALPHA,
+        best_path: Path | None = None,
+    ) -> Tuple[Path, List[float], List[float]]:
+        """It encapsulates the training logic, scheduler, and early stopping."""
+        self.model = model
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+        self.device = device
+        self.epochs = epochs
+        self.patience = patience
+        self.mixup_alpha = mixup_alpha
+        
+        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = optim.SGD(
+            model.parameters(),
+            lr=LEARNING_RATE,
+            momentum=0.9,
+            weight_decay=5e-4
+        )
+        self.cosine_scheduler = CosineAnnealingLR(
+            self.optimizer,
+            T_max=EPOCHS * 1.5,
+            eta_min=1e-4
+        )
+        self.plateau_scheduler = ReduceLROnPlateau(
+            self.optimizer,
+            mode='max',
+            factor=0.5,
+            patience=3,
+            threshold=1e-4,
+            cooldown=0,
+            min_lr=1e-5,
+        )
 
-    best_acc = 0.0
-    epochs_no_improve = 0
-    best_path = MODELS_DIR / "resnet18_bloodmnist_best.pth"
-    train_losses = []
-    val_accuracies = []
+        self.best_acc = 0.0
+        self.epochs_no_improve = 0
+        self.best_path = MODELS_DIR / "resnet18_bloodmnist_best.pth"
+        self.train_losses: list[float] = []
+        self.val_accuracies: list[float] = []
 
-    for epoch in range(1, EPOCHS + 1):
-        # Training
-        model.train()
+        logger.info(f"Trainer initialized. Best model will be saved to: {self.best_path}")
+        
+    def _validate_epoch(self) -> float:
+        """Performs a validation cycle and returns the accuracy."""
+                # Validation
+        self.model.eval()
+        correct = total = 0
+        with torch.no_grad():
+            for inputs, targets in self.val_loader:
+                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                outputs = self.model(inputs)
+                _, predicted = torch.max(outputs, 1)
+                total += targets.size(0)
+                correct += (predicted == targets).sum().item()
+        
+        return correct / total
+    
+    def _train_epoch(self) -> float:
+        """Performs a training cycle with MixUp and returns the average loss."""
+        self.model.train()
         running_loss = 0.0
-        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch}/{EPOCHS}", leave=False)
+        progress_bar = tqdm(self.train_loader, desc=f"Training", leave=False)
 
         for inputs, targets in progress_bar:
-            inputs, targets = inputs.to(device), targets.to(device)
+            inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-            if MIXUP_ALPHA > 0:
+            if self.mixup_alpha > 0:
                 inputs, targets_a, targets_b, lam = mixup_data(
-                    inputs, targets, MIXUP_ALPHA, device
+                    inputs, targets, self.mixup_alpha, self.device
                 )
-                outputs = model(inputs)
-                loss = mixup_criterion(criterion, outputs, targets_a, targets_b, lam)
+                outputs = self.model(inputs)
+                loss = mixup_criterion(self.criterion, outputs, targets_a, targets_b, lam)
             else:
-                outputs = model(inputs)
-                loss = criterion(outputs, targets)
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, targets)
 
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
 
             running_loss += loss.item() * inputs.size(0)
             progress_bar.set_postfix(
                 {"loss": f"{running_loss / ((progress_bar.n + 1) * inputs.size(0)):.4f}"}
             )
 
-        epoch_loss = running_loss / len(train_loader.dataset)
-        train_losses.append(epoch_loss)
-
-        # Validation
-        model.eval()
-        correct = total = 0
-        with torch.no_grad():
-            for inputs, targets in val_loader:
-                inputs, targets = inputs.to(device), targets.to(device)
-                outputs = model(inputs)
-                _, predicted = torch.max(outputs, 1)
-                total += targets.size(0)
-                correct += (predicted == targets).sum().item()
-
-        val_acc = correct / total
-        val_accuracies.append(val_acc)
-
-        # Scheduler step
-        if epoch <= 33:
-            # First phase: cosine warm descent
-            cosine_scheduler.step()
-        else:
-            # Second phase: adaptive LR reduction
-            plateau_scheduler.step(val_acc)
-
-        # Logging & Checkpoint
-        if val_acc > best_acc:
-            best_acc = val_acc
-            epochs_no_improve = 0
-            torch.save(model.state_dict(), best_path)
-            logger.info(f"New best model! Val Acc: {val_acc:.4f} ↑")
-        else:
-            epochs_no_improve += 1
+        return running_loss / len(self.train_loader.dataset)
         
-        current_lr = optimizer.param_groups[0]['lr']
-        logger.info(
-            f"Epoch {epoch:02d} | Loss: {epoch_loss:.4f} | Val Acc: {val_acc:.4f} | "
-            f"Best: {best_acc:.4f} | LR: {current_lr:.6f}"
-        )
+    def train(self) -> Tuple[Path, List[float], List[float]]:
+        """Main training cycle with checkpoints and early stopping."""
+        for epoch in range(1, self.epochs + 1):
+            logger.info(f"Epoch {epoch:02d}({self.epochs}".center(60, "-"))
+                
+            epoch_loss = self._train_epoch()
+            self.train_losses.append(epoch_loss)
 
-        if epochs_no_improve >= PATIENCE:
-            logger.info(f"Early stopping at epoch {epoch}")
-            break
+            # Validation
+            val_acc = self._validate_epoch()
+            self.val_accuracies.append(val_acc)
 
-    return best_path, train_losses, val_accuracies
+            # CosineAnnealing
+            if epoch <= 33: 
+                self.cosine_scheduler.step()
+            # ReduceLROnPlateau
+            else:
+                self.plateau_scheduler.step(val_acc)
+
+            # Checkpoint & Early Stopping
+            if val_acc > self.best_acc:
+                self.best_acc = val_acc
+                self.epochs_no_improve = 0
+                torch.save(self.model.state_dict(), self.best_path)
+                logger.info(f"New best model! Val Acc: {val_acc:.4f} ↑")
+            else:
+                self.epochs_no_improve += 1
+            
+            current_lr = self.optimizer.param_groups[0]['lr']
+            logger.info(
+                f"Epoch {epoch:02d} | Loss: {epoch_loss:.4f} | Val Acc: {val_acc:.4f} | "
+                f"Best: {self.best_acc:.4f} | LR: {current_lr:.6f}"
+            )
+
+            if self.epochs_no_improve >= self.patience:
+                logger.info(f"Early stopping at epoch {epoch}")
+                break
+
+        return self.best_path, self.train_losses, self.val_accuracies
 
 # =========================================================================== #
-#                               EVALUATION & PLOTS
+#                               ARGPARSE SETUP
+# =========================================================================== #
+
+def parse_args() -> argparse.Namespace:
+    """Configure and analyze command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="BloodMNIST training pipeline based on adapted ResNet-18."
+    )
+
+    parser.add_argument(
+        '--epochs',
+        type=int,
+        default=EPOCHS,
+        help=f"Number of training epochs. Default: {EPOCHS}"
+    )
+    parser.add_argument(
+        '--batch_size',
+        type=int,
+        default=BATCH_SIZE,
+        help=f"Batch size for data loaders. Default: {BATCH_SIZE}"
+    )
+    parser.add_argument(
+        '--lr',
+        type=float,
+        default=LEARNING_RATE,
+        help=f"Initial learning rate for SGD optimizer. Default: {LEARNING_RATE}"
+    )
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=SEED,
+        help=f"Random seed for reproducibility. Default: {SEED}"
+    )
+    parser.add_argument(
+        '--mixup_alpha',
+        type=float,
+        default=MIXUP_ALPHA,
+        help=f"Alpha parameter for MixUp regularization. Set to 0 to disable. Default: {MIXUP_ALPHA}"
+    )
+    parser.add_argument(
+        '--patience',
+        type=int,
+        default=PATIENCE,
+        help=f"Early stopping patience (epochs without improvement). Default: {PATIENCE}"
+    )
+    parser.add_argument(
+        '--no_tta',
+        action='store_true',
+        help="Disable Test-Time Augmentation (TTA) during final evaluation."
+    )
+
+    return parser.parse_args()
+
+# =========================================================================== #
+#                             EVALUATION & PLOTS
 # =========================================================================== #
 
 def evaluate_model(
@@ -562,7 +645,7 @@ def evaluate_model(
         test_loader: DataLoader,
         data: BloodMNISTData,
         device: torch.device,
-        use_tta=False
+        use_tta: bool = False
 ) -> Tuple[np.ndarray, np.ndarray, float, float]:
     model.eval()
     all_preds, all_labels = [], []
@@ -654,13 +737,14 @@ def make_plots_and_reports(
     train_losses: list[float],
     val_accuracies: list[float],
     device: torch.device,
+    use_tta: bool = False
 ) -> Tuple[float, float]:
     """Generate all figures and save predictions after training."""
     model.eval()
 
     # Test set evaluation
     all_preds, all_labels, test_acc, macro_f1 = evaluate_model(
-        model, test_loader, data, device, use_tta=True
+        model, test_loader, data, device, use_tta=use_tta
     )
 
     logger.info(f"TEST MACRO F1-SCORE: {macro_f1:.4f} | Test Accuracy: {test_acc:.4f}")
@@ -799,9 +883,24 @@ def build_training_report(
 # =========================================================================== #
 
 def main() -> None:
+    args = parse_args()
+
+    global SEED, LEARNING_RATE, BATCH_SIZE, EPOCHS, PATIENCE, MIXUP_ALPHA
+    
+    SEED = args.seed
+    set_seed(SEED)
+    LEARNING_RATE = args.lr
+    BATCH_SIZE = args.batch_size
+    EPOCHS = args.epochs
+    PATIENCE = args.patience
+    MIXUP_ALPHA = args.mixup_alpha
+    use_tta = not args.no_tta
+
     kill_duplicate_processes()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
+    logger.info(f"Hyperparameters: LR={LEARNING_RATE}, Batch={BATCH_SIZE}, Epochs={EPOCHS}"
+                f"MixUp={MIXUP_ALPHA}, Seed={SEED}, TTA={'Enabled' if use_tta else 'Disabled'}")
 
     # Dataset
     data = load_bloodmnist(NPZ_PATH)
@@ -824,13 +923,18 @@ def main() -> None:
     # Training
     logger.info("Starting training".center(60, "="))
     
-    best_path, train_losses, val_accuracies = train(
+    trainer = ModelTrainer(
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
         device=device,
+        epochs=args.epochs,
+        patience=args.patience,
+        learning_rate=args.lr,
+        mixup_alpha=args.mixup_alpha,
     )
- 
+    best_path, train_losses, val_accuracies = trainer.train()
+
     # Load best model
     model.load_state_dict(torch.load(best_path, map_location=device))
     logger.info(f"Best model loaded from {best_path}")
@@ -843,6 +947,7 @@ def main() -> None:
         train_losses=train_losses,
         val_accuracies=val_accuracies,
         device=device,
+        use_tta=use_tta,
     )
 
     logger.info(f"FINAL RESULT → Test Accuracy: {test_acc:.4f} | "

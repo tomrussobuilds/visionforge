@@ -81,3 +81,4 @@ check_pytorch.py
 check_ram.py
 checksum.py
 pipeline*.py
+cnn_bloodmnist.py
