@@ -1011,7 +1011,7 @@ def main() -> None:
         cfg=cfg
     )
 
-    # Clean single final log
+    # Final log
     logger.info(
         f"FINAL RESULTS → "
         f"Test Accuracy: {report.test_accuracy:.4f} | "
