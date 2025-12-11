@@ -6,7 +6,7 @@
 
 
 
-**97.22% Test Accuracy • 96.95 Macro F1 • Single pretrained ResNet-18 • 28×28 images**
+**97.11% Test Accuracy • 96.78 Macro F1 • Single pretrained ResNet-18 • 28×28 images**
 
 This repository provides a reproducible training pipeline for the BloodMNIST (from MedMNIST v2) using an adapted pretrained ResNet-18, demonstrating solid performance with a straightforward setup.
 
@@ -22,9 +22,9 @@ This repository provides a reproducible training pipeline for the BloodMNIST (fr
 ### Final Results (60 epochs, seed 42)
 | Metric                  | Value     |
 |-------------------------|-----------|
-| Best Validation Accuracy| **97.43%** |
-| Test Accuracy (with TTA)| **97.22%** |
-| Test Macro F1 (with TTA)| **0.9695** |
+| Best Validation Accuracy| **97.55%** |
+| Test Accuracy (with TTA)| **97.11%** |
+| Test Macro F1 (with TTA)| **0.9678** |
 
 → Confusion matrix, training curves, sample predictions and Excel report are automatically saved.
 
