@@ -26,9 +26,9 @@ The results reflect the latest successful training run (post-refactoring).
 ### Final Results (60 epochs, seed 42)
 | Metric                  | Value     |
 |-------------------------|-----------|
-| Best Validation Accuracy| **97.55%** |
-| Test Accuracy (with TTA)| **97.11%** |
-| Test Macro F1 (with TTA)| **0.9678** |
+| Best Validation Accuracy| **97.20%** |
+| Test Accuracy (with TTA)| **97.52%** |
+| Test Macro F1 (with TTA)| **0.9733** |
 
 → Confusion matrix, training curves, sample predictions and Excel report are automatically saved.
 
@@ -40,6 +40,13 @@ I wanted to see how far a **single pretrained ResNet-18** could go on the tiny 2
 
 Spoiler: a carefully adapted ResNet-18 performs surprisingly well, even on 28×28 medical images.
 
+### Training Efficiency Analysis
+
+The training achieved peak validation performance at **Epoch 27** ($\text{Val Acc}=0.9720$) but was only terminated by early stopping at **Epoch 42**. This is due to the aggressive nature of the Cosine Annealing scheduler's tail combined with a generous `patience=15`.
+
+**Analysis:** Epochs 28 through 36 (while Cosine Annealing was still active) did not contribute to the final result.
+
+**Future Work:** The next step will focus on optimizing the training efficiency by anticipating the switch to the `ReduceLROnPlateau` scheduler (e.g., changing the switch point from 60% to 50% of max epochs) to reduce idle computation time.
 ---
 
 ### Key Features & Design Choices (Post-Refactoring)
