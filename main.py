@@ -25,13 +25,13 @@ import torch
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-from utils import (
+from scripts.utils import (
     Config, Logger, parse_args, set_seed, kill_duplicate_processes, NPZ_PATH, REPORTS_DIR
 )
-from data_handler import load_bloodmnist, get_dataloaders
-from models import get_model
-from trainer import ModelTrainer
-from evaluation import (
+from scripts.data_handler import load_bloodmnist, get_dataloaders
+from scripts.models import get_model
+from scripts.trainer import ModelTrainer
+from scripts.evaluation import (
     generate_all_reports, build_training_report, show_sample_images
 )
 

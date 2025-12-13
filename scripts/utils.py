@@ -51,14 +51,14 @@ def get_base_dir() -> Path:
         # Fallback for interactive environments (e.g., Jupyter, standard interpreter)
         return Path.cwd()
     
-BASE_DIR: Final[Path] = get_base_dir()
+PROJECT_ROOT: Final[Path] = get_base_dir().parent
 
 # Directories
-DATASET_DIR: Final[Path] = BASE_DIR / "dataset"
-FIGURES_DIR: Final[Path] = BASE_DIR / "figures"
-MODELS_DIR: Final[Path] = BASE_DIR / "models"
-LOG_DIR: Final[Path] = BASE_DIR / "logs"
-REPORTS_DIR: Final[Path] = BASE_DIR / "reports"
+DATASET_DIR: Final[Path] = PROJECT_ROOT / "dataset"
+FIGURES_DIR: Final[Path] = PROJECT_ROOT / "figures"
+MODELS_DIR: Final[Path] = PROJECT_ROOT / "models"
+LOG_DIR: Final[Path] = PROJECT_ROOT / "logs"
+REPORTS_DIR: Final[Path] = PROJECT_ROOT / "reports"
 
 # Ensure all necessary directories exist
 for d in (DATASET_DIR, FIGURES_DIR, MODELS_DIR, LOG_DIR, REPORTS_DIR):

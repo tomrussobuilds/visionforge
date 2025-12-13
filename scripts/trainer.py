@@ -219,7 +219,7 @@ class ModelTrainer:
         
         # Gradually disable MixUp after 80% of epochs
         alpha = self.mixup_alpha
-        if epoch > int(0.8 * self.epochs):
+        if epoch > int(0.5 * self.epochs):
             alpha = 0.0
         
         for inputs, targets in progress_bar:
