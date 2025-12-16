@@ -47,13 +47,13 @@ Spoiler: a carefully adapted ResNet-18 performs surprisingly well, even on 28×2
 ---
 
 
-- **ResNet-18 adapted for 28×28**:  
-  – Initial 7 x7 convolution replaced with 3 x 3. 
-  – Initial `MaxPool` removed to preserve 28 x 28 feature maps.
-  – ImageNet pretrained weights transferred via bicubic upsampling of the first convolutional layer.
-  – Reproduciblity & Robustness: – Full Reproducibility guaranteed (fixed seeds for PyTorch, NumPy, Python).
-  – `worker_init_fn` implemented to ensure determinism even when using multiple data loading workers (`num_workers > 0`).
-  – Defensive Utilities: Robust dataset download with MD5 validation and atomic write ensures pipeline reliablity.
+### ResNet-18 adapted for 28×28
+- Initial 7 x7 convolution replaced with 3 x 3.
+- Initial `MaxPool` removed to preserve 28 x 28 feature maps.
+- ImageNet pretrained weights transferred via bicubic upsampling of the first convolutional layer.
+- Reproduciblity & Robustness: – Full Reproducibility guaranteed (fixed seeds for PyTorch, NumPy, Python).
+- `worker_init_fn` implemented to ensure determinism even when using multiple data loading workers (`num_workers > 0`).
+- Defensive Utilities: Robust dataset download with MD5 validation and atomic write ensures pipeline reliablity.
 
 ---
 
