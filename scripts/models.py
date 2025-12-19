@@ -25,7 +25,7 @@ from torchvision import models
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-from .utils import Logger
+from .utils import Logger, BLOODMNIST_CLASSES
 
 # Global logger instance
 logger: Final[logging.Logger] = Logger().get_logger()
@@ -35,30 +35,25 @@ logger: Final[logging.Logger] = Logger().get_logger()
 #                               MODEL DEFINITION
 # =========================================================================== #
 
-def get_model(device: torch.device) -> nn.Module:
+def get_model(
+        device: torch.device,
+        num_classes: int = len(BLOODMNIST_CLASSES)
+    ) -> nn.Module:
     """
     Loads a pre-trained ResNet-18 model (ImageNet weights) and adapts its
-    structure for the BloodMNIST dataset (28x28 inputs and 8 classes).
+    structure for the BloodMNIST dataset (28x28 inputs).
 
     The adaptation steps are:
     1. Replace the original 7x7 `conv1` (stride 2) with a 3x3 `conv1` (stride 1)
        to avoid immediate downsampling.
     2. Remove the `maxpool` layer entirely to retain the 28x28 spatial resolution.
-    3. Replace the final fully connected layer (`fc`) with one for 8 classes.
+    3. Replace the final fully connected layer (`fc`) with one for the target classes.
     4. Bicubic interpolation and transfer of pre-trained weights from the old `7x7`
        kernel to the new `3x3` kernel.
 
-    Args:Arg,Type,Default,Description
---epochs,int,60,Maximum number of training epochs.
---batch_size,int,128,Batch size for data loaders.
---lr,float,0.008,Initial learning rate for the SGD optimizer.
---seed,int,42,"Random seed for reproducibility (influences PyTorch, NumPy, Python)."
---mixup_alpha,float,0.002,α parameter for MixUp regularization. Set to 0 to disable MixUp.
---patience,int,15,Early stopping patience (epochs without validation improvement).
---momentum,float,0.9,Momentum factor for the SGD optimizer.
---weight_decay,float,5e-4,Weight decay (L2​ penalty) for the optimizer.
---no_tta,flag,(disabled),Flag to disable Test-Time Augmentation (TTA) during final evaluation.
+    Args:
         device (torch.device): The device (CPU or CUDA) to move the model to.
+        num_classes (int): Number of output classes.
 
     Returns:
         nn.Module: The adapted ResNet-18 model ready for training.
@@ -97,15 +92,15 @@ def get_model(device: torch.device) -> nn.Module:
     
     # 4. Replace the final classification head
     # The input feature size remains the same (e.g., 512 for ResNet18)
-    # The output is set to 8 classes (BloodMNIST)
-    model.fc = nn.Linear(model.fc.in_features, 8)
+    # The output is set to the number of target classes (BloodMNIST)
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
     
     # Move the model to the specified device
     model = model.to(device)
     
     logger.info(
         "ResNet-18 successfully ADAPTED for 28×28 inputs "
-        "(3×3 conv1 + maxpool removed + head changed to 8 classes)"
+        f"(3×3 conv1 + maxpool removed + head changed to {num_classes} classes)"
     )
 
     return model
