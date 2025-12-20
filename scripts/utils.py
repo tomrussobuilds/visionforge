@@ -128,6 +128,14 @@ class Config(BaseModel):
     weight_decay: float = Field(default=5e-4, ge=0.0)
     mixup_alpha: float = Field(default=0.002, ge=0.0)
     use_tta: bool = True
+    # Metadata for the reporting
+    model_name: str = "ResNet-18 Adapted"
+    dataset_name: str = "BloodMNIST"
+    normalization_info: str = "ImageNet Mean/Std"
+    # Augmentation: Horizontal Flip, Rotation, Color Jitter
+    hflip: float = Field(default=0.5, ge=0.0, le=1.0)
+    rotation_angle: int = Field(default=10, ge=0, le=180)
+    jitter_val: float = Field(default=0.2, ge=0.0)
 
 def set_seed(seed: int) -> None:
     """Sets random seeds for reproducibility across NumPy, Python's random, and PyTorch.
