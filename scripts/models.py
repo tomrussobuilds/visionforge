@@ -98,9 +98,10 @@ def get_model(
     
     # Move the model to the specified device
     model = model.to(device)
+    model_display_name = cfg.model_name if cfg else "ResNet-18"
     
     logger.info(
-        f"{cfg.model_name} successfully ADAPTED for 28×28 inputs "
+        f"{model_display_name} successfully ADAPTED for 28×28 inputs "
         f"(3×3 conv1 + maxpool removed + head changed to {num_classes} classes)"
     )
 

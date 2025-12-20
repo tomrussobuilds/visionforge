@@ -84,7 +84,7 @@ def main() -> None:
     )
 
     # 3. Data Loading and Preparation
-    data = load_bloodmnist(NPZ_PATH)
+    data = load_bloodmnist(NPZ_PATH, cfg=cfg)
     logger.info(
         f"Dataset loaded → Train:{len(data.X_train)} | "
         f"Val:{len(data.X_val)} | "
@@ -92,7 +92,7 @@ def main() -> None:
     )
 
     # Optional visualization of sample images (saved to figures directory)
-    show_sample_images(data)
+    show_sample_images(data, cfg=cfg)
 
     # Create PyTorch DataLoaders
     train_loader, val_loader, test_loader = get_dataloaders(data, cfg)
@@ -108,7 +108,7 @@ def main() -> None:
         train_loader=train_loader,
         val_loader=val_loader,
         device=device,
-        config=cfg
+        cfg=cfg
     )
     best_path, train_losses, val_accuracies = trainer.train()
 
