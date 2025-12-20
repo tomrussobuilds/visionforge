@@ -104,7 +104,7 @@ def ensure_mnist_npz(
         logger.warning(f"Corrupted or incomplete dataset found, deleting: {target_npz}")
         target_npz.unlink()
 
-    logger.info(f"Downloading {cfg.model_name} from {URL}")
+    logger.info(f"Downloading {cfg.model_name if cfg else 'dataset'} from {URL}")
     tmp_path = target_npz.with_suffix(".tmp")
     
     for attempt in range(1, retries + 1):
@@ -125,8 +125,9 @@ def ensure_mnist_npz(
                 tmp_path.unlink()
 
             if attempt == retries:
+                model_info = cfg.model_name if cfg else "dataset"
                 logger.error(f"Failed to download dataset after {retries} attempts")
-                raise RuntimeError(f"Could not download {cfg.model_name} dataset") from e
+                raise RuntimeError(f"Could not download {model_info} dataset") from e
 
             logger.warning(f"Attempt {attempt}/{retries} failed: {e}. Retrying in {delay}s...")
             time.sleep(delay)
@@ -145,7 +146,9 @@ class BloodMNISTData:
     y_test: np.ndarray
 
 
-def load_bloodmnist(npz_path: Path = NPZ_PATH) -> BloodMNISTData:
+def load_bloodmnist(npz_path: Path = NPZ_PATH,
+                    cfg: Config | None = None
+) -> BloodMNISTData:
     """
     Loads the dataset from the NPZ file, validates its keys, and returns
     the structured data splits.
@@ -156,7 +159,7 @@ def load_bloodmnist(npz_path: Path = NPZ_PATH) -> BloodMNISTData:
     Returns:
         BloodMNISTData: The structured dataset splits.
     """
-    path = ensure_mnist_npz(npz_path)
+    path = ensure_mnist_npz(npz_path, cfg=cfg)
 
     logger.info(f"Loading dataset from {path}")
 
