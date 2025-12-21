@@ -25,10 +25,11 @@ from torchvision import models
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-from scripts.core import Logger, Config, BLOODMNIST_CLASSES
+# FIXED: Removed BLOODMNIST_CLASSES import to ensure agnostic behavior
+from scripts.core import PROJECT_ID, Config
 
 # Global logger instance
-logger: Final[logging.Logger] = Logger().get_logger()
+logger = logging.getLogger(PROJECT_ID)
 
 
 # =========================================================================== #
@@ -37,7 +38,7 @@ logger: Final[logging.Logger] = Logger().get_logger()
 
 def build_resnet18_adapted(
         device: torch.device,
-        num_classes: int = len(BLOODMNIST_CLASSES),
+        num_classes: int, # FIXED: Parameter is now mandatory, no static default
         cfg: Config | None = None
     ) -> nn.Module:
     """
@@ -55,6 +56,7 @@ def build_resnet18_adapted(
     Args:
         device (torch.device): The device (CPU or CUDA) to move the model to.
         num_classes (int): Number of output classes.
+        cfg (Config | None): Configuration object for logging.
 
     Returns:
         nn.Module: The adapted ResNet-18 model ready for training.

@@ -1,109 +1,117 @@
 """
 Dataset Fetching and Loading Module
 
-This module handles the physical retrieval of the dataset, including robust 
-download logic with retries, MD5 checksum verification, and loading the 
-compressed NumPy (.npz) files into structured data containers.
+This module handles the physical retrieval of any MedMNIST dataset, including
+robust download logic, MD5 verification, and loading into structured containers.
 """
 
 # =========================================================================== #
-#                                Standard Imports
+#                                Standard Imports                             #
 # =========================================================================== #
 import logging
 import time
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Final
 
 # =========================================================================== #
-#                                Third-Party Imports
+#                                Third-Party Imports                          #
 # =========================================================================== #
 import requests
 import numpy as np
 
 # =========================================================================== #
-#                                Internal Imports
+#                                Internal Imports                             #
 # =========================================================================== #
 from scripts.core import (
-    Logger, Config, md5_checksum, validate_npz_keys,
-    NPZ_PATH, EXPECTED_MD5, URL
+    md5_checksum, validate_npz_keys, 
+    DatasetMetadata, PROJECT_ID
 )
 
 # Global logger instance
-logger: Final[logging.Logger] = Logger().get_logger()
+logger = logging.getLogger(PROJECT_ID)
 
 
 # =========================================================================== #
-#                                DATA CONTAINERS
+#                                DATA CONTAINERS                              #
 # =========================================================================== #
 
 @dataclass(frozen=True)
-class BloodMNISTData:
-    """A container for the BloodMNIST dataset splits stored as NumPy arrays."""
+class MedMNISTData:
+    """A generic container for MedMNIST dataset splits stored as NumPy arrays."""
     X_train: np.ndarray
     y_train: np.ndarray
     X_val: np.ndarray
     y_val: np.ndarray
     X_test: np.ndarray
     y_test: np.ndarray
+    path: Path
 
 
 # =========================================================================== #
-#                                FETCHING LOGIC
+#                                FETCHING LOGIC                               #
 # =========================================================================== #
 
-def ensure_mnist_npz(
-        target_npz: Path,
+def ensure_dataset_npz(
+        metadata: DatasetMetadata,
         retries: int = 5,
         delay: float = 5.0,
-        cfg: Config | None = None
     ) -> Path:
     """
-    Downloads the BloodMNIST dataset NPZ file robustly, with retries and MD5 validation.
+    Downloads a MedMNIST dataset NPZ file robustly with retries and MD5 validation.
 
     Args:
-        target_npz (Path): The expected path for the dataset NPZ file.
+        metadata (DatasetMetadata): Metadata containing URL, MD5, name and target path.
         retries (int): Max number of download attempts.
         delay (float): Delay (seconds) between retries.
-        cfg (Config | None): Configuration object for logging context.
 
     Returns:
         Path: Path to the successfully validated .npz file.
-
-    Raises:
-        RuntimeError: If the dataset cannot be downloaded and verified.
     """
+    target_npz = metadata.path
+
     def _is_valid(path: Path) -> bool:
-        """Checks file existence, size, and MD5 checksum."""
+        """Checks file existence, header (ZIP/NPZ), and MD5 checksum."""
         if not path.exists() or path.stat().st_size < 50_000:
             return False
-        # Check for ZIP header (NPZ files are ZIP archives)
-        if path.read_bytes()[:2] != b"PK":
+        
+        try:
+            # Check for ZIP header (NPZ files are ZIP archives)
+            with open(path, "rb") as f:
+                if f.read(2) != b"PK":
+                    return False
+        except IOError:
             return False
-        return md5_checksum(path) == EXPECTED_MD5
-
+            
+        return md5_checksum(path) == metadata.md5_checksum
+    
+    # 1. Check if valid file already exists
     if _is_valid(target_npz):
-        logger.info(f"Valid dataset found: {target_npz}")
+        logger.info(f"Valid dataset '{metadata.name}' found at: {target_npz}")
         return target_npz
 
+    # 2. Cleanup corrupted file
     if target_npz.exists():
-        logger.warning(f"Corrupted or incomplete dataset found, deleting: {target_npz}")
+        logger.warning(f"Corrupted dataset found, deleting: {target_npz}")
         target_npz.unlink()
 
-    logger.info(f"Downloading {cfg.model_name if cfg else 'dataset'} from {URL}")
+    # 3. Download logic with streaming
+    logger.info(f"Downloading {metadata.name} from {metadata.url}")
+    target_npz.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = target_npz.with_suffix(".tmp")
     
     for attempt in range(1, retries + 1):
         try:
-            response = requests.get(URL, timeout=60)
-            response.raise_for_status() 
-            tmp_path.write_bytes(response.content)
+            with requests.get(metadata.url, timeout=60, stream=True) as r:
+                r.raise_for_status()
+                with open(tmp_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
 
             if not _is_valid(tmp_path):
-                raise ValueError("Downloaded file failed validation (wrong size/header/MD5)")
+                raise ValueError("Downloaded file failed MD5 or header validation")
 
             tmp_path.replace(target_npz) # Atomic move
-            logger.info(f"Successfully downloaded and verified: {target_npz}")
+            logger.info(f"Successfully downloaded and verified: {metadata.name}")
             return target_npz
 
         except Exception as e:
@@ -111,9 +119,8 @@ def ensure_mnist_npz(
                 tmp_path.unlink()
 
             if attempt == retries:
-                model_info = cfg.model_name if cfg else "dataset"
-                logger.error(f"Failed to download dataset after {retries} attempts")
-                raise RuntimeError(f"Could not download {model_info} dataset") from e
+                logger.error(f"Failed to download {metadata.name} after {retries} attempts")
+                raise RuntimeError(f"Could not download {metadata.name}") from e
 
             logger.warning(f"Attempt {attempt}/{retries} failed: {e}. Retrying in {delay}s...")
             time.sleep(delay)
@@ -121,34 +128,24 @@ def ensure_mnist_npz(
     raise RuntimeError("Unexpected error in dataset download logic.")
 
 
-def load_bloodmnist(npz_path: Path = NPZ_PATH,
-                    cfg: Config | None = None
-) -> BloodMNISTData:
+def load_medmnist(metadata: DatasetMetadata) -> MedMNISTData:
     """
-    Loads the dataset from the NPZ file, validates its keys, and returns
-    the structured data splits.
-    
-    Args:
-        npz_path (Path, optional): Path to the NPZ file.
-        cfg (Config | None): Configuration object for download context.
-
-    Returns:
-        BloodMNISTData: The structured dataset splits.
+    Ensures the dataset is present and loads it from the NPZ file.
     """
-    path = ensure_mnist_npz(npz_path, cfg=cfg)
+    path = ensure_dataset_npz(metadata)
 
-    logger.info(f"Loading dataset from {path}")
+    logger.info(f"Loading {metadata.name} into memory...")
 
-    # Use mmap_mode="r" for memory efficiency
-    with np.load(npz_path, mmap_mode="r") as data:
+    # Usiamo mmap_mode="r" per validazione, poi carichiamo in array per il processing
+    with np.load(path) as data:
         validate_npz_keys(data)
-        logger.info(f"Keys in NPZ file: {data.files}")
-
-        return BloodMNISTData(
-            X_train=data["train_images"],
-            X_val=data["val_images"],
-            X_test=data["test_images"],
-            y_train=data["train_labels"].ravel(), # Flatten labels
+        
+        return MedMNISTData(
+            X_train=np.array(data["train_images"]),
+            X_val=np.array(data["val_images"]),
+            X_test=np.array(data["test_images"]),
+            y_train=data["train_labels"].ravel(),
             y_val=data["val_labels"].ravel(),
             y_test=data["test_labels"].ravel(),
+            path=path
         )

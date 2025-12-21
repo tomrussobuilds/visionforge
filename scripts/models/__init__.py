@@ -21,12 +21,12 @@ import torch.nn as nn
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-from scripts.core import Logger, Config, BLOODMNIST_CLASSES
-# Temporary import: we keep the original name for now to avoid breaking changes
+# FIXED: Removed BLOODMNIST_CLASSES and added DATASET_REGISTRY
+from scripts.core import Config, DATASET_REGISTRY, PROJECT_ID
 from .resnet_18_adapted import build_resnet18_adapted
 
 # Global logger instance
-logger: Final[logging.Logger] = Logger().get_logger()
+logger = logging.getLogger(PROJECT_ID)
 
 
 def get_model(
@@ -53,7 +53,21 @@ def get_model(
     
     # Normalize model name for robust matching
     model_name_lower = cfg.model_name.lower()
-    num_classes = len(BLOODMNIST_CLASSES)
+    
+    # FIXED: Normalize the dataset name to lowercase to match DATASET_REGISTRY keys
+    dataset_key = cfg.dataset_name.lower()
+    
+    # FIXED: Use the normalized key for the check and class count retrieval
+    if dataset_key not in DATASET_REGISTRY:
+        available_datasets = ", ".join(DATASET_REGISTRY.keys())
+        error_msg = (
+            f"Dataset '{cfg.dataset_name}' not found in registry. "
+            f"Available options are: {available_datasets}"
+        )
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+        
+    num_classes = len(DATASET_REGISTRY[dataset_key].classes)
 
     # Routing logic (Factory Pattern)
     if "resnet-18 adapted" in model_name_lower:

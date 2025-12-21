@@ -1,12 +1,27 @@
+# Python bytecode
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
+# Project Artifacts (Excluded to keep image lightweight)
 dataset/
+outputs/
+legacy/
+tools/__pycache__/
+
+# Root-level artifacts (if any remain)
 models/
 figures/
 reports/
+logs/
+*.pth
+*.log
+*.lock
 
+# Metadata & IDE
 .git
 .gitignore
+.dockerignore
+.vscode/
+.idea/

@@ -7,16 +7,29 @@ lifecycle, including optimization, learning rate scheduling (Cosine Annealing
 followed by ReduceLROnPlateau), validation, checkpointing, and early stopping.
 """
 # =========================================================================== #
-#                                Standard Imports
+#                                Standard Imports                             #
 # =========================================================================== #
-from typing import Tuple
+import logging
+from typing import Tuple, Final
+
+# =========================================================================== #
+#                                Third-Party Imports                          #
+# =========================================================================== #
 import torch
 import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 
 # =========================================================================== #
-#                               MIXUP UTILITY
+#                                Internal Imports                             #
+# =========================================================================== #
+from scripts.core import PROJECT_ID
+
+# Global logger instance
+logger = logging.getLogger(PROJECT_ID)
+
+# =========================================================================== #
+#                               MIXUP UTILITY                                 #
 # =========================================================================== #
 
 def mixup_data(
@@ -40,7 +53,7 @@ def mixup_data(
             mixed_x: The blended input images.
             y_a: The original targets.
             y_b: The permuted targets.
-            lam: The mixing coefficient $\\lambda$.
+            lam: The mixing coefficient $\lambda$.
     """
     if alpha <= 0:
         return x, y, y, 1.0
@@ -80,7 +93,7 @@ def mixup_criterion(
         pred (torch.Tensor): Model predictions for the mixed input.
         y_a (torch.Tensor): The original targets.
         y_b (torch.Tensor): The permuted targets.
-        lam (float): The mixing coefficient $\\lambda$.
+        lam (float): The mixing coefficient $\lambda$.
 
     Returns:
         torch.Tensor: The final MixUp-regularized loss value.
@@ -89,7 +102,7 @@ def mixup_criterion(
 
 
 # =========================================================================== #
-#                               CORE ENGINES
+#                               CORE ENGINES                                  #
 # =========================================================================== #
 
 def train_one_epoch(
@@ -110,7 +123,7 @@ def train_one_epoch(
     running_loss: float = 0.0
     progress_bar = tqdm(train_loader, desc=f"Training", leave=False)
     
-    # Gradually disable MixUp after 80% of epochs
+    # Gradually disable MixUp after 50% of epochs (as per the code logic)
     alpha = mixup_alpha
     if epoch > int(0.5 * total_epochs):
         alpha = 0.0

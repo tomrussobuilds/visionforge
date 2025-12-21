@@ -13,8 +13,8 @@ This script orchestrates the entire training and evaluation pipeline:
 # =========================================================================== #
 #                                Standard Imports
 # =========================================================================== #
-from typing import Final
 import logging
+from pathlib import Path
 
 # =========================================================================== #
 #                                Third-Party Imports
@@ -26,19 +26,17 @@ import torch
 # =========================================================================== #
 from scripts.core import (
     Config, Logger, parse_args, set_seed, kill_duplicate_processes, get_device, 
-    NPZ_PATH, REPORTS_DIR
+    DATASET_REGISTRY, PROJECT_ID, RunPaths, setup_static_directories, ensure_single_instance
 )
 from scripts.data_handler import (
-    load_bloodmnist, get_dataloaders, show_sample_images
+    load_medmnist, get_dataloaders, show_sample_images, get_augmentations_transforms
 )
 from scripts.models import get_model
 from scripts.trainer import ModelTrainer
-from scripts.evaluation import (
-    run_final_evaluation, create_structured_report
-)
+from scripts.evaluation import run_final_evaluation
 
 # Global logger instance
-logger: Final[logging.Logger] = Logger().get_logger()
+logger = logging.getLogger(PROJECT_ID)
 
 # =========================================================================== #
 #                               MAIN EXECUTION
@@ -66,13 +64,25 @@ def main() -> None:
         jitter_val=args.jitter_val
     )
     
-    # Initialize Logger and Seed
-    Logger.setup(name=cfg.model_name)
+    # Initialize Seed
     set_seed(cfg.seed)
 
     # 2. Environment Initialization
+    lock_path = Path("/tmp/bloodmnist_training.lock")
+    ensure_single_instance(lock_file=lock_path,logger=logger)
+
     kill_duplicate_processes(logger=logger)
     device = get_device(logger=logger)
+    
+    # Setup base project structure
+    setup_static_directories()
+    
+    # Initialize dynamic paths for the current run
+    paths = RunPaths(cfg.model_name, cfg.dataset_name)
+    
+    # Setup logger with run-specific file
+    Logger.setup(name=PROJECT_ID, log_dir=paths.logs)
+    logger.info(f"Run Directory initialized: {paths.root}")
 
     logger.info(
         f"Hyperparameters: LR={cfg.learning_rate:.4f}, Momentum={cfg.momentum:.2f}, "
@@ -81,10 +91,18 @@ def main() -> None:
     )
 
     # 3. Data Loading and Preparation
-    data = load_bloodmnist(NPZ_PATH, cfg=cfg)
+    # Retrieve dataset metadata from registry
+    ds_meta = DATASET_REGISTRY[cfg.dataset_name.lower()]
+    data = load_medmnist(ds_meta)
     
-    # Optional: Visual check of samples (saved to figures/)
-    show_sample_images(data, cfg=cfg)
+    # Optional: Visual check of samples (saved to run-specific figures directory)
+    show_sample_images(
+        images=data.X_train,
+        labels=data.y_train,
+        classes=ds_meta.classes,
+        save_path=paths.figures / "dataset_samples.png",
+        cfg=cfg
+    )
 
     # Create DataLoaders
     train_loader, val_loader, test_loader = get_dataloaders(data, cfg)
@@ -101,7 +119,8 @@ def main() -> None:
         train_loader=train_loader,
         val_loader=val_loader,
         device=device,
-        cfg=cfg
+        cfg=cfg,
+        output_dir=paths.models # Save checkpoints to the run-specific directory
     )
     best_path, train_losses, val_accuracies = trainer.train()
 
@@ -110,25 +129,22 @@ def main() -> None:
     logger.info(f"Loaded best checkpoint weights from: {best_path}")
 
     # 6. Final Evaluation (Metrics & Plots)
+    # Get augmentation info string for reporting
+    aug_info = get_augmentations_transforms(cfg)
+
     macro_f1, test_acc = run_final_evaluation(
         model=model,
         test_loader=test_loader,
-        data=data,
+        test_images=data.X_test,
+        test_labels=data.y_test,
+        class_names=ds_meta.classes,
         train_losses=train_losses,
         val_accuracies=val_accuracies,
         device=device,
+        paths=paths,
+        cfg=cfg,
         use_tta=cfg.use_tta,
-        cfg=cfg
-    )
-
-    # 7. Build and Save Structured Report
-    report = create_structured_report(
-        val_accuracies=val_accuracies,
-        macro_f1=macro_f1,
-        test_acc=test_acc,
-        train_losses=train_losses,
-        best_path=best_path,
-        cfg=cfg
+        aug_info=aug_info
     )
 
     # Final Summary Logging
@@ -136,13 +152,8 @@ def main() -> None:
         f"PIPELINE COMPLETED → "
         f"Test Acc: {test_acc:.4f} | "
         f"Macro F1: {macro_f1:.4f} | "
-        f"Best Val Acc: {report.best_val_accuracy:.4f}"
+        f"Results saved in: {paths.root}"
     )
-
-    # Save to Excel
-    excel_filename = f"report_{cfg.model_name.replace(' ', '_')}.xlsx"
-    report.save(REPORTS_DIR / excel_filename)
-    logger.info(f"Excel report saved successfully in: {REPORTS_DIR}")
 
 
 # =========================================================================== #

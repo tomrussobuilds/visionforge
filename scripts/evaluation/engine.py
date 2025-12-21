@@ -26,10 +26,10 @@ from sklearn.metrics import f1_score
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-from scripts.core import Logger
+from scripts.core import PROJECT_ID
 
 # Global logger instance
-logger: Final[logging.Logger] = Logger().get_logger()
+logger = logging.getLogger(PROJECT_ID)
 
 
 # =========================================================================== #
@@ -59,22 +59,23 @@ def tta_predict_batch(
     model.eval()
     inputs = inputs.to(device)
     
-    # Define a list of augmented versions of the input batch
+    # Define a list of augmented versions of the input batch (7-way ensemble)
     augs: List[torch.Tensor] = [
         inputs,
-        torch.flip(inputs, dims=[3]), # Horizontal flip
-        torch.rot90(inputs, k=1, dims=[2, 3]), # 90 degree rotation
-        torch.rot90(inputs, k=3, dims=[2, 3]), # 270 degree rotation
+        torch.flip(inputs, dims=[3]),           # Horizontal flip
+        torch.rot90(inputs, k=1, dims=[2, 3]),  # 90 degree rotation
+        torch.rot90(inputs, k=2, dims=[2, 3]),  # 180 degree rotation
+        torch.rot90(inputs, k=3, dims=[2, 3]),  # 270 degree rotation
         TF.gaussian_blur(inputs, kernel_size=3, sigma=0.8), # Light Gaussian blur
         # Add small Gaussian noise and clamp
-        (inputs + 0.015 * torch.randn_like(inputs)).clamp(0, 1),
+        (inputs + 0.01 * torch.randn_like(inputs)).clamp(0, 1),
     ]
     
     preds: List[torch.Tensor] = []
     with torch.no_grad():
         for aug in augs:
             logits = model(aug)
-            # Use softmax output for averaging
+            # Use softmax output for averaging (ensemble in probability space)
             preds.append(F.softmax(logits, dim=1))
     
     # Stack all predictions and take the mean along the batch dimension
@@ -104,8 +105,8 @@ def evaluate_model(
             macro_f1: Test set Macro F1-score.
     """
     model.eval()
-    all_preds: List[int] = []
-    all_labels: List[int] = []
+    all_preds_list: List[np.ndarray] = []
+    all_labels_list: List[np.ndarray] = []
 
     with torch.no_grad():
         for inputs, targets in test_loader:
@@ -121,11 +122,12 @@ def evaluate_model(
                 outputs = model(inputs)
                 batch_preds = outputs.argmax(dim=1).cpu().numpy()
 
-            all_preds.extend(batch_preds)
-            all_labels.extend(targets_np)
+            all_preds_list.append(batch_preds)
+            all_labels_list.append(targets_np)
 
-    all_preds = np.array(all_preds)
-    all_labels = np.array(all_labels)
+    # Efficient concatenation of batch results
+    all_preds = np.concatenate(all_preds_list)
+    all_labels = np.concatenate(all_labels_list)
     
     # Calculate performance metrics
     accuracy = np.mean(all_preds == all_labels)

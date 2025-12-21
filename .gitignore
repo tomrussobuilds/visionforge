@@ -7,6 +7,7 @@ __pycache__/
 .venv/
 venv/
 env/
+.ipynb_checkpoints/
 
 # =========================================================================== #
 #                                IDE & SYSTEM
@@ -17,59 +18,47 @@ env/
 Thumbs.db
 *.bak
 *~
+*.swp
 
 # =========================================================================== #
 #                            PROJECT ARTIFACTS
 # =========================================================================== #
-# Ignore all generated outputs by default
-models/*
-reports/*
-figures/*
+# Experiment outputs and datasets (Managed by RunPaths)
+outputs/
 dataset/
 data/
+logs/
 
-# Keep directories structure
-!models/.gitkeep
-!reports/.gitkeep
-!figures/.gitkeep
-
-# SPECIFIC EXCEPTIONS: Track only these specific successful run files
-# (Everything else in figures/ remains ignored)
-!figures/ResNet-18 Adapted_samples.png
-!figures/confusion_matrix_ResNet-18 Adapted.png
-!figures/training_curves.png
-!figures/sample_predictions_ResNet-18 Adapted.png
-
-# =========================================================================== #
-#                          ML SPECIFIC (WEIGHTS & LOGS)
-# =========================================================================== #
+# Root-level temporary files
+*.log
+*.npz
 *.pth
 *.pt
 *.ckpt
-*.log
-*.npz
+*.lock
+
+# =========================================================================== #
+#                          ML SPECIFIC (MONITORING)
+# =========================================================================== #
 wandb/
 runs/
+.comet_ml/
 
 # =========================================================================== #
-#                       LEGACY & DEVELOPMENT SCRIPTS
+#                       LEGACY & UTILITY FOLDERS
 # =========================================================================== #
-# Temporary and utility scripts
-check_pytorch.py
-check_ram.py
-checksum.py
-patch.py
-.prof
-.profile
+# Ignore the entire legacy folder to keep the repo clean
+legacy/
 
-# Older pipeline versions (Legacy)
-pipeline*.py
-cnn_bloodmnist.py
-_legacy_train_bloodmnist.py
+# Track the tools/ folder scripts but ignore their local outputs
+!tools/
+tools/
+tools/__pycache__/
+tools/*.log
 
-# Modules removed during refactoring
-scripts/core/utils.py
-scripts/evaluation/evaluation.py
-scripts/data_handler/data_handler.py
-scripts/models/models.py
-scripts/trainer/trainer.py
+# =========================================================================== #
+#                       DOCUMENTATION & RESULTS
+# =========================================================================== #
+# If you want to keep specific summary reports, place them in a 'results/' 
+# folder and uncomment the line below. Otherwise, keep it ignored.
+# !results/

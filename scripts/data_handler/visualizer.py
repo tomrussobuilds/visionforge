@@ -6,14 +6,14 @@ specifically by generating grids of sample images from the raw NumPy arrays.
 """
 
 # =========================================================================== #
-#                                Standard Imports
+#                                Standard Imports                             #
 # =========================================================================== #
 import logging
 from pathlib import Path
-from typing import Final
+from typing import List
 
 # =========================================================================== #
-#                                Third-Party Imports
+#                                Third-Party Imports                          #
 # =========================================================================== #
 import numpy as np
 import matplotlib
@@ -21,58 +21,64 @@ matplotlib.use("Agg")  # Use non-interactive backend for plotting
 import matplotlib.pyplot as plt
 
 # =========================================================================== #
-#                                Internal Imports
+#                                Internal Imports                             #
 # =========================================================================== #
-from scripts.core import Config, FIGURES_DIR, Logger, BLOODMNIST_CLASSES
-# We import the dataclass from the local fetcher (that we will create next)
-from .fetcher import BloodMNISTData
+from scripts.core import Config, Logger, PROJECT_ID
 
 # Global logger instance
-logger: Final[logging.Logger] = Logger().get_logger()
+logger = logging.getLogger(PROJECT_ID)
 
 
 def show_sample_images(
-        data: BloodMNISTData,
-        save_path: Path | None = None,
-        cfg: Config | None = None
+        images: np.ndarray,
+        labels: np.ndarray,
+        classes: List[str],
+        save_path: Path,
+        cfg: Config
     ) -> None:  
     """
     Generates and saves a figure showing 9 random samples from the training set.
 
     Args:
-        data (BloodMNISTData): The structured dataset (to access training images).
-        save_path (Path | None, optional): Path to save the figure.
-                                           Defaults to FIGURES_DIR/bloodmnist_samples.png.
-        cfg (Config | None): Configuration object for title and naming.
+        images (np.ndarray): NumPy array of training images.
+        labels (np.ndarray): NumPy array of training labels.
+        classes (List[str]): List of class names for labeling.
+        save_path (Path): Full path where the figure will be saved.
+        cfg (Config): Configuration object for title metadata.
     """
-    if save_path is None:
-        save_path = FIGURES_DIR / f"{cfg.model_name}_samples.png"
-
-    if save_path.exists():
-        logger.info(f"Sample images figure already exists → {save_path}")
-        return
-
-    indices = np.random.choice(len(data.X_train), size=9, replace=False)
+    # Safety check: avoid crashing if the dataset is surprisingly small
+    num_samples = min(len(images), 9)
+    indices = np.random.choice(len(images), size=num_samples, replace=False)
 
     plt.figure(figsize=(9, 9))
     for i, idx in enumerate(indices):
-        img = data.X_train[idx]
-        label = int(data.y_train[idx])
+        img = images[idx]
+        label_idx = int(labels[idx])
 
         plt.subplot(3, 3, i + 1)
 
-        # Handle grayscale (1 channel) or color (3 channels) images
+        # Handle grayscale (1 channel), Channel-First, or Channel-Last images
         if img.ndim == 3 and img.shape[-1] == 3:
             plt.imshow(img)
+        elif img.ndim == 3 and img.shape[0] == 3:
+            plt.imshow(img.transpose(1, 2, 0))
         else:
             plt.imshow(img.squeeze(), cmap='gray')
 
-        plt.title(f"{label} — {BLOODMNIST_CLASSES[label]}", fontsize=11)
+        # FIX: Use the 'classes' argument instead of the hardcoded BLOODMNIST_CLASSES
+        class_name = classes[label_idx] if label_idx < len(classes) else f"ID: {label_idx}"
+        plt.title(f"{label_idx} — {class_name}", fontsize=11)
         plt.axis("off")
 
-    plt.suptitle(f"{cfg.model_name} — 9 Random Samples from Training Set", fontsize=16)
+    model_title = cfg.model_name if cfg else "Model"
+    plt.suptitle(f"{model_title} — 9 Random Samples from Training Set", fontsize=16)
+    
     # Adjust layout to prevent title overlap
     plt.tight_layout(rect=[0, 0.03, 1, 0.95]) 
+    
+    # Ensure the parent directory exists (safety for RunPaths)
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    
     plt.savefig(save_path, dpi=200, bbox_inches="tight")
     plt.close()
-    logger.info(f"Sample images saved → {save_path}")
+    logger.info(f"Sample images saved to → {save_path}")

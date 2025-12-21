@@ -79,59 +79,79 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: An object containing all parsed command line arguments.
     """
     parser = argparse.ArgumentParser(
-        description="BloodMNIST training pipeline based on adapted ResNet-18."
+        description="BloodMNIST training pipeline based on adapted ResNet-18.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter # Aggiunge i default automaticamente nell'help
     )
     
-    # Use an instance of Config to get default values dynamically
     default_cfg = Config()
 
-    parser.add_argument(
-        '--epochs', type=int, default=default_cfg.epochs,
-        help=f"Number of training epochs. Default: {default_cfg.epochs}"
+    # Group: Training Hyperparameters
+    train_group = parser.add_argument_group("Training Hyperparameters")
+    
+    train_group.add_argument(
+        '--epochs',
+        type=int,
+        default=default_cfg.epochs
     )
-    parser.add_argument(
-        '--batch_size', type=int, default=default_cfg.batch_size,
-        help=f"Batch size for data loaders. Default: {default_cfg.batch_size}"
+    train_group.add_argument(
+        '--batch_size',
+        type=int,
+        default=default_cfg.batch_size
     )
-    parser.add_argument(
-        '--lr', '--learning_rate', type=float, default=default_cfg.learning_rate,
-        help=f"Initial learning rate. Default: {default_cfg.learning_rate}"
+    train_group.add_argument(
+        '--lr', '--learning_rate',
+        type=float,
+        default=default_cfg.learning_rate
     )
-    parser.add_argument(
-        '--seed', type=int, default=default_cfg.seed,
-        help=f"Random seed for reproducibility. Default: {default_cfg.seed}"
+    train_group.add_argument(
+        '--seed',
+        type=int,
+        default=default_cfg.seed
     )
-    parser.add_argument(
-        '--mixup_alpha', type=float, default=default_cfg.mixup_alpha,
-        help=f"Alpha for MixUp. Default: {default_cfg.mixup_alpha}"
+    train_group.add_argument(
+        '--patience',
+        type=int,
+        default=default_cfg.patience
     )
-    parser.add_argument(
-        '--patience', type=int, default=default_cfg.patience,
-        help=f"Early stopping patience. Default: {default_cfg.patience}"
+    train_group.add_argument(
+        '--momentum',
+        type=float,
+        default=default_cfg.momentum
     )
-    parser.add_argument(
-        '--no_tta', action='store_true',
-        help="Disable Test-Time Augmentation (TTA) during final evaluation."
+    train_group.add_argument(
+        '--weight_decay',
+        type=float,
+        default=default_cfg.weight_decay
     )
-    parser.add_argument(
-        '--momentum', type=float, default=default_cfg.momentum,
-        help=f"Momentum for SGD. Default: {default_cfg.momentum}"
+    
+
+    # Group: Regularization & Augmentation
+    aug_group = parser.add_argument_group("Regularization & Augmentation")
+    
+    aug_group.add_argument(
+        '--mixup_alpha',
+        type=float,
+        default=default_cfg.mixup_alpha
     )
-    parser.add_argument(
-        '--weight_decay', type=float, default=default_cfg.weight_decay,
-        help=f"Weight decay for SGD. Default: {default_cfg.weight_decay}"
+    aug_group.add_argument(
+        '--no_tta',
+        action='store_true',
+        help="Disable TTA during final evaluation."
     )
-    parser.add_argument(
-        '--hflip', type=float, default=default_cfg.hflip,
-        help=f"Probability of Horizontal Flip. Default: {default_cfg.hflip}"
+    aug_group.add_argument(
+        '--hflip',
+        type=float,
+        default=default_cfg.hflip
     )
-    parser.add_argument(
-        '--rotation_angle', type=int, default=default_cfg.rotation_angle,
-        help=f"Max rotation angle. Default: {default_cfg.rotation_angle}"
+    aug_group.add_argument(
+        '--rotation_angle',
+        type=int,
+        default=default_cfg.rotation_angle
     )
-    parser.add_argument(
-        '--jitter_val', type=float, default=default_cfg.jitter_val,
-        help=f"Color jitter value. Default: {default_cfg.jitter_val}"
+    aug_group.add_argument(
+        '--jitter_val',
+        type=float,
+        default=default_cfg.jitter_val
     )
     
     return parser.parse_args()

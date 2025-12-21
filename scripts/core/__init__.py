@@ -2,29 +2,45 @@
 Core Utilities Package
 
 This package exposes the essential components for configuration, logging, 
-system management, and project constants.
+system management, project constants and the dynamic dataset registry.
 """
 
+# =========================================================================== #
+#                                Configuration
+# =========================================================================== #
 from .config import Config, parse_args
+
+# =========================================================================== #
+#                                Constants & Paths
+# =========================================================================== #
 from .constants import (
     PROJECT_ROOT, 
-    DATASET_DIR, 
-    FIGURES_DIR, 
-    MODELS_DIR, 
-    LOG_DIR, 
-    REPORTS_DIR,
-    ALL_DIRS,
-    NPZ_PATH,
-    EXPECTED_MD5,
-    URL,
-    BLOODMNIST_CLASSES,
-    setup_directories
+    DATASET_DIR,
+    OUTPUTS_ROOT,
+    STATIC_DIRS,
+    PROJECT_ID,
+    RunPaths,
+    setup_static_directories
 )
-from .logger import Logger, logger, log_file
+
+# =========================================================================== #
+#                                Dataset Registry
+# =========================================================================== #
+from .dataset_metadata import (
+    DatasetMetadata,
+    DATASET_REGISTRY
+)
+
+# =========================================================================== #
+#                                Logging & System
+# =========================================================================== #
+from .logger import Logger
+
 from .system import (
     set_seed, 
     get_device, 
     md5_checksum, 
     validate_npz_keys, 
-    kill_duplicate_processes
+    kill_duplicate_processes,
+    ensure_single_instance
 )

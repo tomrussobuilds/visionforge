@@ -9,7 +9,7 @@ matrices, and sample prediction grids with true vs. predicted labels.
 # =========================================================================== #
 #                                Standard Imports
 # =========================================================================== #
-from typing import Sequence, Final
+from typing import Sequence, Final, List
 from pathlib import Path
 import logging
 
@@ -25,19 +25,20 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-from scripts.core import Config, Logger, BLOODMNIST_CLASSES
-from scripts.data_handler import BloodMNISTData
+from scripts.core import Config, PROJECT_ID
 
 # Global logger instance
-logger: Final[logging.Logger] = Logger().get_logger()
+logger = logging.getLogger(PROJECT_ID)
 
 
 # =========================================================================== #
 #                               VISUALIZATION FUNCTIONS
 # =========================================================================== #
 
-def show_predictions(dataset: BloodMNISTData,
+def show_predictions(images: np.ndarray,
+                     true_labels: np.ndarray,
                      preds: np.ndarray,
+                     classes: List[str],
                      n: int = 12,
                      save_path: Path | None = None,
                      cfg: Config | None = None
@@ -47,26 +48,28 @@ def show_predictions(dataset: BloodMNISTData,
     predicted labels, highlighting correct vs. incorrect predictions.
 
     Args:
-        dataset (BloodMNISTData): The loaded dataset object (for test data access).
+        images (np.ndarray): The array of test images.
+        true_labels (np.ndarray): The array of true labels for the test set.
         preds (np.ndarray): The array of model predictions for the test set.
+        classes (List[str]): List of class names for labeling.
         n (int): The number of samples to display (must be multiple of 4).
         save_path (Path | None): Path to save the figure. If None, the plot is shown.
         cfg (Config | None): Configuration object for title metadata.
     """
     # Ensure n is a multiple of 4 for a clean 3x4 grid or similar
-    if n > len(dataset.X_test):
-        n = len(dataset.X_test)
+    if n > len(images):
+        n = len(images)
     
     rows = int(np.ceil(n / 4))
     cols = 4
 
     plt.figure(figsize=(12, 3 * rows))
     # Randomly select N indices from the test set
-    indices = np.random.choice(len(dataset.X_test), n, replace=False)
+    indices = np.random.choice(len(images), n, replace=False)
 
     for i, idx in enumerate(indices):
-        img = dataset.X_test[idx]
-        true_label = int(dataset.y_test[idx])
+        img = images[idx]
+        true_label = int(true_labels[idx])
         pred_label = int(preds[idx])
 
         plt.subplot(rows, cols, i+1)
@@ -74,7 +77,7 @@ def show_predictions(dataset: BloodMNISTData,
         color = "green" if true_label == pred_label else "red"
         
         plt.title(
-            f"T:{BLOODMNIST_CLASSES[true_label]}\nP:{BLOODMNIST_CLASSES[pred_label]}",
+            f"T:{classes[true_label]}\nP:{classes[pred_label]}",
             color=color, fontsize=10
         )
         plt.axis("off")
@@ -131,6 +134,7 @@ def plot_training_curves(
 def plot_confusion_matrix(
         all_labels: np.ndarray,
         all_preds: np.ndarray,
+        classes: List[str],
         out_path: Path,
         cfg: Config | None = None
 ) -> None:
@@ -140,6 +144,7 @@ def plot_confusion_matrix(
     Args:
         all_labels (np.ndarray): Array of true labels.
         all_preds (np.ndarray): Array of predicted labels.
+        classes (List[str]): List of class names for labeling.
         out_path (Path): Path to save the generated plot.
         cfg (Config | None): Configuration object for title metadata.
     """
@@ -147,7 +152,7 @@ def plot_confusion_matrix(
     cm = confusion_matrix(all_labels, all_preds, normalize='true')
     disp = ConfusionMatrixDisplay(
         confusion_matrix=cm,
-        display_labels=BLOODMNIST_CLASSES,
+        display_labels=classes,
     )
 
     fig, ax = plt.subplots(figsize=(11, 9))
@@ -177,15 +182,19 @@ def save_training_curves(
     logger.info(f"Training curves data saved → {out_dir / 'training_curves.npz'}")
 
 def save_sample_predictions(
-        data: BloodMNISTData,
+        images: np.ndarray,
+        true_labels: np.ndarray,
+        classes: List[str],
         all_preds: np.ndarray,
         out_path: Path,
         cfg: Config | None = None
     ) -> None:
     """Generates and saves a figure showing sample predictions."""
     show_predictions(
-        data,
-        all_preds,
+        images=images,
+        true_labels=true_labels,
+        classes=classes,
+        all_preds=all_preds,
         n=12,
         save_path=out_path,
         cfg=cfg

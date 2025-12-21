@@ -4,16 +4,19 @@ System and Hardware Utilities Module
 This module provides low-level utilities for hardware abstraction (device selection),
 reproducibility (seeding), file integrity (checksums), and process management.
 """
+
 # =========================================================================== #
 #                                Standard Imports
 # =========================================================================== #
 import os
+import fcntl
+import sys
 import random
 import time
 import hashlib
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 # =========================================================================== #
 #                                Third-Party Imports
@@ -22,6 +25,9 @@ import numpy as np
 import torch
 import psutil
 
+# Variable to keep the lock file descriptor alive
+_lock_fd: Optional[int] = None
+
 # =========================================================================== #
 #                               SYSTEM UTILITIES
 # =========================================================================== #
@@ -29,18 +35,16 @@ import psutil
 def set_seed(seed: int) -> None:
     """
     Sets random seeds for reproducibility across NumPy, Python, and PyTorch.
-
-    Args:
-        seed (int): The integer seed value to use.
     """
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    random.seed(seed)
     
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-        # Ensure deterministic behavior for CUDA operations
+        # Guarantees deterministic convolution algorithms
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
@@ -48,35 +52,21 @@ def set_seed(seed: int) -> None:
 def get_device(logger: logging.Logger) -> torch.device:
     """
     Determines the appropriate device (CUDA or CPU) for computation.
-    
-    Args:
-        logger (logging.Logger): Logger instance to report the selected device.
-    
-    Returns:
-        torch.device: The selected device object.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info(f"Using device: {device}")
+    logger.info(f"Computing on: {device}")
     return device 
 
 
 def md5_checksum(path: Path) -> str:
     """
     Calculates the MD5 checksum of a file in chunks for efficiency.
-
-    Args:
-        path (Path): The path to the file.
-
-    Returns:
-        str: The hexadecimal MD5 hash string.
     """
     hash_md5 = hashlib.md5()
     with path.open("rb") as f:
-        # Read the file in 8192-byte chunks to avoid memory issues
         for chunk in iter(lambda: f.read(8192), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
-
 
 def validate_npz_keys(data: np.lib.npyio.NpzFile) -> None:
     """
@@ -97,45 +87,53 @@ def validate_npz_keys(data: np.lib.npyio.NpzFile) -> None:
     missing = required_keys - set(data.files)
     if missing:
         raise ValueError(f"NPZ file is missing required keys: {missing}")
-    
 
 def kill_duplicate_processes(logger: logging.Logger, script_name: Optional[str] = None) -> None:
     """
-    Kills all Python processes executing the same script, excluding the current one.
-
-    Args:
-        logger (logging.Logger): Logger instance to report actions.
-        script_name (str, optional): The filename of the script to check.
-                                     Defaults to the current script's filename.
+    Kills duplicate Python processes to prevent resource or directory conflicts.
     """
+    # Use the entry-point script name as default (usually main.py)
     if script_name is None:
-        script_name = os.path.basename(__file__)
+        script_name = os.path.basename(sys.argv[0])
     
     current_pid = os.getpid()
     killed = 0
-    python_executables = ('python', 'python3', 'python.exe')
+    # Common python executable names across platforms
+    python_names = {'python', 'python3', 'python.exe', 'python3.exe'}
 
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         try:
-            # Filter for Python processes
-            if proc.info['name'] not in python_executables:
+            pinfo = proc.info
+            if pinfo['name'] not in python_names or pinfo['pid'] == current_pid:
                 continue
             
-            cmdline = proc.cmdline()
-            if proc.pid == current_pid:
-                continue           
-            
-            # Match script name in command line arguments
-            is_match = any(script_name in arg for arg in cmdline)
-            
-            if is_match:
+            cmdline = pinfo['cmdline']
+            if cmdline and any(script_name in arg for arg in cmdline):
                 proc.terminate()
                 killed += 1
-                logger.info(f"Killed duplicate process PID {proc.pid}")
+                logger.warning(f"Terminated duplicate process: PID {pinfo['pid']}")
         
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
     
     if killed:
-        logger.info(f"Cleaned up {killed} duplicate process(es). Waiting for resources...")
-        time.sleep(1)
+        logger.info(f"Cleaned up {killed} duplicate process(es). Cooling down...")
+        time.sleep(1.5)
+
+
+def ensure_single_instance(lock_file: Path, logger: logging.Logger) -> None:
+    """
+    Uses flock to ensure only one instance of the pipeline runs at a time.
+    """
+    global _lock_fd
+    try:
+        lock_file.parent.mkdir(parents=True, exist_ok=True)
+        # Open for writing and keep the file descriptor in a global variable
+        # so the garbage collector doesn't close it and release the lock.
+        f = open(lock_file, 'w')
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _lock_fd = f 
+        logger.info("Exclusive lock acquired.")
+    except (IOError, BlockingIOError):
+        logger.error("PROCESS ABORTED: Another instance is already running.")
+        sys.exit(1)

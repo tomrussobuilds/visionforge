@@ -1,4 +1,4 @@
-# BloodMNIST Classification with Adapted ResNet-18
+# MedMNIST Classification with Adapted ResNet-18
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-orange)
@@ -13,13 +13,13 @@ This repository provides a highly reproducible training pipeline for the BloodMN
 The results reflect the latest successful training run (early stopping at epoch 44).
 
 ### Confusion Matrix
-<img src="figures/confusion_matrix_ResNet-18 Adapted.png" width="400">
+<img src="docs/media/confusion_matrix_ResNet-18 Adapted.png" width="400">
 
 ### Training Curves
-<img src="figures/training_curves.png" width="400">
+<img src="docs/media/training_curves.png" width="400">
 
 ### Sample Predictions
-<img src="figures/sample_predictions_ResNet-18 Adapted.png" width="400">
+<img src="docs/media/sample_predictions_ResNet-18 Adapted.png" width="400">
 
 ### Final Results (60 epochs, seed 42)
 | Metric                  | Value     |
@@ -32,18 +32,54 @@ The results reflect the latest successful training run (early stopping at epoch 
 
 ---
 
-### Why this repo exists
+### Research Goals & Roadmap
 
-I wanted to see how far a **single pretrained ResNet-18** could go on the tiny 28×28 BloodMNIST dataset with proper adaptation and modern training practices — no Ensembles, no ViTs, no custom backbones.
+This project started as a benchmark to evaluate the efficiency of a single, adapted ResNet-18 on the BloodMNIST dataset (28×28). Despite the rise of Vision Transformers (ViTs) and massive ensembles, this repository aims to demonstrate that a lightweight, classic architecture—when paired with modern training techniques—remains extremely competitive for medical imaging tasks.
+The Scaling Strategy:
 
-Spoiler: a carefully adapted ResNet-18 performs surprisingly well, even on 28×28 medical images.
+  - Phase 1 (Current): Optimization on 28×28 BloodMNIST using architectural adaptations (initial kernel resize, MaxPool removal).
+
+  - Phase 2 (Near Term): Scaling the pipeline across the entire MedMNIST v2 suite (DermaMNIST, OrganMNIST, etc.) to validate the robustness of the hyperparameters.
+
+  - Phase 3 (Long Term): Extending support for high-resolution medical formats (224×224) and multi-modal integration, transitioning the repo from a specific classifier to a versatile MedMNIST benchmarking framework.
 
 ### Key Features & Design Choices (Post-Refactoring)
 
-- **Modularity and Structure**: Fully decoupled logic using specialized sub-packages (`core`, `data_handler`, `models`, `trainer`, `evaluation`).
-- **Robust Pathing**: Implemented dynamic `PROJECT_ROOT` detection in `utils.py` to ensure all outputs (models, logs, figures) are correctly saved relative to the project root, regardless of where the script is executed (local or Docker container).
-- **Accuracy vs. Reproducibility Balance**: **The pipeline prioritizes fully deterministic reproducibility.** While running in "Fast Mode" (`num_workers > 0`) is faster, the "Strict Reproducibility" mode (`num_workers=0`) guarantees bit-per-bit identical results at the expense of a longer training time. This trade-off is managed automatically via `DOCKER_REPRODUCIBILITY_MODE` environment variable.
-- **Automated Reporting**: Generates high-resolution plots and comprehensive Excel reports (`.xlsx`) for every run.
+- **Modularity and Structure** 
+
+Fully decoupled logic using specialized sub-packages (`core`, `data_handler`, `models`, `trainer`, `evaluation`).
+
+- **Robust Pathing**
+
+Implemented dynamic `PROJECT_ROOT` detection in `constants.py` to ensure all outputs (models, logs, figures) are correctly saved relative to the project root, regardless of where the script is executed (local or Docker container).
+- **Accuracy vs. Reproducibility Balance** **The pipeline prioritizes fully deterministic reproducibility.** 
+
+While running in "Fast Mode" (`num_workers > 0`) is faster, the "Strict Reproducibility" mode (`num_workers=0`) guarantees bit-per-bit identical results at the expense of a longer training time. This trade-off is managed automatically via `DOCKER_REPRODUCIBILITY_MODE` environment variable.
+
+- **Automated Reporting**:
+
+Generates high-resolution plots and comprehensive Excel reports (`.xlsx`) for every run.
+
+- **Registry-based Metadata**
+
+Metadata for different MedMNIST variants is centralized in a `DATASET_REGISTRY` using `NamedTuples`. This ensures type safety, immutability, and makes adding supoprt for new datasets (like DermaMNIST) a matter of a single dictionary entry.
+
+- **Atomic Run Isolation**
+
+Every execution is treated as a unique experiment. The `RunPaths` manager ensures that logs, checkpoints, and reports are isolated in timestamped directories, preventing accidental overwrites and maintaing a clean historical record of experiments.
+
+- **Regularization: MixUp**
+
+To improve generalization on the 28x28 manifold, the pipeline implements MixUp during training. New samples are synthesized as a convex combination of two random samples from the mini-batch:
+
+$$
+\tilde{x} = \lambda x_i + (1 - \lambda) x_j
+$$
+$$
+\tilde{y} = \lambda y_i + (1 - \lambda) y_j
+$$
+
+Where $\lambda \in [0, 1]$ is drawn from a $Beta(\alpha, \alpha)$ distribution. This process encourages the model to behave linearly in-between training samples, reducing overconfident predictions and improving robustness.
 
 ---
 
@@ -54,36 +90,41 @@ Spoiler: a carefully adapted ResNet-18 performs surprisingly well, even on 28×2
 - ImageNet pretrained weights transferred via bicubic upsampling of the first convolutional layer.
 - Reproduciblity & Robustness: – Full Reproducibility guaranteed (fixed seeds for PyTorch, NumPy, Python).
 - `worker_init_fn` implemented to ensure determinism even when using multiple data loading workers (`num_workers > 0`).
-- Defensive Utilities: Robust dataset download with MD5 validation and atomic write ensures pipeline reliablity.
 
 ---
 
 ### Defensive Utilities
 
-A few tiny helpers included in `utils.py` were added after real debugging incidents to ensure robust, unattended execution:
+A few tiny helpers included in `system.py` and `config.py` were added after real debugging incidents to ensure robust, unattended execution:
 
 * **Dynamic `num_workers`:** The `Config` class automatically adjusts `num_workers` (0 vs 4) based on the `DOCKER_REPRODUCIBILITY_MODE` environment variable, balancing speed and determinism.
 * **Process Management (`kill_duplicate_processes()`):** Stops accidental multi-launches that consume excessive CPU/RAM.
 * **Safe Data I/O (`ensure_mnist_npz()`):** Robust dataset download with retries, MD5 check, and atomic write ensures pipeline reliability.
-* **Robust Pathing:** The `get_base_dir()` utility ensures all outputs (models, logs, figures) are saved correctly relative to the project root, regardless of the execution environment (host or Docker).
+* **Robust Pathing:** The `get_project_root()` utility ensures all outputs (models, logs, figures) are saved correctly relative to the project root, regardless of the execution environment (host or Docker).
 
 ---
 
 ### Project Structure
 
 ```bash
-bloodmnist/
-├── main.py                   # Main execution entry point
-├── scripts/                  # Modular logic
-│   ├── core/                 # Config, Logging and Project Constants
-│   ├── data_handler/         # Data downloading and DataLoader pipeline
-│   ├── models/               # Architecture definitions (Adapted ResNet)
-│   ├── trainer/              # Training loop, MixUp and Early Stopping
-│   └── evaluation/           # Evaluation engine, Plots and Excel reporting
-├── dataset/                  # BloodMNIST source files
-├── figures/                  # Auto-generated plots (linked to model name)
-├── reports/                  # Structured Excel training reports
-└── models/                   # Saved model checkpoints (.pth)
+med_mnist/
+├── main.py                   # Global entry point
+├── Dockerfile                # Image definition
+├── .dockerignore             # Build optimization
+├── .gitignore                # Repository filtering
+├── requirements.txt          # Python dependencies
+├── docs/
+│   └── media/                # Stable README assets (tracked)
+├── tools/                    # Maintenance (RAM checks, etc.)
+├── legacy/                   # Archived code
+├── scripts/                  # Modular package
+│   ├── core/                 # Config & Constants
+│   ├── data_handler/         # Loading & Augmentation
+│   ├── models/               # Model Factory
+│   ├── trainer/              # Training Loop & MixUp
+│   └── evaluation/           # Engine & Reporting
+└── outputs/                  # Results (ignored by Git)
+    └── YYYYMMDD_HHMMSS/      # Timestamped run folder
 ```
 
 ### 1. Requirements
@@ -114,7 +155,7 @@ The script will automatically:
 
 - Download BloodMNIST if missing
 - Train for max 60 epochs with early stopping (`patience=15`)
-- Save the best model → `models/resnet18_bloodmnist_best.pth`
+- Save the best model → `outputs/YYYYMMDD_HHMMSS_bloodmnist_resnet18/models/best_model.pth`
 - Generate figures, confusion matrix, Excel report → `figures/` and `reports/`
 
 ### 3. Docker Execution (Recommended for Portability & Reproducibility)
@@ -146,6 +187,9 @@ You can fully configure training from the command line (via `main.py`).
 | --momentum | float | 0.9 | Momentum factor for the SGD optimizer. |
 | --weight_decay | float | 5e-4 | Weight decay (L2 penalty) for the optimizer |
 | --no_tta | flag | (disabled) | Flag to disable Test-Time Augmentation (TTA) during final evaluation. |
+| --hflip | float | 0.5 | Probability of Horizontal Flip augmentation. |
+| --rotation_angle | int | 10 | Max rotation angle for random rotations. |
+| --jitter_val | float | 0.2 | Strength of Color Jitter (brightness/contrast). |
 
 Examples:
 
@@ -192,10 +236,16 @@ If you use this repository in academic work or derivative projects:
 }
 ```
 
-### Conclusion
+### Conclusion & Future Work
 
-This project demonstrates how a classic, lightweight architecture like ResNet-18 can perform extremely well on a compact medical-image dataset when paired with a careful, modern training setup.
+This project is a starting point. While the adapted ResNet-18 has shown great results, the real goal is to turn this repository into a sandbox for medical imaging experimentation.
 
-The goal is to provide a clean, stable, reproducible pipeline that others can reuse or extend with minimal friction.
+What’s next? I plan to keep testing:
 
-If you find this project useful, feedback and suggestions are always welcome!
+  - More Architectures: Moving beyond ResNet to see how different backbones (EfficientNets, ConvNeXts, etc.) handle the MedMNIST manifold.
+
+  - New Datasets: Scaling the same pipeline to other MedMNIST categories.
+
+  - Better Tuning: Exploring different augmentation and regularization strategies.
+
+Let's see how far we can push the accuracy on these datasets. If you have ideas or want to test a specific model, feel free to contribute!

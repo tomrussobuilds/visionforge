@@ -2,14 +2,14 @@
 Trainer Package Facade
 """
 # =========================================================================== #
-#                                Standard Imports
+#                                Standard Imports                             #
 # =========================================================================== #
 from typing import Tuple, List, Final
 import logging
 from pathlib import Path
 
 # =========================================================================== #
-#                                Third-Party Imports
+#                                Third-Party Imports                          #
 # =========================================================================== #
 import torch
 import torch.nn as nn
@@ -18,17 +18,17 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau
 
 # =========================================================================== #
-#                                Internal Imports
+#                                Internal Imports                             #
 # =========================================================================== #
-from scripts.core import Logger, Config, MODELS_DIR
+from scripts.core import PROJECT_ID, Config
 from .engine import train_one_epoch, validate_epoch
 
 # Global logger instance
-logger: Final[logging.Logger] = Logger().get_logger()
+logger = logging.getLogger(PROJECT_ID)
 
 
 # =========================================================================== #
-#                               TRAINING LOGIC
+#                               TRAINING LOGIC                                #
 # =========================================================================== #
 
 class ModelTrainer:
@@ -42,7 +42,7 @@ class ModelTrainer:
         val_loader: DataLoader,
         device: torch.device,
         cfg: Config,
-        best_path: Path | None = None,
+        output_dir: Path | None = None, # Renamed/Modified to match main.py
     ):
         """
         Initializes the ModelTrainer with model, data loaders, optimizer,
@@ -54,7 +54,7 @@ class ModelTrainer:
             val_loader (DataLoader): DataLoader for the validation data.
             device (torch.device): The device (CPU/CUDA) to run the training on.
             config (Config): Configuration object containing hyperparameters.
-            best_path (Path | None, optional): Path to save the best model checkpoint.
+            output_dir (Path | None, optional): Directory to save the best model checkpoint.
         """
         self.model = model
         self.train_loader = train_loader
@@ -95,7 +95,14 @@ class ModelTrainer:
         # Early Stopping and Checkpointing
         self.best_acc: float = 0.0
         self.epochs_no_improve: int = 0
-        self.best_path: Path = best_path or (MODELS_DIR / f"{cfg.model_name}_{cfg.dataset_name}_best.pth")
+        
+        # FIX: Define best_path using the output_dir provided by RunPaths in main.py
+        model_filename = f"best_model_{cfg.model_name.lower()}.pth"
+        if output_dir:
+            self.best_path = output_dir / model_filename
+        else:
+            # Fallback if no path is provided
+            self.best_path = Path(model_filename)
         
         # History tracking
         self.train_losses: List[float] = []

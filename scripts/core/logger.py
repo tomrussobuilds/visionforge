@@ -1,75 +1,68 @@
 """
 Logging Management Module
 
-This module provides a centralized logger configuration with support for
-console output and rotating file storage. It ensures a consistent logging
-format across the entire pipeline.
+Handles centralized logging configuration. Supports dynamic reconfiguration 
+to switch from console-only logging to file-based logging once experiment 
+directories are initialized.
 """
+
 # =========================================================================== #
-#                                Standard Imports
+#                                Standard Imports                             #
 # =========================================================================== #
 import logging
 import os
 import sys
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, Optional
+from typing import Dict, Optional, Final
 from logging.handlers import RotatingFileHandler
 
 # =========================================================================== #
-#                                Internal Imports
+#                                Internal Imports                             #
 # =========================================================================== #
-from .constants import LOG_DIR
+from .constants import PROJECT_ROOT
 
-# =========================================================================== #
-#                                GLOBAL STATE
-# =========================================================================== #
-
-# This will store the path of the current log file for external reference
+# Track the current active log file globally
 log_file: Optional[Path] = None
 
 # =========================================================================== #
-#                                LOGGER CLASS
+#                               LOGGER CLASS                                  #
 # =========================================================================== #
 
 class Logger:
     """
-    Configurable logger with rotating file handler and stdout output.
-
-    Ensures a single, well-configured logger instance is used across the
-    application.
-
-    Attributes:
-        _loggers (Dict): Dictionary to cache logger instances (Singleton pattern).
+    Manages centralized logging configuration with singleton-like behavior.
     """
-
-    _loggers: Dict[str, logging.Logger] = {}
+    _configured_names: Final[Dict[str, bool]] = {}
 
     def __init__(
         self,
         name: str = "bloodmnist_pipeline",
-        log_dir: Path = LOG_DIR,
+        log_dir: Optional[Path] = None,
         log_to_file: bool = True,
         level: int = logging.INFO,
         max_bytes: int = 5 * 1024 * 1024,
         backup_count: int = 5,
     ):
         self.name = name
-        self.log_dir = Path(log_dir)
-        self.log_to_file = log_to_file
-        self.level = logging.DEBUG if os.getenv("DEBUG") == "1" else level 
+        self.log_dir = log_dir
+        self.log_to_file = log_to_file and (log_dir is not None)
+        self.level = logging.DEBUG if os.getenv("DEBUG") == "1" else level
         self.max_bytes = max_bytes
         self.backup_count = backup_count
-
-        if name in Logger._loggers:
-            self.logger = Logger._loggers[name]
-        else:
-            self.logger = logging.getLogger(name)
+        
+        # Retrieve the system logger instance
+        self.logger = logging.getLogger(name)
+        
+        # Configure if it's the first time or if a new log directory is provided
+        if name not in Logger._configured_names or log_dir is not None:
             self._setup_logger()
-            Logger._loggers[name] = self.logger
+            Logger._configured_names[name] = True
 
-    def _setup_logger(self):
-        """Internal method to configure logging handlers and formatter."""
+    def _setup_logger(self) -> None:
+        """
+        Configures log handlers: Console always, File only if log_dir is provided.
+        """
         formatter = logging.Formatter(
             "%(asctime)s - %(levelname)s - %(message)s",
             "%Y-%m-%d %H:%M:%S",
@@ -77,62 +70,48 @@ class Logger:
         self.logger.setLevel(self.level)
         self.logger.propagate = False
 
-        # Console handler (StreamHandler)
+        # Clean up existing handlers to prevent duplicates or resource leaks
         if self.logger.hasHandlers():
             for handler in self.logger.handlers[:]:
                 handler.close()
                 self.logger.removeHandler(handler)
         
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
-        self.logger.addHandler(console_handler)
+        # 1. Console Handler (Standard Output)
+        console_h = logging.StreamHandler(sys.stdout)
+        console_h.setFormatter(formatter)
+        self.logger.addHandler(console_h)
 
-        # Rotating File handler
-        if self.log_to_file:
+        # 2. Rotating File Handler (Activated when log_dir is known)
+        if self.log_to_file and self.log_dir:
             self.log_dir.mkdir(parents=True, exist_ok=True)
+            
+            # File name with timestamp for uniqueness
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             filename = self.log_dir / f"{self.name}_{timestamp}.log"
 
-            file_handler = RotatingFileHandler(
-                filename,
-                maxBytes=self.max_bytes,
+            file_h = RotatingFileHandler(
+                filename, 
+                maxBytes=self.max_bytes, 
                 backupCount=self.backup_count,
+                encoding='utf-8' # Ensure UTF-8 for cross-platform stability
             )
+            file_h.setFormatter(formatter)
+            self.logger.addHandler(file_h)
             
-            file_handler.setFormatter(formatter)
-            self.logger.addHandler(file_handler)
-
-            # Update global log_file path
-            import scripts.core.logger as logger_module
-            logger_module.log_file = filename
+            # Update global reference
+            global log_file
+            log_file = filename
 
     def get_logger(self) -> logging.Logger:
-        """
-        Returns the configured logger instance.
-
-        Returns:
-            logging.Logger: The configured logger object.
-        """
+        """Returns the configured logging.Logger instance."""
         return self.logger
     
     @classmethod
     def setup(cls, name: str, **kwargs) -> logging.Logger:
         """
-        Class method to get or create a logger instance.
-
-        Args:
-            name (str): Name of the logger.
-        Returns:
-            logging.Logger: The configured logger object.
+        Main entry point for configuring the logger, typically called from main.py.
         """
-        instance = cls(name=name, **kwargs)
-        return instance.get_logger()
-        
+        return cls(name=name, **kwargs).get_logger()
 
-# =========================================================================== #
-#                                INITIALIZATION
-# =========================================================================== #
-
-# Create the default global logger instance
-_logger_manager = Logger(log_dir=LOG_DIR)
-logger = _logger_manager.get_logger()
+# Initial safe instance for immediate imports (writes only to console initially)
+logger: Final[logging.Logger] = Logger().get_logger()

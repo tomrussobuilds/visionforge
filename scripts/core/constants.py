@@ -1,86 +1,103 @@
 """
 Constants and Path Configuration Module
 
-This module defines all global constants, including directory structures,
-dataset metadata (URLs, MD5 checksums), and class taxonomies for BloodMNIST.
+This module defines the global directory structure and provides utilities for
+managing experiment-specific paths (Runs). It supports a clean separation 
+between raw datasets and timestamped experiment outputs.
 """
+
 # =========================================================================== #
-#                                Standard Imports
+#                                Standard Imports                             #
 # =========================================================================== #
+import time
+import os
 from pathlib import Path
 from typing import Final, List
 
 # =========================================================================== #
-#                                PATH CALCULATIONS
+#                                PATH CALCULATIONS                            #
 # =========================================================================== #
 
 def get_project_root() -> Path:
     """
     Returns the absolute path to the project root directory.
     
-    The root is assumed to be one level above the 'scripts/core' directory.
+    The root is assumed to be due livelli sopra la cartella dove risiede questo file.
     """
     try:
-        # Resolves to the 'scripts' folder, then parent to reach project root
+        # Resolves: scripts/core/constants.py -> scripts/core/ -> scripts/ -> root/
         return Path(__file__).resolve().parent.parent.parent
     except NameError:
-        # Fallback for interactive shells
-        return Path.cwd()
+        # Fallback per ambienti interattivi senza __file__
+        return Path.cwd().resolve()
 
 PROJECT_ROOT: Final[Path] = get_project_root()
 
 # =========================================================================== #
-#                                DIRECTORIES
+#                                STATIC DIRECTORIES                           #
 # =========================================================================== #
 
-DATASET_DIR: Final[Path] = PROJECT_ROOT / "dataset"
-FIGURES_DIR: Final[Path] = PROJECT_ROOT / "figures"
-MODELS_DIR: Final[Path] = PROJECT_ROOT / "models"
-LOG_DIR: Final[Path] = PROJECT_ROOT / "logs"
-REPORTS_DIR: Final[Path] = PROJECT_ROOT / "reports"
+# Input: Where raw datasets are stored
+DATASET_DIR: Final[Path] = (PROJECT_ROOT / "dataset").resolve()
 
-ALL_DIRS: Final[List[Path]] = [
-    DATASET_DIR,
-    FIGURES_DIR,
-    MODELS_DIR,
-    LOG_DIR,
-    REPORTS_DIR
-]
+# Output: Root directory for all experiment results
+OUTPUTS_ROOT: Final[Path] = (PROJECT_ROOT / "outputs").resolve()
+
+# Directories that must exist at startup
+STATIC_DIRS: Final[List[Path]] = [DATASET_DIR, OUTPUTS_ROOT]
+
+PROJECT_ID: Final[str] = "medmnist_pipeline"
 
 # =========================================================================== #
-#                                DATASET METADATA
+#                                RUN MANAGEMENT                               #
 # =========================================================================== #
 
-# File path to the local .npz file
-DATASET_NAME: Final[str] = "BloodMNIST"
-NPZ_PATH: Final[Path] = DATASET_DIR / f"{DATASET_NAME}.npz"
-
-# Integrity and Source
-EXPECTED_MD5: Final[str] = "7053d0359d879ad8a5505303e11de1dc"
-URL: Final[str] = "https://zenodo.org/record/5208230/files/bloodmnist.npz?download=1"
-
-# Official BloodMNIST taxonomy
-BLOODMNIST_CLASSES: Final[List[str]] = [
-    "basophil", 
-    "eosinophil", 
-    "erythroblast", 
-    "immature granulocyte",
-    "lymphocyte", 
-    "monocyte", 
-    "neutrophil", 
-    "platelet"
-]
-
-# =========================================================================== #
-#                                DIRECTORY SETUP
-# =========================================================================== #
-
-def setup_directories(directories: List[Path]) -> None:
+class RunPaths:
     """
-    Ensures that all required project directories exist.
+    Manages experiment-specific directories to prevent overwriting results.
     
-    Args:
-        directories (List[Path]): List of directory paths to create.
+    Each training session gets a unique directory under 'outputs/' based on 
+    the timestamp, dataset, and model name.
     """
-    for directory in directories:
+    def __init__(self, dataset_name: str, model_name: str):
+        # Format: 20251221_143005_bloodmnist_resnet18 (include secondi per unicità)
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        
+        # Pulizia nomi per filesystem
+        model_slug = model_name.lower().replace(" ", "_").replace("-", "_")
+        ds_slug = dataset_name.lower().replace(" ", "_").replace("-", "_")
+
+        self.run_id: Final[str] = f"{timestamp}_{ds_slug}_{model_slug}"
+        
+        # Definizione gerarchia sotto-cartelle
+        self.root: Final[Path] = OUTPUTS_ROOT / self.run_id
+        self.figures: Final[Path] = self.root / "figures"
+        self.models: Final[Path] = self.root / "models"
+        self.reports: Final[Path] = self.root / "reports"
+        self.logs: Final[Path] = self.root / "logs"
+        
+        self._setup_run_directories()
+
+    def _setup_run_directories(self) -> None:
+        """Ensures all sub-directories for the current run exist."""
+        # Creando i figli con parents=True, creiamo automaticamente anche self.root
+        run_dirs = [self.figures, self.models, self.reports, self.logs]
+        for path in run_dirs:
+            path.mkdir(parents=True, exist_ok=True)
+
+    def get_config_path(self) -> Path:
+        """Returns the path for the configuration YAML file."""
+        return self.root / "config.yaml"
+    
+    def __repr__(self) -> str:
+        return f"RunPaths(run_id={self.run_id}, root={self.root})"
+
+
+# =========================================================================== #
+#                                INITIAL SETUP                                #
+# =========================================================================== #
+
+def setup_static_directories() -> None:
+    """Ensures the core project structure is present."""
+    for directory in STATIC_DIRS:
         directory.mkdir(parents=True, exist_ok=True)
