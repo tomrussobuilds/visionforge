@@ -143,7 +143,11 @@ def train_one_epoch(
     return running_loss / len(train_loader.dataset)
 
 
-def validate_epoch(model: nn.Module, val_loader: torch.utils.data.DataLoader, device: torch.device) -> float:
+def validate_epoch(
+        model: nn.Module,
+        val_loader: torch.utils.data.DataLoader,
+        device: torch.device
+    ) -> float:
     """
     Performs a full validation cycle on the validation set.
     """
