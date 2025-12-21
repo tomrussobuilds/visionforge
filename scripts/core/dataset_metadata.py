@@ -75,8 +75,4 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
             "vascular lesions"
         ]
     ),
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 374b284698eac1908fae527c09bc2ce3e6950724
