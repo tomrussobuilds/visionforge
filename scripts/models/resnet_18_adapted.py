@@ -11,7 +11,6 @@ resolution, as well as replacing the final classification head.
 # =========================================================================== #
 #                                Standard Imports
 # =========================================================================== #
-from typing import Final
 import logging
 
 # =========================================================================== #
@@ -38,7 +37,7 @@ logger = logging.getLogger(PROJECT_ID)
 
 def build_resnet18_adapted(
         device: torch.device,
-        num_classes: int, # FIXED: Parameter is now mandatory, no static default
+        num_classes: int,
         cfg: Config | None = None
     ) -> nn.Module:
     """

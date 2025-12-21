@@ -4,7 +4,7 @@ Trainer Package Facade
 # =========================================================================== #
 #                                Standard Imports                             #
 # =========================================================================== #
-from typing import Tuple, List, Final
+from typing import Tuple, List
 import logging
 from pathlib import Path
 
@@ -42,7 +42,7 @@ class ModelTrainer:
         val_loader: DataLoader,
         device: torch.device,
         cfg: Config,
-        output_dir: Path | None = None, # Renamed/Modified to match main.py
+        output_dir: Path | None = None,
     ):
         """
         Initializes the ModelTrainer with model, data loaders, optimizer,
@@ -96,7 +96,6 @@ class ModelTrainer:
         self.best_acc: float = 0.0
         self.epochs_no_improve: int = 0
         
-        # FIX: Define best_path using the output_dir provided by RunPaths in main.py
         model_filename = f"best_model_{cfg.model_name.lower()}.pth"
         if output_dir:
             self.best_path = output_dir / model_filename

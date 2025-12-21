@@ -45,30 +45,31 @@ The Scaling Strategy:
 
 ### Key Features & Design Choices (Post-Refactoring)
 
-- **Modularity and Structure** 
+**Modularity and Structure** 
 
 Fully decoupled logic using specialized sub-packages (`core`, `data_handler`, `models`, `trainer`, `evaluation`).
 
-- **Robust Pathing**
+**Robust Pathing**
 
 Implemented dynamic `PROJECT_ROOT` detection in `constants.py` to ensure all outputs (models, logs, figures) are correctly saved relative to the project root, regardless of where the script is executed (local or Docker container).
-- **Accuracy vs. Reproducibility Balance** **The pipeline prioritizes fully deterministic reproducibility.** 
+
+**Accuracy vs. Reproducibility Balance** **The pipeline prioritizes fully deterministic reproducibility.** 
 
 While running in "Fast Mode" (`num_workers > 0`) is faster, the "Strict Reproducibility" mode (`num_workers=0`) guarantees bit-per-bit identical results at the expense of a longer training time. This trade-off is managed automatically via `DOCKER_REPRODUCIBILITY_MODE` environment variable.
 
-- **Automated Reporting**:
+**Automated Reporting**
 
 Generates high-resolution plots and comprehensive Excel reports (`.xlsx`) for every run.
 
-- **Registry-based Metadata**
+**Registry-based Metadata**
 
 Metadata for different MedMNIST variants is centralized in a `DATASET_REGISTRY` using `NamedTuples`. This ensures type safety, immutability, and makes adding supoprt for new datasets (like DermaMNIST) a matter of a single dictionary entry.
 
-- **Atomic Run Isolation**
+**Atomic Run Isolation**
 
 Every execution is treated as a unique experiment. The `RunPaths` manager ensures that logs, checkpoints, and reports are isolated in timestamped directories, preventing accidental overwrites and maintaing a clean historical record of experiments.
 
-- **Regularization: MixUp**
+**Regularization: MixUp**
 
 To improve generalization on the 28x28 manifold, the pipeline implements MixUp during training. New samples are synthesized as a convex combination of two random samples from the mini-batch:
 
