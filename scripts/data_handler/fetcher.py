@@ -24,12 +24,8 @@ import numpy as np
 # =========================================================================== #
 from scripts.core import (
     md5_checksum, validate_npz_keys, 
-    DatasetMetadata, PROJECT_ID
+    DatasetMetadata
 )
-
-# Global logger instance
-logger = logging.getLogger(PROJECT_ID)
-
 
 # =========================================================================== #
 #                                DATA CONTAINERS                              #
@@ -50,6 +46,8 @@ class MedMNISTData:
 # =========================================================================== #
 #                                FETCHING LOGIC                               #
 # =========================================================================== #
+# Global logger instance
+logger = logging.getLogger("medmnist_pipeline")
 
 def ensure_dataset_npz(
         metadata: DatasetMetadata,
@@ -136,7 +134,6 @@ def load_medmnist(metadata: DatasetMetadata) -> MedMNISTData:
 
     logger.info(f"Loading {metadata.name} into memory...")
 
-    # Usiamo mmap_mode="r" per validazione, poi carichiamo in array per il processing
     with np.load(path) as data:
         validate_npz_keys(data)
         

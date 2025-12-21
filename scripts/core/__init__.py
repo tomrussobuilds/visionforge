@@ -18,7 +18,6 @@ from .constants import (
     DATASET_DIR,
     OUTPUTS_ROOT,
     STATIC_DIRS,
-    PROJECT_ID,
     RunPaths,
     setup_static_directories
 )

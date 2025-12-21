@@ -22,7 +22,7 @@ import numpy as np
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from scripts.core import PROJECT_ID, Config, RunPaths
+from scripts.core import Config, RunPaths
 from .engine import evaluate_model
 from .visualization import (
     plot_confusion_matrix, 
@@ -31,8 +31,11 @@ from .visualization import (
 )
 from .reporting import create_structured_report
 
+# =========================================================================== #
+#                               EVALUATION PIPELINE                           #
+# =========================================================================== #
 # Global logger instance
-logger = logging.getLogger(PROJECT_ID)
+logger = logging.getLogger("medmnist_pipeline")
 
 
 def run_final_evaluation(

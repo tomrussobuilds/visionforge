@@ -24,16 +24,13 @@ from torchvision import models
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-# FIXED: Removed BLOODMNIST_CLASSES import to ensure agnostic behavior
-from scripts.core import PROJECT_ID, Config
-
-# Global logger instance
-logger = logging.getLogger(PROJECT_ID)
-
+from scripts.core import Config
 
 # =========================================================================== #
 #                               MODEL DEFINITION
 # =========================================================================== #
+# Global logger instance
+logger = logging.getLogger("medmnist_pipeline")
 
 def build_resnet18_adapted(
         device: torch.device,

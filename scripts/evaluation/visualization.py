@@ -9,7 +9,7 @@ matrices, and sample prediction grids with true vs. predicted labels.
 # =========================================================================== #
 #                                Standard Imports
 # =========================================================================== #
-from typing import Sequence, Final, List
+from typing import Sequence, List
 from pathlib import Path
 import logging
 
@@ -27,13 +27,11 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 # =========================================================================== #
 from scripts.core import Config, PROJECT_ID
 
-# Global logger instance
-logger = logging.getLogger(PROJECT_ID)
-
-
 # =========================================================================== #
 #                               VISUALIZATION FUNCTIONS
 # =========================================================================== #
+# Global logger instance
+logger = logging.getLogger(PROJECT_ID)
 
 def show_predictions(images: np.ndarray,
                      true_labels: np.ndarray,

@@ -20,16 +20,14 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from scripts.core import PROJECT_ID, Config
+from scripts.core import Config
 from .engine import train_one_epoch, validate_epoch
-
-# Global logger instance
-logger = logging.getLogger(PROJECT_ID)
-
 
 # =========================================================================== #
 #                               TRAINING LOGIC                                #
 # =========================================================================== #
+# Global logger instance
+logger = logging.getLogger("medmnist_pipeline")
 
 class ModelTrainer:
     """

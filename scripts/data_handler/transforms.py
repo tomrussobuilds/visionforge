@@ -25,8 +25,13 @@ from torchvision import transforms
 # =========================================================================== #
 from scripts.core import Config
 
+
+# =========================================================================== #
+#                             TRANSFORMATION PIPELINES                        #
+# =========================================================================== #
 # Standard costants
 IMG_SIZE: Final[int] = 28
+
 # Normalization values for ImageNet (RGB)
 RGB_MEAN: Final[Tuple[float, float, float]] = (0.485, 0.456, 0.406)
 RGB_STD: Final[Tuple[float, float, float]] = (0.229, 0.224, 0.225)

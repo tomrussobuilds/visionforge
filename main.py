@@ -26,7 +26,7 @@ import torch
 # =========================================================================== #
 from scripts.core import (
     Config, Logger, parse_args, set_seed, kill_duplicate_processes, get_device, 
-    DATASET_REGISTRY, PROJECT_ID, RunPaths, setup_static_directories, ensure_single_instance
+    DATASET_REGISTRY, RunPaths, setup_static_directories, ensure_single_instance
 )
 from scripts.data_handler import (
     load_medmnist, get_dataloaders, show_sample_images, get_augmentations_transforms
@@ -35,12 +35,11 @@ from scripts.models import get_model
 from scripts.trainer import ModelTrainer
 from scripts.evaluation import run_final_evaluation
 
-# Global logger instance
-logger = logging.getLogger(PROJECT_ID)
-
 # =========================================================================== #
 #                               MAIN EXECUTION
 # =========================================================================== #
+# Global logger instance
+logger = logging.getLogger("medmnist_pipeline")
 
 def main() -> None:
     """
@@ -69,10 +68,6 @@ def main() -> None:
 
     # 2. Environment Initialization
     lock_path = Path("/tmp/bloodmnist_training.lock")
-    ensure_single_instance(lock_file=lock_path,logger=logger)
-
-    kill_duplicate_processes(logger=logger)
-    device = get_device(logger=logger)
     
     # Setup base project structure
     setup_static_directories()
@@ -81,10 +76,21 @@ def main() -> None:
     paths = RunPaths(cfg.model_name, cfg.dataset_name)
     
     # Setup logger with run-specific file
-    Logger.setup(name=PROJECT_ID, log_dir=paths.logs)
-    logger.info(f"Run Directory initialized: {paths.root}")
-
-    logger.info(
+    Logger.setup(
+        name=paths.project_id,
+        log_dir=paths.logs
+    )
+    legacy_logger = logging.getLogger("medmnist_pipeline")
+    run_logger = logging.getLogger(paths.project_id)
+    legacy_logger.handlers = run_logger.handlers
+    legacy_logger.setLevel(run_logger.level)
+    
+    ensure_single_instance(lock_file=lock_path,logger=run_logger)
+    kill_duplicate_processes(logger=run_logger)
+    device = get_device(logger=run_logger)
+    
+    run_logger.info(f"Run Directory initialized: {paths.root}")
+    run_logger.info(
         f"Hyperparameters: LR={cfg.learning_rate:.4f}, Momentum={cfg.momentum:.2f}, "
         f"Batch={cfg.batch_size}, Epochs={cfg.epochs}, MixUp={cfg.mixup_alpha}, "
         f"TTA={'Enabled' if cfg.use_tta else 'Disabled'}"
@@ -112,7 +118,7 @@ def main() -> None:
     model = get_model(device=device, cfg=cfg)
 
     # 5. Training Execution
-    logger.info("Starting training pipeline".center(60, "="))
+    run_logger.info("Starting training pipeline".center(60, "="))
 
     trainer = ModelTrainer(
         model=model,
@@ -126,7 +132,7 @@ def main() -> None:
 
     # Load the best weights found during training
     model.load_state_dict(torch.load(best_path, map_location=device))
-    logger.info(f"Loaded best checkpoint weights from: {best_path}")
+    run_logger.info(f"Loaded best checkpoint weights from: {best_path}")
 
     # 6. Final Evaluation (Metrics & Plots)
     # Get augmentation info string for reporting
@@ -148,7 +154,7 @@ def main() -> None:
     )
 
     # Final Summary Logging
-    logger.info(
+    run_logger.info(
         f"PIPELINE COMPLETED → "
         f"Test Acc: {test_acc:.4f} | "
         f"Macro F1: {macro_f1:.4f} | "

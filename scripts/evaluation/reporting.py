@@ -22,15 +22,13 @@ import pandas as pd
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-from scripts.core import PROJECT_ID, Config
-
-# Global logger instance
-logger = logging.getLogger(PROJECT_ID)
-
+from scripts.core import Config
 
 # =========================================================================== #
 #                               EXCEL REPORTS
 # =========================================================================== #
+# Global logger instance
+logger = logging.getLogger("medmnist_pipeline")
 
 @dataclass(frozen=True)
 class TrainingReport:
