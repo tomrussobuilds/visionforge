@@ -16,7 +16,7 @@ import time
 import hashlib
 import logging
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 
 # =========================================================================== #
 #                                Third-Party Imports
@@ -25,12 +25,11 @@ import numpy as np
 import torch
 import psutil
 
-# Variable to keep the lock file descriptor alive
-_lock_fd: Optional[int] = None
-
 # =========================================================================== #
 #                               SYSTEM UTILITIES
 # =========================================================================== #
+# Variable to keep the lock file descriptor alive
+_lock_fd: Optional[int] = None
 
 def set_seed(seed: int) -> None:
     """

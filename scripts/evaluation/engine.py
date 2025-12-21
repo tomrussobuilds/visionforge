@@ -9,7 +9,7 @@ and calculating performance metrics without visualization overhead.
 # =========================================================================== #
 #                                Standard Imports
 # =========================================================================== #
-from typing import Tuple, List, Final
+from typing import Tuple, List
 import logging
 
 # =========================================================================== #
@@ -24,17 +24,10 @@ import torchvision.transforms.functional as TF
 from sklearn.metrics import f1_score
 
 # =========================================================================== #
-#                                Internal Imports
-# =========================================================================== #
-from scripts.core import PROJECT_ID
-
-# Global logger instance
-logger = logging.getLogger(PROJECT_ID)
-
-
-# =========================================================================== #
 #                               EVALUATION LOGIC
 # =========================================================================== #
+# Global logger instance
+logger = logging.getLogger("medmnist_pipeline")
 
 def tta_predict_batch(
     model: nn.Module,

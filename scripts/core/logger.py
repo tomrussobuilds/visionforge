@@ -22,12 +22,11 @@ from logging.handlers import RotatingFileHandler
 # =========================================================================== #
 from .constants import PROJECT_ROOT
 
-# Track the current active log file globally
-log_file: Optional[Path] = None
-
 # =========================================================================== #
 #                               LOGGER CLASS                                  #
 # =========================================================================== #
+# Track the current active log file globally
+log_file: Optional[Path] = None
 
 class Logger:
     """
@@ -37,7 +36,7 @@ class Logger:
 
     def __init__(
         self,
-        name: str = "bloodmnist_pipeline",
+        name: str = "medmnist_pipeline",
         log_dir: Optional[Path] = None,
         log_to_file: bool = True,
         level: int = logging.INFO,

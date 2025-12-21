@@ -23,10 +23,13 @@ import matplotlib.pyplot as plt
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from scripts.core import Config, Logger, PROJECT_ID
+from scripts.core import Config
 
+# ========================================================================== #
+#                             VISUALIZATION UTILITIES                        #
+# ========================================================================== #  
 # Global logger instance
-logger = logging.getLogger(PROJECT_ID)
+logger = logging.getLogger("medmnist_pipeline")
 
 
 def show_sample_images(
@@ -65,7 +68,6 @@ def show_sample_images(
         else:
             plt.imshow(img.squeeze(), cmap='gray')
 
-        # FIX: Use the 'classes' argument instead of the hardcoded BLOODMNIST_CLASSES
         class_name = classes[label_idx] if label_idx < len(classes) else f"ID: {label_idx}"
         plt.title(f"{label_idx} — {class_name}", fontsize=11)
         plt.axis("off")

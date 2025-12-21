@@ -21,13 +21,16 @@ from torch.utils.data import DataLoader
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from scripts.core import Config, PROJECT_ID
+from scripts.core import Config
 from .fetcher import MedMNISTData
 from .dataset import MedMNISTDataset
 from .transforms import get_pipeline_transforms, worker_init_fn
 
+# =========================================================================== #
+#                             DATALOADER CREATION                             #
+# =========================================================================== #
 # Global logger instance
-logger = logging.getLogger(PROJECT_ID)
+logger = logging.getLogger("medmnist_pipeline")
 
 
 def get_dataloaders(

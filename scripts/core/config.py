@@ -124,7 +124,6 @@ def parse_args() -> argparse.Namespace:
         default=default_cfg.weight_decay
     )
     
-
     # Group: Regularization & Augmentation
     aug_group = parser.add_argument_group("Regularization & Augmentation")
     

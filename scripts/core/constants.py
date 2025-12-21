@@ -10,7 +10,6 @@ between raw datasets and timestamped experiment outputs.
 #                                Standard Imports                             #
 # =========================================================================== #
 import time
-import os
 from pathlib import Path
 from typing import Final, List
 
@@ -46,8 +45,6 @@ OUTPUTS_ROOT: Final[Path] = (PROJECT_ROOT / "outputs").resolve()
 # Directories that must exist at startup
 STATIC_DIRS: Final[List[Path]] = [DATASET_DIR, OUTPUTS_ROOT]
 
-PROJECT_ID: Final[str] = "medmnist_pipeline"
-
 # =========================================================================== #
 #                                RUN MANAGEMENT                               #
 # =========================================================================== #
@@ -63,13 +60,11 @@ class RunPaths:
         # Format: 20251221_143005_bloodmnist_resnet18 (include secondi per unicità)
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         
-        # Pulizia nomi per filesystem
-        model_slug = model_name.lower().replace(" ", "_").replace("-", "_")
-        ds_slug = dataset_name.lower().replace(" ", "_").replace("-", "_")
-
-        self.run_id: Final[str] = f"{timestamp}_{ds_slug}_{model_slug}"
+        self.model_slug : Final[str] = model_name.lower().replace(" ", "_").replace("-", "_")
+        self.ds_slug: Final[str] = dataset_name.lower().replace(" ", "_").replace("-", "_")
+        self.project_id: Final[str] = f"{self.ds_slug}_{self.model_slug}"
+        self.run_id: Final[str] = f"{timestamp}_{self.project_id}"
         
-        # Definizione gerarchia sotto-cartelle
         self.root: Final[Path] = OUTPUTS_ROOT / self.run_id
         self.figures: Final[Path] = self.root / "figures"
         self.models: Final[Path] = self.root / "models"

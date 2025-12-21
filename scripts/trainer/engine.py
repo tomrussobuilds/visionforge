@@ -21,16 +21,10 @@ import numpy as np
 from tqdm import tqdm
 
 # =========================================================================== #
-#                                Internal Imports                             #
-# =========================================================================== #
-from scripts.core import PROJECT_ID
-
-# Global logger instance
-logger = logging.getLogger(PROJECT_ID)
-
-# =========================================================================== #
 #                               MIXUP UTILITY                                 #
 # =========================================================================== #
+# Global logger instance
+logger = logging.getLogger("medmnist_pipeline")
 
 def mixup_data(
     x: torch.Tensor,

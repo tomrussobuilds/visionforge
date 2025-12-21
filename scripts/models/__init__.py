@@ -9,7 +9,6 @@ definitions based on the configuration provided.
 # =========================================================================== #
 #                                Standard Imports
 # =========================================================================== #
-from typing import Final
 import logging
 
 # =========================================================================== #
@@ -21,12 +20,14 @@ import torch.nn as nn
 # =========================================================================== #
 #                                Internal Imports
 # =========================================================================== #
-# FIXED: Removed BLOODMNIST_CLASSES and added DATASET_REGISTRY
-from scripts.core import Config, DATASET_REGISTRY, PROJECT_ID
+from scripts.core import Config, DATASET_REGISTRY
 from .resnet_18_adapted import build_resnet18_adapted
 
+# =========================================================================== #
+#                               MODEL FACTORY LOGIC                           #
+# =========================================================================== #
 # Global logger instance
-logger = logging.getLogger(PROJECT_ID)
+logger = logging.getLogger("medmnist_pipeline")
 
 
 def get_model(
