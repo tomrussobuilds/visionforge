@@ -75,6 +75,4 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
             "vascular lesions"
         ]
     ),
-    
-    # You can easily scale by adding more MedMNIST variants here
 }

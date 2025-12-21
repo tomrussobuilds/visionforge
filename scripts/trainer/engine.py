@@ -10,7 +10,7 @@ followed by ReduceLROnPlateau), validation, checkpointing, and early stopping.
 #                                Standard Imports                             #
 # =========================================================================== #
 import logging
-from typing import Tuple, Final
+from typing import Tuple
 
 # =========================================================================== #
 #                                Third-Party Imports                          #

@@ -80,7 +80,6 @@ class RunPaths:
 
     def _setup_run_directories(self) -> None:
         """Ensures all sub-directories for the current run exist."""
-        # Creando i figli con parents=True, creiamo automaticamente anche self.root
         run_dirs = [self.figures, self.models, self.reports, self.logs]
         for path in run_dirs:
             path.mkdir(parents=True, exist_ok=True)
