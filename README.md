@@ -15,6 +15,7 @@
 * [📁 Project Structure](#-project-structure)
 * [⚙️ Requirements & Installation](#️-requirements--installation)
 * [💻 Usage (Local )](#-usage-local)
+* [🐳 Docker Execution](#-docker-execution)
 * [✅ Environment Verification (Smoke Test)](#-environment-verification-smoke-test)
 * [📊 Command Line Arguments](#-command-line-arguments)
 * [🗺 Research Goals](#-research-goals)
