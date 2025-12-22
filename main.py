@@ -43,7 +43,7 @@ logger = logging.getLogger("medmnist_pipeline")
 
 def main() -> None:
     """
-    The main function that controls the entire BloodMNIST training and evaluation flow.
+    The main function that controls the entire training and evaluation flow.
     """
     
     # 1. Configuration Setup

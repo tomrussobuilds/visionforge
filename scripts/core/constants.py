@@ -62,7 +62,6 @@ class RunPaths:
             dataset_slug (str): Unique identifier for the dataset (from DATASET_REGISTRY).
             model_name (str): Human-readable model name (from Config).
         """
-        # Format: 20251221_143005_bloodmnist_resnet18 (include secondi per unicità)
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         
         self.model_slug : Final[str] = model_name.lower().replace(" ", "_").replace("-", "_")
