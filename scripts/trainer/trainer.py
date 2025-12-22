@@ -64,10 +64,10 @@ class ModelTrainer:
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.device = device
+        self.cfg = cfg
         self.epochs = cfg.epochs
         self.patience = cfg.patience
-        self.mixup_alpha = cfg.mixup_alpha
-        
+
         # Loss function
         self.criterion = nn.CrossEntropyLoss()
         
@@ -128,7 +128,7 @@ class ModelTrainer:
             # Perform training pass
             epoch_loss = train_one_epoch(
                 self.model, self.train_loader, self.criterion, 
-                self.optimizer, self.device, epoch, self.epochs, self.mixup_alpha
+                self.optimizer, self.device, epoch, self.epochs, self.cfg
             )
             self.train_losses.append(epoch_loss)
 
