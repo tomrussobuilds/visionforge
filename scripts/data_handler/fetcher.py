@@ -69,9 +69,8 @@ def ensure_dataset_npz(
 
     def _is_valid(path: Path) -> bool:
         """Checks file existence, header (ZIP/NPZ), and MD5 checksum."""
-        if not path.exists() or path.stat().st_size < 50_000:
+        if not path.exists():
             return False
-        
         try:
             # Check for ZIP header (NPZ files are ZIP archives)
             with open(path, "rb") as f:
@@ -98,20 +97,34 @@ def ensure_dataset_npz(
     tmp_path = target_npz.with_suffix(".tmp")
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-        "Accept": "application/octet-stream"
+        "User-Agent": "Wget/1.0",
+        "Accept": "application/octet-stream",
+        "Accept-Encoding": "identity",
     }
 
     for attempt in range(1, retries + 1):
         try:
-            with requests.get(metadata.url, headers=headers, timeout=60, stream=True) as r:
+            with requests.get(
+                metadata.url,
+                headers=headers,
+                timeout=60,
+                stream=True,
+                allow_redirects=True
+                ) as r:
                 r.raise_for_status()
+
+                content_type = r.headers.get("Content-Type", "")
+                if 'text/html' in content_type:
+                    raise ValueError("Downloaded file is an HTML page, not the expected NPZ file.")
+
                 with open(tmp_path, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         if chunk:
                             f.write(chunk)
 
             if not _is_valid(tmp_path):
+                actual_md5 = md5_checksum(tmp_path)
+                logger.error(f"MD5 mismatch: expected {metadata.md5_checksum}, got {actual_md5}")
                 raise ValueError("Downloaded file failed MD5 or header validation")
 
             tmp_path.replace(target_npz) # Atomic move
