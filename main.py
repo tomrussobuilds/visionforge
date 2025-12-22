@@ -1,14 +1,22 @@
 """
-Main Execution Script for BloodMNIST Classification
+Main Execution Script for MedMNIST Classification Pipeline
 
-This script orchestrates the entire training and evaluation pipeline:
-1. Parses command-line arguments and sets up configuration.
-2. Ensures environment reproducibility and prevents duplicate runs.
-3. Loads the BloodMNIST dataset and creates PyTorch DataLoaders.
-4. Initializes and adapts the model via the Models Factory.
-5. Executes the training loop with the ModelTrainer.
-6. Loads the best checkpoint and performs final evaluation, including TTA.
-7. Generates visualization reports and saves structured Excel data.
+This orchestrator manages the lifecycle of a deep learning experiment, applying 
+an adapted ResNet-18 architecture to various MedMNIST datasets (e.g., BloodMNIST). 
+
+Key Pipeline Features:
+1. Dynamic Configuration: Metadata-driven setup (mean/std, classes, channels) 
+   leveraging a centralized Dataset Registry.
+2. System Safety: Ensures environment reproducibility via seeding and prevents 
+   resource conflicts through single-instance locking and process management.
+3. Data Management: Handles automated loading, subset mocking for testing, 
+   and robust PyTorch DataLoader creation with configurable augmentations.
+4. Model Orchestration: Factory-based initialization of specialized architectures.
+5. Training & Recovery: Executes standardized training loops with automated 
+   checkpointing of the best model based on validation performance.
+6. Comprehensive Evaluation: Performs final testing with Test-Time Augmentation (TTA), 
+   generates diagnostic visualizations (Confusion Matrices, Loss Curves), and 
+   exports structured performance reports in Excel format.
 """
 # =========================================================================== #
 #                                Standard Imports
@@ -70,7 +78,11 @@ def main() -> None:
         use_tta=args.use_tta,
         hflip=args.hflip,
         rotation_angle=args.rotation_angle,
-        jitter_val=args.jitter_val
+        jitter_val=args.jitter_val,
+        num_classes=ds_meta.num_classes,
+        mean=ds_meta.mean,
+        std=ds_meta.std,
+        normalization_info=f"Mean={ds_meta.mean}, Std={ds_meta.std}",
     )
     
     # Initialize Seed

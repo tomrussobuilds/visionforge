@@ -110,8 +110,10 @@ def show_predictions(images: np.ndarray,
 def plot_training_curves(
         train_losses: Sequence[float],
         val_accuracies: Sequence[float],
-        out_path: Path,
-        save_npz: bool = True
+        out_path: Path | None = None,
+        save_npz: bool = True,
+        cfg: Config | None = None,
+        out_dir: Path | None = None
 ) -> None:
     """
     Plots the training loss and validation accuracy curves on a dual-axis plot
@@ -123,6 +125,11 @@ def plot_training_curves(
         out_path (Path): Path to save the generated plot.
         save_npz (bool): Whether to save raw data to a .npz file.
     """
+    if out_dir and not out_path:
+        out_path = Path(out_dir) / "training_curves.png"
+    elif not out_path:
+        raise ValueError("Either out_path or out_dir must be provided.")
+    
     fig, ax1 = plt.subplots(figsize=(9, 6))
 
     # Plot Training Loss on the left axis (ax1)
@@ -170,7 +177,15 @@ def plot_confusion_matrix(
         cfg (Config | None): Configuration object for title metadata.
     """
     # Calculate the normalized confusion matrix (rows sum to 1)
-    cm = confusion_matrix(all_labels, all_preds, normalize='true')
+    cm = confusion_matrix(
+        all_labels,
+        all_preds,
+        labels=np.arange(len(classes)),
+        normalize='true',
+    )
+    
+    cm = np.nan_to_num(cm)
+
     disp = ConfusionMatrixDisplay(
         confusion_matrix=cm,
         display_labels=classes,

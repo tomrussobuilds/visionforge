@@ -65,6 +65,13 @@ class Config(BaseModel):
     model_name: str = "ResNet-18 Adapted"
     dataset_name: str = "BloodMNIST"
 
+    # Dataset Metadata (to be populated from DATASET_REGISTRY)
+    normalization_info : str =  "N/A"
+    in_channels : int = 3
+    num_classes : int = 8
+    mean: tuple[float, float, float] = (0.5, 0.5, 0.5)
+    std: tuple[float, float, float] = (0.5, 0.5, 0.5)
+
 # =========================================================================== #
 #                                ARGUMENT PARSING
 # =========================================================================== #

@@ -15,6 +15,7 @@
 * [📁 Project Structure](#-project-structure)
 * [⚙️ Requirements & Installation](#️-requirements--installation)
 * [💻 Usage (Local & Docker)](#-usage-local--docker)
+* [✅ Environment Verification (Smoke Test)](#-environment-verification-smoke-test)
 * [📊 Command Line Arguments](#-command-line-arguments)
 * [🗺 Research Goals](#-research-goals)
 
@@ -54,6 +55,8 @@ This pipeline is engineered for unattended, robust execution in research environ
 **Deterministic Pipeline**: Guaranteed bit-per-bit reproducibility (Seed 42) via torch.backends.cudnn.deterministic and custom worker_init_fn to handle RNG seeding across multi-process DataLoaders.
 
 **System Utilities**: The system.py module serves as a low-level abstraction layer that manages hardware device selection, ensures process-level atomicity through kernel-level file locking, and enforces strict environment-wide reproducibility.
+
+**Continuous Stability Guard** (smoke_test.py): A dedicated diagnostic script that executes a "micro-pipeline" (1 epoch, minimal data subset). It validates the entire execution chain—from weight interpolation to Excel reporting—in less than 30 seconds, ensuring no regressions after architectural changes.
 
 ---
 
@@ -114,6 +117,7 @@ Where $\lambda \in [0, 1]$ is drawn from a $\text{Beta}(\alpha, \alpha)$ distrib
 ```bash
 med_mnist/
 ├── main.py                   # Global entry point
+├── smoke_test.py             # Rapid diagnostic tool (End-to-End check)
 ├── Dockerfile                # Image definition
 ├── .dockerignore             # Build optimization
 ├── .gitignore                # Repository filtering
@@ -162,6 +166,19 @@ The script will automatically:
 - Train for max 60 epochs with early stopping (`patience=15`)
 - Save the best model → `outputs/YYYYMMDD_HHMMSS_bloodmnist_resnet18/models/best_model.pth`
 - Generate figures, confusion matrix, Excel report → `figures/` and `reports/`
+
+---
+
+### ✅ Environment Verification (Smoke Test)
+Before starting a full training session, it is highly recommended to run the diagnostic smoke test. This ensures that your local environment, PyTorch versions, and visualization libraries are fully compatible:
+
+```bash
+python smoke_test.py
+```
+
+This will run a 1-epoch training on a tiny subset of a MedMNIST dataset and verify the generation of all output files.
+
+---
 
 ### Docker Execution (Recommended for Portability & Reproducibility)
 

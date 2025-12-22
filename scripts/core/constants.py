@@ -27,7 +27,7 @@ def get_project_root() -> Path:
         # Resolves: scripts/core/constants.py -> scripts/core/ -> scripts/ -> root/
         return Path(__file__).resolve().parent.parent.parent
     except NameError:
-        # Fallback per ambienti interattivi senza __file__
+        # Fallback for interactive environments
         return Path.cwd().resolve()
 
 PROJECT_ROOT: Final[Path] = get_project_root()
