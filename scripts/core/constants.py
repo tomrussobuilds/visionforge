@@ -1,17 +1,18 @@
 """
-Constants and Path Configuration Module
+Path Management and Project Constants
 
-This module defines the global directory structure and provides utilities for
-managing experiment-specific paths (Runs). It supports a clean separation 
-between raw datasets and timestamped experiment outputs.
+Centralizes the filesystem authority for the project. It defines the root 
+directory structure and provides the `RunPaths` orchestrator to manage 
+unique, timestamped experiment directories, ensuring that logs, models, 
+and reports are never overwritten.
 """
-
 # =========================================================================== #
 #                                Standard Imports                             #
 # =========================================================================== #
 import time
 from pathlib import Path
 from typing import Final, List, Optional
+import re
 
 # =========================================================================== #
 #                                PATH CALCULATIONS                            #
@@ -66,7 +67,8 @@ class RunPaths:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         
         # Consistent slugification
-        self.model_slug: Final[str] = model_name.lower().replace(" ", "_").replace("-", "_")
+        clean_model_name = re.sub(r'[^a-zA-Z0-9]', '_', model_name.lower())
+        self.model_slug: Final[str] = clean_model_name.strip('_')
         self.ds_slug: Final[str] = dataset_slug.lower()
         self.project_id: Final[str] = f"{self.ds_slug}_{self.model_slug}"
         self.run_id: Final[str] = f"{timestamp}_{self.project_id}"

@@ -176,8 +176,8 @@ def parse_args() -> argparse.Namespace:
     dataset_group.add_argument(
         '--max_samples',
         type=int,
-        default=default_cfg.dataset.max_samples,
-        help="Max training samples (None for full dataset)."
+        default=default_cfg.dataset.max_samples or 0,
+        help="Max training samples (Use 0 or -1 for full dataset)."
     )
     dataset_group.add_argument(
         '--balanced',
@@ -200,7 +200,7 @@ def parse_args() -> argparse.Namespace:
         '--pretrained',
         action='store_true',
         default=default_cfg.pretrained,
-        help="Load ImageNet weights for the backbone."
+        help="Load ImageNet weights for the backbone (default: True)."
     )
     model_group.add_argument(
         '--no_pretrained',

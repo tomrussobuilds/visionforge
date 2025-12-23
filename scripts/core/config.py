@@ -1,17 +1,19 @@
 """
-Unified Configuration and Command-Line Interface (CLI) Orchestrator
+Configuration Engine and Schema Definitions
 
-This module serves as the central authority for experimental reproducibility. 
-It leverages Pydantic for strict type validation and hierarchical nesting of 
-configuration groups (System, Training, Augmentation, and Dataset).
+This module serves as the Single Source of Truth (SSOT) for experiment 
+parameters and reproducibility. It defines a strict, hierarchical data 
+structure using Pydantic to ensure type safety and immutability.
 
 Key Features:
-    * Hierarchical Config: Separates hardware/path logic from model hyperparameters.
-    * Type Safety: Enforces runtime validation of types and value ranges (e.g., ge=0).
-    * CLI Mapping: Provides a seamless factory method to instantiate immutable 
-      Config objects directly from argparse namespaces.
-    * Reproducibility: Integrates with global seeding and environment-aware 
-      worker allocation.
+    * Hierarchical Schema: Decouples system, training, augmentation, and 
+      dataset-specific parameters into specialized sub-configurations.
+    * Validation & Type Safety: Enforces runtime constraints (e.g., value ranges, 
+      hardware availability) and prevents accidental modification via frozen models.
+    * Environment Awareness: Orchestrates hardware-dependent settings like 
+      device selection and optimal worker allocation.
+    * CLI Integration: Provides a factory bridge to transform raw CLI namespaces 
+      (parsed externally) into validated, immutable Config objects.
 """
 # =========================================================================== #
 #                                Standard Imports                             #
@@ -30,6 +32,7 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator
 #                                Internal Imports                             #
 # =========================================================================== #
 from .system import detect_best_device
+from .constants import DATASET_DIR, OUTPUTS_ROOT
 
 # =========================================================================== #
 #                                HELPER FUNCTIONS                            #
@@ -59,10 +62,19 @@ class SystemConfig(BaseModel):
         extra="forbid"
     )
     device: str = Field(default_factory=detect_best_device)
-    data_dir: Path = Field(default=Path("data"))
-    output_dir: Path = Field(default=Path("data"))
+    data_dir: Path = Field(default=DATASET_DIR)
+    output_dir: Path = Field(default=OUTPUTS_ROOT)
     save_model: bool = True
     log_interval: int = Field(default=10, gt=0)
+
+    @field_validator(
+            "data_dir", "output_dir", mode="after"
+    )
+    @classmethod
+    def ensure_directories_exist(cls, v: Path) -> Path:
+        "Ensure paths are absolute and create folders if missing."
+        v.mkdir(parents=True, exist_ok=True)
+        return v.resolve()
 
     @field_validator("device")
     @classmethod
@@ -130,7 +142,13 @@ class DatasetConfig(BaseModel):
 # =========================================================================== #
 
 class Config(BaseModel):
-    """Main configuration class that orchestrates sub-configs and CLI factory."""
+    """
+    Main configuration manifest.
+    
+    Acts as the root container for all sub-configurations and provides 
+    the `from_args` factory to bridge raw CLI arguments into this 
+    validated schema.
+    """
     model_config = ConfigDict(
             extra="forbid",
             validate_assignment=True,
