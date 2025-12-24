@@ -142,26 +142,29 @@ Where $\lambda \in [0, 1]$ is drawn from a $\text{Beta}(\alpha, \alpha)$ distrib
 
 ```bash
 med_mnist/
-├── main.py                   # Global entry point
-├── smoke_test.py             # Rapid diagnostic tool (End-to-End check)
-├── health_check.py           # System diagnostic
-├── Dockerfile                # Image definition
-├── .dockerignore             # Build optimization
-├── .gitignore                # Repository filtering
-├── requirements.txt          # Python dependencies
-├── docs/
-│   └── media/                # Stable README assets (tracked)
-├── tools/                    # Maintenance (RAM checks, etc.)
-├── legacy/                   # Archived code
-├── src/                      # Modular package
-│   ├── __init__.py           # Makes src a package
-│   ├── core/                 # Config & Constants
-│   ├── data_handler/         # Loading & Augmentation
-│   ├── models/               # Model Factory
-│   ├── trainer/              # Training Loop & MixUp
-│   └── evaluation/           # Engine & Reporting
-└── outputs/                  # Results (ignored by Git)
-    └── YYYYMMDD_HHMMSS/      # Timestamped run folder
+├── main.py                      # Global entry point: CLI parsing and RootOrchestrator lifecycle.
+├── smoke_test.py                # Rapid diagnostic tool: End-to-End pipeline verification (1 epoch).
+├── health_check.py              # System diagnostic: MD5 integrity, NPZ keys, and sample generation.
+├── Dockerfile                   # Image definition: Multi-stage build for reproducibility.
+├── requirements.txt             # Python dependencies: Torch 2.0+, V2 Transforms, Pydantic 2.0.
+├── src/                         # Modular package: Core classification framework logic.
+│   ├── core/                    # Config & Constants: Centralized logic and SSOT.
+│   │   ├── metadata/            # Dataset Registry: Schema definitions and class mappings.
+│   │   ├── config.py            # Pydantic models for structured configuration validation.
+│   │   └── system.py            # System safeguards: Exclusive locks and process management.
+│   ├── data_handler/            # Loading & Augmentation:
+│   │   ├── dataset.py           # MedMNIST logic: RAM caching and index management.
+│   │   └── transforms.py        # V2 Augmentations: Optimized RGB/Gray pipelines.
+│   ├── models/                  # Model Factory:
+│   │   └── resnet_18_adapted.py # Adapted ResNet-18 with Bicubic Weight Interpolation.
+│   ├── trainer/                 # Training Loop:
+│   │   ├── trainer.py           # Main Trainer class: Early stopping and checkpointing.
+│   │   └── engine.py            # Functional core: MixUp and epoch-level logic.
+│   └── evaluation/              # Analytics & Reporting:
+│       ├── engine.py            # Performance scoring (Macro F1, Accuracy).
+│       └── reporting.py         # Automated Excel and visualization generation.
+└── outputs/                     # Results (ignored): Isolated workspace for each run.
+    └── YYYYMMDD_HHMMSS/         # Unique run directory: Logs, models, and figures.
 ```
 
 ### ⚙️ Requirements & Installation
