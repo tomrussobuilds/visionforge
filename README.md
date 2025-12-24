@@ -8,12 +8,17 @@
 ![Issues](https://img.shields.io/github/issues/tomrussobuilds/medmnist)
 ![Stars](https://img.shields.io/github/stars/tomrussobuilds/medmnist?style=social)
 
+---
+
 **97.78% Test Accuracy • 0.9752 Macro F1 • Single pretrained ResNet-18 • 28×28 images**
 
+---
+
 ## 📌 Table of Contents
+
 * [🚀 Getting Started](#-getting-started)
 * [✨ Key Features](#-key-features)
-* [🏗 Architecture Details: ResNet-18 for 28x28](#-architecture-details:-resnet-18-for-28x28)
+* [🏗 Architecture Details](#-architecture-details)
 * [📁 Project Structure](#-project-structure)
 * [⚙️ Requirements & Installation](#️-requirements--installation)
 * [💻 Usage (Local )](#-usage-local)
@@ -87,14 +92,14 @@ This pipeline is engineered for unattended, robust execution in research environ
 ---
 
 
-### 🏗 Architecture Details: ResNet-18 for 28×28
+### 🏗 Architecture Details
 
 Standard ResNet-18 is designed for $224 \times 224$ inputs. When applied to the $28 \times 28$ MedMNIST manifold, the standard architecture suffers from aggressive information loss due to its initial downsampling layers. To preserve critical morphological details, the backbone has been modified:
 
 | Layer | Standard ResNet-18 | Adapted ResNet-18 (Ours) | Adaptation Strategy |
 | :--- | :--- | :--- | :--- |
 | **Input Conv** | $7 \times 7$, stride 2, pad 3 | **$3 \times 3$, stride 1, pad 1** | Bicubic Weight Interpolation |
-| **Max Pooling** | $3 \times 3$, stride 2 | **Disabled (Identity)** | Maintain spatial resolution |
+| **Max Pooling** | $3 \times 3$, stride 2 | **Bypassed (Identity)** | Maintain spatial resolution |
 | **Stage 1 Input** | $56 \times 56$ (from 224) | **$28 \times 28$ (from 28)** | Preserve native resolution |
 
 
