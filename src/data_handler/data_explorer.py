@@ -53,19 +53,14 @@ def show_sample_images(
         num_samples (int): Number of images to display in the grid. Defaults to 16.
     """
     # Extract one batch of data from the loader
-    # Using next(iter()) is the standard way to sample from a PyTorch DataLoader
     try:
         batch_images, batch_labels = next(iter(loader))
     except StopIteration:
         logger.error("DataLoader is empty. Cannot generate sample images.")
         return
-
-    # Safety check: avoid crashing if the batch is smaller than requested samples
-    # We maintain your 3x3 grid logic (9 samples) as per your subplot code
+    
     actual_samples = min(len(batch_images), 9)
     
-    # We take the first 'actual_samples' from the current batch
-    # instead of random choice to see exactly what the loader is outputting
     plt.figure(figsize=(9, 9))
     
     # Denormalization constants from Config

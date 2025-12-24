@@ -9,6 +9,7 @@
 **97.78% Test Accuracy • 0.9752 Macro F1 • Single pretrained ResNet-18 • 28×28 images**
 
 ## 📌 Table of Contents
+* [🚀 Getting Started](#-getting-started)
 * [🚀 Key Features](#-key-features)
 * [🏗 Architecture Details](#-architecture-details)
 * [🔬 Training Regularization](#-training-regularization)
@@ -41,6 +42,20 @@ This repository provides a highly reproducible, robust training framework for th
 
 ---
 
+## 🚀 Getting Started
+
+### 1. Installation & Environment
+Ensure you have the project structure correctly set up with `src/` as a package:
+```bash
+# Clone the repository
+git clone <your-repo-link>
+cd med_mnist
+
+# (Optional) Add src to PYTHONPATH to enable absolute imports
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+```
+
+---
 
 ### 🚀 Key Features & Defensive Engineering
 
@@ -60,24 +75,33 @@ This pipeline is engineered for unattended, robust execution in research environ
 
 **Continuous Stability Guard** (smoke_test.py): A dedicated diagnostic script that executes a "micro-pipeline" (1 epoch, minimal data subset). It validates the entire execution chain—from weight interpolation to Excel reporting—in less than 30 seconds, ensuring no regressions after architectural changes.
 
+**Metadata-Driven SSOT** (Dataset Registry): The pipeline eliminates hardcoded constants. A centralized registry automatically configures normalization parameters (mean/std), class mappings, and channel counts (RGB vs Grayscale) based on the selected MedMNIST subset.
+
+**Hybrid RAM Management**: Optimized for varying hardware constraints. The system automatically performs full RAM caching for smaller datasets to maximize throughput, while utilizing indexed slicing for massive datasets (like TissueMNIST) to prevent OOM (Out-of-Memory) errors.
+
+**Dynamic Path Anchoring**: Leveraging a "Search-up" logic, the system dynamically locates the project root by searching for markers (`.git` or `README.md`). This ensures absolute path stability regardless of whether the script is launched from the root, `src/`, or a subfolder.
+
+**Graceful Logger Reconfiguration**: Implements a two-stage logging lifecycle. Initial logs are routed to `STDOUT` for immediate feedback; once the Orchestrator initializes the run directory, the logger seamlessly hot-swaps to include a timestamped file handler without losing previous trace data.
+
 ---
 
 
 ### 🏗 Architecture Details: ResNet-18 for 28×28
 
-Standard ResNet-18 is designed for 224×224 inputs. To handle the small-scale MedMNIST manifold without aggressive information loss, the backbone has been modified:
-
-**Stem Adaptation**: The initial 7×7 convolution (stride 2) is replaced with a 3×3 kernel (stride 1).
-
-**Downsampling Removal**: The initial MaxPool layer is bypassed. This maintains a 28×28 feature map depth into the residual blocks, preserving critical morphological details for medical diagnostics.
-
-**Bicubic Weight Transfer**: Pretrained ImageNet weights are preserved; the first layer's weights are adapted to the new 3×3 geometry via bicubic upsampling, maintaining the value of large-scale learned features. To maintain the representational power of the ImageNet-pretrained backbone, weights from the original 7×7 stem are mapped to the adapted 3×3 geometry using bicubic interpolation; this process preserves the spatial distribution of learned feature detectors while aligning them with the new architectural constraints.
+Standard ResNet-18 is designed for $224 \times 224$ inputs. When applied to the $28 \times 28$ MedMNIST manifold, the standard architecture suffers from aggressive information loss due to its initial downsampling layers. To preserve critical morphological details, the backbone has been modified:
 
 | Layer | Standard ResNet-18 | Adapted ResNet-18 (Ours) | Adaptation Strategy |
 | :--- | :--- | :--- | :--- |
-| **Input Conv** | $7 \times 7$, stride 2, pad 3 | $3 \times 3$, stride 1, pad 1 | Bicubic Weight Interpolation |
+| **Input Conv** | $7 \times 7$, stride 2, pad 3 | **$3 \times 3$, stride 1, pad 1** | Bicubic Weight Interpolation |
 | **Max Pooling** | $3 \times 3$, stride 2 | **Disabled (Identity)** | Maintain spatial resolution |
-| **Feature Map In** | $56 \times 56$ | $28 \times 28$ | Preserve morphological details |
+| **Stage 1 Input** | $56 \times 56$ (from 224) | **$28 \times 28$ (from 28)** | Preserve native resolution |
+
+
+
+**Key Modifications:**
+1.  **Stem Adaptation**: The initial large-receptive-field convolution is replaced with a $3 \times 3$ kernel. By setting `stride=1`, we avoid losing 75% of the pixel data in the first layer.
+2.  **Downsampling Removal**: The initial MaxPool layer is bypassed. In a standard ResNet, the feature map would be reduced to $14 \times 14$ before even reaching the first residual block. Our adaptation enters the residual stages at the full $28 \times 28$ resolution.
+3.  **Bicubic Weight Transfer**: To maintain the representational power of the ImageNet-pretrained backbone, weights from the original $7 \times 7$ stem are mapped to the adapted $3 \times 3$ geometry using bicubic interpolation. This ensures the model starts with learned feature detectors rather than random noise.
 
 ---
 
@@ -120,6 +144,7 @@ Where $\lambda \in [0, 1]$ is drawn from a $\text{Beta}(\alpha, \alpha)$ distrib
 med_mnist/
 ├── main.py                   # Global entry point
 ├── smoke_test.py             # Rapid diagnostic tool (End-to-End check)
+├── health_check.py           # System diagnostic
 ├── Dockerfile                # Image definition
 ├── .dockerignore             # Build optimization
 ├── .gitignore                # Repository filtering
@@ -128,7 +153,8 @@ med_mnist/
 │   └── media/                # Stable README assets (tracked)
 ├── tools/                    # Maintenance (RAM checks, etc.)
 ├── legacy/                   # Archived code
-├── scripts/                  # Modular package
+├── src/                      # Modular package
+│   ├── __init__.py           # Makes src a package
 │   ├── core/                 # Config & Constants
 │   ├── data_handler/         # Loading & Augmentation
 │   ├── models/               # Model Factory
@@ -156,9 +182,14 @@ Install dependencies easily with pip, or check the full list here:
 Run the script from the project root. It will default to the fast mode (`num_workers=4`).
 
 ```bash
-git clone https://github.com/tomrussobuilds/medmnist.git
-cd medmnist
-python main.py
+# 1. Setup Environment (Required to resolve src package)
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+
+# 2. Verify System
+python health_check.py
+
+# 3. Run Training (Registry handles automated download)
+python main.py --dataset bloodmnist
 ```
 Note: The entry point script is now `main.py`.
 
