@@ -1,18 +1,33 @@
 """
-Evaluation and Reporting Package exposing core evaluation utilities.
+Evaluation and Reporting Package
+
+This package coordinates model inference, performance visualization, 
+and structured experiment reporting using a memory-efficient approach.
 """
 
 # =========================================================================== #
-#                                Internal Imports                             #
+#                                Inference Engine                             #
 # =========================================================================== #
 from .engine import evaluate_model
 
-from .reporting import TrainingReport, create_structured_report
-
+# =========================================================================== #
+#                                Visualizations                               #
+# =========================================================================== #
 from .visualization import (
     plot_confusion_matrix,
     plot_training_curves,
     show_predictions
 )
 
+# =========================================================================== #
+#                                Structured Reporting                         #
+# =========================================================================== #
+from .reporting import (
+    TrainingReport, 
+    create_structured_report
+)
+
+# =========================================================================== #
+#                                Evaluation Pipeline                          #
+# =========================================================================== #
 from .pipeline import run_final_evaluation

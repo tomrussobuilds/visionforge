@@ -29,7 +29,7 @@ from .visualization import (
     plot_training_curves, 
     show_predictions
 )
-from .reporting import create_structured_report, save_report_as_yaml
+from .reporting import create_structured_report
 
 # =========================================================================== #
 #                               EVALUATION PIPELINE                           #
@@ -80,26 +80,11 @@ def run_final_evaluation(
         cfg=cfg
     )
 
-    # Lazy Visualization Logic: Extract sample batch if full arrays are missing
-    if test_images is None or test_labels is None:
-        logger.info("Lazy Mode: Extracting sample batch from test_loader for prediction grid...")
-        # Get one batch from the test loader
-        sample_batch = next(iter(test_loader))
-        # Convert to NumPy and fix dimensions: (B, C, H, W) -> (B, H, W, C)
-        vis_images = sample_batch[0].cpu().numpy().transpose(0, 2, 3, 1)
-        vis_labels = sample_batch[1].cpu().numpy().flatten()
-        # Correlate with the first N predictions generated earlier
-        vis_preds = all_preds[:len(vis_labels)]
-    else:
-        vis_images = test_images
-        vis_labels = test_labels
-        vis_preds = all_preds
-
     # Generate the visual grid of predictions
     show_predictions(
-        images=vis_images,
-        true_labels=vis_labels,
-        preds=vis_preds,
+        model=model,
+        loader=test_loader,
+        device=device,
         classes=class_names,
         n=12,
         save_path=paths.figures / "sample_predictions.png",
@@ -107,10 +92,7 @@ def run_final_evaluation(
     )
 
     # --- 3) Structured Reporting ---
-    # Export parameters for reproducibility
-    save_report_as_yaml(config=cfg, run_paths=paths)
-    
-    # Locate the best model checkpoint dynamically
+        # Locate the best model checkpoint dynamically
     best_model_filename = f"best_model_{cfg.model_name.lower().replace(' ', '_')}.pth"
     
     # Compile final Excel summary

@@ -21,8 +21,9 @@ import numpy as np
 # =========================================================================== #
 from .system import (
     set_seed, ensure_single_instance, kill_duplicate_processes, get_cuda_name,
-    to_device_obj, load_model_weights, validate_npz_keys
+    to_device_obj, load_model_weights
 )
+from .io import save_config_as_yaml, validate_npz_keys
 from .logger import Logger
 from .constants import RunPaths, setup_static_directories
 
@@ -99,7 +100,10 @@ class RootOrchestrator:
         kill_duplicate_processes(
             logger=self.run_logger
         )
-
+        save_config_as_yaml(
+            config=self.cfg,
+            yaml_path=self.paths.get_config_path()
+        )
         self._log_initial_status()
         
         return self.paths

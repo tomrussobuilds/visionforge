@@ -31,25 +31,8 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from .system import detect_best_device
+from .system import detect_best_device, get_num_workers
 from .constants import DATASET_DIR, OUTPUTS_ROOT
-
-# =========================================================================== #
-#                                HELPER FUNCTIONS                            #
-# =========================================================================== #
-
-def _get_num_workers_config() -> int:
-    """
-    Calculates the default value for num_workers based on the environment.
-
-    If DOCKER_REPRODUCIBILITY_MODE is set to '1' or 'TRUE', it returns 0
-    to force single-thread execution for bit-per-bit determinism.
-    
-    Returns:
-        int: The determined number of data loader workers (0 or 4).
-    """
-    is_docker_reproducible = os.environ.get("DOCKER_REPRODUCIBILITY_MODE", "0").upper() in ("1", "TRUE")
-    return 0 if is_docker_reproducible else 4
 
 # =========================================================================== #
 #                                SUB-CONFIGURATIONS                           #
@@ -107,7 +90,7 @@ class TrainingConfig(BaseModel):
     mixup_epochs: int = Field(default=30, ge=0)
     use_tta: bool = True
     cosine_fraction: float = Field(default=0.5, ge=0.0, le=1.0)
-    use_amp: bool = Field(default=False)
+    use_amp: bool = False
     grad_clip: float | None = Field(default=1.0, gt=0)
 
 
@@ -163,7 +146,7 @@ class Config(BaseModel):
     augmentation: AugmentationConfig = Field(default_factory=AugmentationConfig)
     dataset: DatasetConfig = Field(default_factory=DatasetConfig)
     
-    num_workers: int = Field(default_factory=_get_num_workers_config)
+    num_workers: int = Field(default_factory=get_num_workers)
     model_name: str = "ResNet-18 Adapted"
     pretrained: bool = True
 
@@ -178,6 +161,11 @@ class Config(BaseModel):
         """Factory method to create a Config instance from CLI arguments."""
         from .metadata import DATASET_REGISTRY
 
+        detected_device = detect_best_device()
+        final_device = args.device if args.device != "auto" else detected_device
+
+        actual_use_amp = args.use_amp and ("cuda" in final_device)
+
         dataset_key = args.dataset.lower()
         if dataset_key not in DATASET_REGISTRY:
             raise ValueError(f"Dataset '{args.dataset}' not found in DATASET_REGISTRY.")
@@ -190,7 +178,7 @@ class Config(BaseModel):
             pretrained=args.pretrained,
             num_workers=args.num_workers,
             system=SystemConfig(
-                device=args.device,
+                device=final_device,
                 data_dir=Path(args.data_dir),
                 output_dir=Path(args.output_dir),
                 save_model=args.save_model,
@@ -208,7 +196,7 @@ class Config(BaseModel):
                 use_tta=args.use_tta,
                 cosine_fraction=args.cosine_fraction,
                 mixup_epochs=getattr(args, 'mixup_epochs', args.epochs // 2),
-                use_amp=args.use_amp,
+                use_amp=actual_use_amp,
                 grad_clip=args.grad_clip
             ),
             augmentation=AugmentationConfig(

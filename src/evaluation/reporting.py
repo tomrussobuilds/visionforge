@@ -1,8 +1,16 @@
 """
-Reporting Module
+Reporting & Experiment Summarization Module
 
-This module defines the structured training report and utilities for generating
-final experiment summaries in Excel format and YAML configuration files.
+This module orchestrates the generation of human-readable artifacts following 
+the completion of a training pipeline. It specializes in transforming raw 
+experiment metrics and configuration states into structured, professionally 
+formatted Excel summaries.
+
+Core Components:
+    * TrainingReport: A frozen data container that aggregates metadata, 
+      hyperparameters, and final performance metrics.
+    * Excel Export: Logic for generating stylized spreadsheets with 
+      automated column sizing and conditional formatting.
 """
 
 # =========================================================================== #
@@ -11,9 +19,8 @@ final experiment summaries in Excel format and YAML configuration files.
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Sequence, Any, Dict, TYPE_CHECKING
+from typing import Sequence
 import logging
-import yaml
 
 # =========================================================================== #
 #                                Third-Party Imports
@@ -24,18 +31,22 @@ import pandas as pd
 #                                Internal Imports
 # =========================================================================== #
 from src.core import Config
-if TYPE_CHECKING:
-    from src.core import RunPaths
+
 
 # =========================================================================== #
 #                               EXCEL REPORTS
 # =========================================================================== #
-# Global logger instance
+
 logger = logging.getLogger("medmnist_pipeline")
 
 @dataclass(frozen=True)
 class TrainingReport:
-    """Structured data container for summarizing a complete training experiment."""
+    """
+    Structured data container for summarizing a complete training experiment.
+    
+    Provides a vertical DataFrame representation optimized for readability 
+    in spreadsheet software.
+    """
     timestamp: str
     model: str
     dataset: str
@@ -57,7 +68,12 @@ class TrainingReport:
         return pd.DataFrame(list(data.items()), columns=["Parameter", "Value"]) 
 
     def save(self, path: Path) -> None:
-        """Saves the report DataFrame to an Excel file with professional formatting."""
+        """
+        Saves the report DataFrame to an Excel file with professional formatting.
+        
+        Applies specific column widths, header styles, and text wrapping to 
+        ensure long paths and augmentation strings are legible.
+        """
         path.parent.mkdir(parents=True, exist_ok=True)
 
         df = self.to_vertical_df()
@@ -85,7 +101,7 @@ class TrainingReport:
             for col_num, value in enumerate(df.columns.values):
                 worksheet.write(0, col_num, value, header_format)         
 
-        logger.info(f"Training report saved to → {path}")
+        logger.info(f"Summary Excel report saved to → {path}")
 
 
 def create_structured_report(
@@ -99,15 +115,14 @@ def create_structured_report(
     aug_info: str | None = None,
 ) -> TrainingReport:
     """
-    Constructs a TrainingReport object using the final metrics and configuration.
+    Constructs a TrainingReport object using final metrics and configuration.
+    
+    Dynamically extracts augmentation parameters if not explicitly provided.
     """
-    # Use provided aug_info or fallback to a dynamic check if needed
     if aug_info is None:
-        try:
-            from src.data_handler import get_augmentations_transforms
-            aug_info = get_augmentations_transforms(cfg)
-        except ImportError:
-            aug_info = "N/A"
+        # Dynamic extraction from Pydantic config
+        aug_dict = cfg.augmentation.model_dump()
+        aug_info = ", ".join([f"{k.replace('_', ' ').capitalize()}: {v}" for k, v in aug_dict.items()])
 
     return TrainingReport(
         timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -125,60 +140,3 @@ def create_structured_report(
         log_path=str(log_path),
         seed=cfg.training.seed,
     )
-
-def save_report_as_yaml(
-        config: Config,
-        run_paths: 'RunPaths'
-) -> Path:
-    """
-    Saves the configuration dictionary as a YAML file, ensuring Python-specific 
-    types like tuples are converted to standard lists for better compatibility.
-    """
-    yaml_path = run_paths.get_config_path()
-    
-    try:
-        config_data = asdict(config) if hasattr(config, '__dataclass_fields__') else vars(config)
-
-        def clean_config(data: Any) -> Any:
-            """Recursively converts tuples to lists and Paths to strings."""
-            if isinstance(data, dict):
-                return {k: clean_config(v) for k, v in data.items()}
-            elif isinstance(data, (list, tuple)):
-                return [clean_config(i) for i in data]
-            elif isinstance(data, Path):
-                return str(data)
-            return data
-        
-        cleaned_data = clean_config(config_data)
-        
-        with open(yaml_path, 'w', encoding='utf-8') as yaml_file:
-            yaml.dump(
-                cleaned_data,
-                yaml_file,
-                default_flow_style=False,
-                sort_keys=False
-            )
-
-        logger.info(f"Configuration saved to YAML at → {yaml_path}")
-        return yaml_path
-    except Exception as e:
-        logger.error(f"Failed to save configuration YAML: {str(e)}", exc_info=True)
-        raise e
-    
-def load_config_from_yaml(
-        yaml_path: Path
-    ) -> Dict[str, Any]:
-    """
-    Loads a configuration dictionary from a YAML file.
-
-    Args:
-        yaml_path (Path): The path to the YAML configuration file.
-    
-    Returns:
-        Dict[str, Any]: The loaded configuration dictionary.
-    """
-    if not yaml_path.exists():
-        raise FileNotFoundError(f"YAML configuration file not found at: {yaml_path}")
-    
-    with open(yaml_path, 'r', encoding='utf-8') as yaml_file:
-        return yaml.safe_load(yaml_file)

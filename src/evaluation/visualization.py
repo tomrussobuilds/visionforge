@@ -21,6 +21,10 @@ import matplotlib
 matplotlib.use("Agg")  # Use non-interactive backend for plotting
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
 
 # =========================================================================== #
 #                                Internal Imports
@@ -43,97 +47,92 @@ logger = logging.getLogger("medmnist_pipeline")
 #                               VISUALIZATION FUNCTIONS
 # =========================================================================== #
 
-def show_predictions(images: np.ndarray,
-                     true_labels: np.ndarray,
-                     preds: np.ndarray,
-                     classes: List[str],
-                     n: int = 12,
-                     save_path: Path | None = None,
-                     cfg: Config | None = None
+def show_predictions(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    classes: List[str],
+    n: int = 12,
+    save_path: Path | None = None,
+    cfg: Config | None = None
 ) -> None:
     """
-    Displays a grid of randomly selected test images with their true and
-    predicted labels, highlighting correct vs. incorrect predictions.
+    Lazy-extracts a batch from the loader and displays model predictions.
+    
+    Highlights correct (green) vs. incorrect (red) predictions in a grid.
+    Handles denormalization and C,H,W to H,W,C transposition automatically.
 
     Args:
-        images (np.ndarray): The array of test images.
-        true_labels (np.ndarray): The array of true labels for the test set.
-        preds (np.ndarray): The array of model predictions for the test set.
-        classes (List[str]): List of class names for labeling.
-        n (int): The number of samples to display (must be multiple of 4).
-        save_path (Path | None): Path to save the figure. If None, the plot is shown.
-        cfg (Config | None): Configuration object for title metadata.
+        model (nn.Module): Trained model for inference.
+        loader (DataLoader): Test or Validation loader to sample from.
+        device (torch.device): Computation device.
+        classes (List[str]): Names of the target classes.
+        n (int): Number of images to show (max based on batch size).
+        save_path (Path | None): Output destination for the figure.
+        cfg (Config | None): Used for title metadata and normalization stats.
     """
-    if images is None or len(images) == 0:
-        logger.warning(
-            "No images available for show_predictions. Skipping plot."
-        )
-        return
+    model.eval()
+
+    # 1. Lazy Extraction of a single batch
+    # next(iter(loader)) grabs the first available batch
+    batch = next(iter(loader))
+    images_tensor, labels_tensor = batch[0], batch[1]
+
+    # 2. Inference for the batch
+    with torch.no_grad():
+        images_tensor = images_tensor.to(device)
+        outputs = model(images_tensor)
+        preds = outputs.argmax(dim=1).cpu().numpy()
     
-    if n > len(images):
-        n = len(images)
+    # Move images back to CPU and convert to NumPy
+    images_batch = images_tensor.cpu().numpy()
+    true_labels = labels_tensor.cpu().numpy().flatten()
     
+    # 3. Grid Setup
+    n = min(n, len(images_batch))
     rows = int(np.ceil(n / 4))
     cols = 4
-
     plt.figure(figsize=(12, 3 * rows))
-    indices = np.arange(n)
 
-    for i, idx in enumerate(indices):
-        # Initialize img variable from the input array
-        img = images[idx].copy()
+    for i in range(n):
+        img = images_batch[i].copy()
 
-        # Handle Denormalization if Config is provided
+        # Denormalization Logic using Config stats
         if cfg and hasattr(cfg, 'dataset'):
-            mean = np.array(cfg.dataset.mean)
-            std = np.array(cfg.dataset.std)
-
-            if img.shape[-1] == 3:
-                mean = mean.reshape(1, 1, -1)
-                std = std.reshape(1, 1, -1)
-            else:
-                mean = mean.reshape(-1, 1, 1)
-                std = std.reshape(-1, 1, 1)
-
+            # Ensure mean and std match the image shape (C, 1, 1) for broadcasting
+            mean = np.array(cfg.dataset.mean).reshape(-1, 1, 1)
+            std = np.array(cfg.dataset.std).reshape(-1, 1, 1)
+            
             img = (img * std) + mean
             img = np.clip(img, 0, 1)
 
-        # Transpose from (C, H, W) to (H, W, C) for matplotlib compatibility
-        if img.ndim == 3 and img.shape[0] == 3:
+        # Transpose for Matplotlib: (C, H, W) -> (H, W, C)
+        if img.ndim == 3:
             img = np.transpose(img, (1, 2, 0))
 
-        true_label = int(true_labels[idx])
-        pred_label = int(preds[idx])
-
-        plt.subplot(rows, cols, i+1)
+        plt.subplot(rows, cols, i + 1)
         
-        # Support for grayscale (H, W) or RGB (H, W, C)
+        # Support for grayscale or RGB
         if img.ndim == 2 or (img.ndim == 3 and img.shape[-1] == 1):
             plt.imshow(img.squeeze(), cmap='gray')
         else:
             plt.imshow(img)
             
-        color = "green" if true_label == pred_label else "red"
-        
-        plt.title(
-            f"T:{classes[true_label]}\nP:{classes[pred_label]}",
-            color=color, fontsize=10
-        )
+        color = "green" if true_labels[i] == preds[i] else "red"
+        plt.title(f"T:{classes[true_labels[i]]}\nP:{classes[preds[i]]}", 
+                  color=color, fontsize=10)
         plt.axis("off")
     
+    # Title and Layout
     model_title = cfg.model_name if cfg else "Model"
     plt.suptitle(f"Test Predictions — {model_title}", fontsize=16)
     plt.tight_layout()
 
+    # Save logic
     if save_path:
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(
-            save_path,
-            dpi=200,
-            bbox_inches="tight",
-            facecolor="white"
-        )
-        logger.info(f"Sample predictions saved to {save_path}")
+        plt.savefig(save_path, dpi=200, bbox_inches="tight", facecolor="white")
+        logger.info(f"Sample predictions grid saved → {save_path.name}")
     else:
         plt.show()
     
