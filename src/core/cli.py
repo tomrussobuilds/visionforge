@@ -143,12 +143,17 @@ def parse_args() -> argparse.Namespace:
         dest='use_amp',
         help="Disable Automatic Mixed Precision."
     )
-    # Coerenza con cfg.training.grad_clip
     train_group.add_argument(
         '--grad_clip',
         type=float,
         default=default_cfg.training.grad_clip,
         help="Maximum norm for gradient clipping (set to 0 to disable)."
+    )
+    train_group.add_argument(
+        '--label_smoothing',
+        type=float,
+        default=0.0,
+        help="Label smoothing factor (0.0 to 1.0)."
     )
 
     # Group: Regularization & Augmentation
@@ -211,7 +216,20 @@ def parse_args() -> argparse.Namespace:
         default=default_cfg.dataset.use_weighted_sampler,
         help="Use WeightedRandomSampler to handle class imbalance."
     )
-
+    dataset_group.add_argument(
+        '--force_rgb',
+        action='store_true',
+        dest='force_rgb',
+        default=None, 
+        help="Force conversion of grayscale to RGB."
+    )
+    dataset_group.add_argument(
+        '--no_force_rgb',
+        action='store_false',
+        dest='force_rgb',
+        help="Disable grayscale to RGB conversion."
+    )
+    
     # Group: Model Selection
     model_group = parser.add_argument_group("Model Configuration")
 
@@ -262,5 +280,5 @@ def parse_args() -> argparse.Namespace:
         default=default_cfg.evaluation.plot_style,
         help="Matplotlib style for visualizations (e. g., 'ggplot', 'bmh')."
     )
-    
+
     return parser.parse_args()

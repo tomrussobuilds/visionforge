@@ -26,7 +26,9 @@ from pathlib import Path
 # =========================================================================== #
 #                                Third-Party Imports                          #
 # =========================================================================== #
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import (
+    BaseModel, Field, ConfigDict, field_validator, model_validator
+    )
 
 # =========================================================================== #
 #                                Internal Imports                             #
@@ -49,6 +51,13 @@ class SystemConfig(BaseModel):
     output_dir: Path = Field(default=OUTPUTS_ROOT)
     save_model: bool = True
     log_interval: int = Field(default=10, gt=0)
+    project_name: str = "medmnist_experiment"
+
+    @property
+    def lock_file_path(self) -> Path:
+        """Dinamically generates a cross-platform lock file path."""
+        import tempfile
+        return Path(tempfile.gettempdir()) / f"{self.project_name}.lock"
 
     @field_validator("data_dir", "output_dir", mode="after")
     @classmethod
@@ -85,9 +94,17 @@ class TrainingConfig(BaseModel):
     learning_rate: float = Field(default=0.008, gt=0)
     min_lr: float = Field(default=1e-6)
     momentum: float = Field(default=0.9, ge=0.0, le=1.0)
-    weight_decay: float = Field(default=5e-4, ge=0.0)
-    mixup_alpha: float = Field(default=0.002, ge=0.0)
-    mixup_epochs: int = Field(default=30, ge=0)
+    weight_decay: float = Field(default=5e-4, ge=0.0,)
+    label_smoothing: float = Field(default=0.0, ge=0.0, le=0.2)
+    mixup_alpha: float = Field(
+        default=0.002,
+        ge=0.0,
+        description="Mixup interpolation coefficient"
+        )
+    mixup_epochs: int = Field(
+        default=30,
+        ge=0,
+        description="Number of epochs to apply mixup")
     use_tta: bool = True
     cosine_fraction: float = Field(default=0.5, ge=0.0, le=1.0)
     use_amp: bool = False
@@ -123,6 +140,20 @@ class DatasetConfig(BaseModel):
     use_weighted_sampler: bool = True
     in_channels: int = 3
     num_classes: int = 8
+    img_size: int = Field(
+        default=28,
+        description="Target square resoulution for the model input"
+        )
+    force_rgb: bool = Field(
+        default=True,
+        description="Convert grayscale to 3-channel to enable ImageNet weights"
+    )
+
+    @property
+    def effective_in_channels(self) -> int:
+        """Returns the actual number of channels the model will see"""
+        return 3 if self.force_rgb else self.in_channels
+    
     mean: tuple[float, ...] = (0.5, 0.5, 0.5)
     std: tuple[float, ...] = (0.5, 0.5, 0.5)
     normalization_info: str = "N/A"
@@ -185,12 +216,26 @@ class Config(BaseModel):
     num_workers: int = Field(default_factory=get_num_workers)
     model_name: str = "ResNet-18 Adapted"
     pretrained: bool = True
+    
 
     @field_validator("num_workers")
     @classmethod
     def check_cpu_count(cls, v: int) -> int:
         cpu_count = os.cpu_count() or 1
         return min(v, cpu_count)
+
+
+    @model_validator(mode="after")
+    def validate_config_coherence(self) -> "Config":
+        """Ensures logic consistency across different sub-configurations."""
+        if self.pretrained and self.dataset.in_channels == 1 and not self.dataset.force_rgb:
+            object.__setattr__(self.dataset, "force_rgb", True)
+            
+        if self.training.mixup_epochs > self.training.epochs:
+            object.__setattr__(self.training, "mixup_epochs", self.training.epochs)       
+        
+        return self
+    
 
     @classmethod
     def from_args(cls, args: argparse.Namespace):
@@ -208,6 +253,11 @@ class Config(BaseModel):
         
         ds_meta = DATASET_REGISTRY[dataset_key]
         final_max = args.max_samples if args.max_samples > 0 else None
+
+        if getattr(args, 'force_rgb', None) is not None:
+            should_force_rgb = args.force_rgb
+        else:
+            should_force_rgb = (ds_meta.in_channels == 1) and args.pretrained
         
         return cls(
             model_name=args.model_name,
@@ -233,7 +283,8 @@ class Config(BaseModel):
                 cosine_fraction=args.cosine_fraction,
                 mixup_epochs=getattr(args, 'mixup_epochs', args.epochs // 2),
                 use_amp=actual_use_amp,
-                grad_clip=args.grad_clip
+                grad_clip=args.grad_clip,
+                label_smoothing=getattr(args, 'label_smoothing', 0.0)
             ),
             augmentation=AugmentationConfig(
                 hflip=args.hflip,
@@ -252,7 +303,9 @@ class Config(BaseModel):
                 mean=ds_meta.mean,
                 std=ds_meta.std,
                 normalization_info=f"Mean={ds_meta.mean}, Std={ds_meta.std}",
-                is_anatomical=ds_meta.is_anatomical
+                is_anatomical=ds_meta.is_anatomical,
+                force_rgb=should_force_rgb,
+                img_size=getattr(args, 'img_size', 28),
             ),
             evaluation=EvaluationConfig(
                 n_samples=getattr(args, 'n_samples', 12),

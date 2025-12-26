@@ -97,9 +97,9 @@ class RootOrchestrator:
         self.run_logger = logging.getLogger(self.paths.project_id)
 
         # 5. Environment initialization and safety: Lock instance and clean zombies
-        lock_path = Path("/tmp/medmnist_training.lock")
+        # Updated: Use dynamic lock path from Config SSOT
         ensure_single_instance(
-            lock_file=lock_path,
+            lock_file=self.cfg.system.lock_file_path,
             logger=self.run_logger
         )
         kill_duplicate_processes(
@@ -115,7 +115,18 @@ class RootOrchestrator:
         self._log_initial_status()
         
         return self.paths
-    
+
+    def cleanup(self) -> None:
+        """
+        Releases system resources and removes the lock file.
+        To be called in the 'finally' block of main.py.
+        """
+        lock_path = self.cfg.system.lock_file_path
+        if lock_path.exists():
+            lock_path.unlink()
+            if self.run_logger:
+                self.run_logger.info("System lock released cleanly.")
+
     def get_device(self) -> torch.device:
         """
         Converts the configuration device string into a live torch.device.
@@ -124,7 +135,7 @@ class RootOrchestrator:
             torch.device: The active computing device (CPU/CUDA/MPS).
         """
         return to_device_obj(self.cfg.system.device)
-    
+
     def load_weights(self, model: torch.nn.Module, path: Path) -> None:
         """
         Coordinates atomic weight loading and logs the event.
@@ -138,7 +149,7 @@ class RootOrchestrator:
         self.run_logger.info(
             f"Checkpoint weights successfully restored from: {path.name}"
         )
-    
+
     def load_raw_dataset(self, path: Path) -> np.lib.npyio.NpzFile:
         """
         Loads and validates MedMNIST NPZ archives for structural integrity.
@@ -156,11 +167,15 @@ class RootOrchestrator:
     def _log_initial_status(self) -> None:
         """
         Logs the verified baseline environment configuration upon initialization.
-        Includes hardware-specific optimization details.
+        Includes hardware-specific optimization details and data domain mode.
         """
         device_obj = self.get_device()
         device_str = self.cfg.system.device
         self.run_logger.info(f"Execution Device: {str(device_obj).upper()}")
+
+        # Data Domain tracking: Crucial for verifying RGB promotion logic
+        mode_str = "RGB-PROMOTED" if self.cfg.dataset.force_rgb else "NATIVE-GRAY"
+        self.run_logger.info(f"Data Mode: {mode_str} (Input: {self.cfg.dataset.img_size}px)")
 
         # Log CPU-specific thread optimizations
         if device_obj.type == 'cpu':
@@ -175,7 +190,7 @@ class RootOrchestrator:
             if gpu_name:
                 self.run_logger.info(f"GPU Model: {gpu_name}")
         
-        if device_str != "cpu" and self.get_device().type == "cpu":
+        if device_str != "cpu" and device_obj.type == "cpu":
             self.run_logger.warning(
                 f"HARDWARE FALLBACK: Requested {device_str}, but it is unavailable. Using CPU."
             )
@@ -198,7 +213,8 @@ class RootOrchestrator:
             return "DISABLED"
         
         # Consistent with engine.py logic where CPU mode uses a lighter augmentation set
-        if self.get_device().type != "cpu":
-            return "FULL (Accelerated - All transforms)"
+        device_type = self.get_device().type
+        if device_type != "cpu":
+            return f"FULL (Accelerated {device_type.upper()} - All transforms)"
         
         return "LIGHT (CPU Optimized - Subset of transforms)"
