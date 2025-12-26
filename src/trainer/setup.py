@@ -1,5 +1,5 @@
 """
-Optimization Factories Module
+Optimization Setup Module
 
 This module provides factory functions to instantiate PyTorch optimization 
 components (optimizers, schedulers, and loss functions) based on the 
@@ -27,7 +27,14 @@ def get_criterion(cfg: Config) -> nn.Module:
     Returns the appropriate loss function for the classification task.
     
     Standardizes on CrossEntropyLoss for MedMNIST multi-class objectives.
+    Label smoothing is enabled for modern architectures (ViT/EfficientNet)
+    to prevent over-confidence.
     """
+    model_name = cfg.model_name.lower()
+    
+    if "vit" in model_name or "efficientnet" in model_name:
+        return nn.CrossEntropyLoss(label_smoothing=0.1)
+    
     return nn.CrossEntropyLoss()
 
 
@@ -37,7 +44,7 @@ def get_optimizer(model: nn.Module, cfg: Config) -> optim.Optimizer:
     
     Decision Logic:
         - ResNet Variants: Uses SGD with Momentum for better generalization 
-          and flatter minima in convolutional landscapes.
+          in convolutional landscapes.
         - Other (ViT/Transformers): Defaults to AdamW to handle decoupled 
           weight decay and adaptive learning rates.
     """
@@ -64,8 +71,7 @@ def get_scheduler(optimizer: optim.Optimizer, cfg: Config) -> lr_scheduler._LRSc
     Factory function to configure the learning rate trajectory.
     
     Implements a Cosine Annealing schedule that decays the learning rate 
-    from the initial value down to the 'min_lr' specified in the configuration, 
-    spanning the total duration of the training epochs.
+    down to the 'min_lr' across the total duration of training.
     """
     return lr_scheduler.CosineAnnealingLR(
         optimizer,

@@ -28,11 +28,10 @@ from src.core import (
 from src.data_handler import (
     load_medmnist, get_dataloaders, show_sample_images, get_augmentations_description
 )
-from src.factories import (
-    get_optimizer, get_scheduler, get_criterion
-)
 from src.models import get_model
-from src.trainer import ModelTrainer
+from src.trainer import (
+    ModelTrainer, get_criterion, get_optimizer, get_scheduler
+)
 from src.evaluation import run_final_evaluation
 
 # =========================================================================== #

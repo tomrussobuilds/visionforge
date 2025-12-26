@@ -111,7 +111,6 @@ class ModelTrainer:
             self.train_losses.append(epoch_loss)
 
             # --- 2. Validation Phase ---
-            # validate_epoch returns a dict: {"loss": float, "accuracy": float}
             val_metrics = validate_epoch(
                 model=self.model, 
                 val_loader=self.val_loader, 
@@ -123,21 +122,9 @@ class ModelTrainer:
             self.val_accuracies.append(val_acc)
 
             # --- 3. Scheduling Phase ---
-            if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                # ReduceLROnPlateau typically monitors validation loss
-                self.scheduler.step(val_loss)
-            else:
-                self.scheduler.step()
-                
-            # --- 4. Checkpoint & Early Stopping Logic ---
-            if val_acc > self.best_acc:
-                self.best_acc = val_acc
-                self.epochs_no_improve = 0
-                torch.save(self.model.state_dict(), self.best_path)
-                logger.info(f"New best model! Val Acc: {val_acc:.4f} ↑ Checkpoint saved.")
-            else:
-                self.epochs_no_improve += 1
+            self._smart_step_scheduler(val_loss)
             
+            # Logging progress
             current_lr = self.optimizer.param_groups[0]['lr']
             logger.info(
                 f"Loss: [T: {epoch_loss:.4f} | V: {val_loss:.4f}] | "
@@ -145,9 +132,49 @@ class ModelTrainer:
                 f"LR: {current_lr:.2e} | Patience: {self.patience - self.epochs_no_improve}"
             )
 
-            if self.epochs_no_improve >= self.patience:
+            # --- 4. Checkpoint & Early Stopping Logic ---
+            if self._handle_checkpointing(val_acc):
                 logger.warning(f"Early stopping triggered at epoch {epoch}.")
                 break
             
         logger.info(f"Training finished. Peak Validation Accuracy: {self.best_acc:.4f}")
         return self.best_path, self.train_losses, self.val_accuracies
+    
+    def _smart_step_scheduler(self, val_loss: float) -> None:
+        """
+        Updates the learning rate scheduler based on its type.
+        
+        If the scheduler is an instance of ReduceLROnPlateau, it requires 
+        the validation loss to determine the next step. Otherwise, it 
+        performs a standard step.
+
+        Args:
+            val_loss (float): Current epoch's validation loss.
+        """
+        if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            self.scheduler.step(val_loss)
+        else:
+            self.scheduler.step()
+
+    def _handle_checkpointing(self, val_acc: float) -> bool:
+        """
+        Manages model checkpointing and tracks early stopping progress.
+        
+        Saves the model state if the current validation accuracy exceeds 
+        the previous best. Increments the patience counter otherwise.
+
+        Args:
+            val_acc (float): Current epoch's validation accuracy.
+
+        Returns:
+            bool: True if early stopping criteria are met, False otherwise.
+        """
+        if val_acc > self.best_acc:
+            self.best_acc = val_acc
+            self.epochs_no_improve = 0
+            torch.save(self.model.state_dict(), self.best_path)
+            logger.info(f"New best model! Val Acc: {val_acc:.4f} ↑ Checkpoint saved.")
+        else:
+            self.epochs_no_improve += 1
+            
+        return self.epochs_no_improve >= self.patience

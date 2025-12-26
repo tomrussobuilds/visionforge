@@ -70,12 +70,18 @@ def train_one_epoch(
         
         # --- 2. Backward Pass & Parameter Update ---
         # Standard backward pass for CPU efficiency (ignoring scaler overhead)
-        loss.backward()
-
-        if grad_clip > 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-        
-        optimizer.step()
+        if scaler:
+            scaler.scale(loss).backward()
+            if grad_clip > 0:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            if grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            optimizer.step()
 
         running_loss += loss.item() * inputs.size(0)
     
