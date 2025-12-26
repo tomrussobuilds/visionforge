@@ -2,52 +2,50 @@
 Reporting & Experiment Summarization Module
 
 This module orchestrates the generation of human-readable artifacts following 
-the completion of a training pipeline. It specializes in transforming raw 
-experiment metrics and configuration states into structured, professionally 
-formatted Excel summaries.
-
-Core Components:
-    * TrainingReport: A frozen data container that aggregates metadata, 
-      hyperparameters, and final performance metrics.
-    * Excel Export: Logic for generating stylized spreadsheets with 
-      automated column sizing and conditional formatting.
+the completion of a training pipeline. It leverages Pydantic for strict 
+validation of experiment results and transforms raw metrics into structured, 
+professionally formatted Excel summaries.
 """
 
 # =========================================================================== #
-#                                Standard Imports
+#                                Standard Imports                             #
 # =========================================================================== #
-from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Sequence
 import logging
 
 # =========================================================================== #
-#                                Third-Party Imports
+#                                Third-Party Imports                          #
 # =========================================================================== #
 import pandas as pd
+from pydantic import BaseModel, ConfigDict, Field
 
 # =========================================================================== #
-#                                Internal Imports
+#                                Internal Imports                             #
 # =========================================================================== #
 from src.core import Config
 
-
 # =========================================================================== #
-#                               EXCEL REPORTS
+#                               EXCEL REPORTS                                 #
 # =========================================================================== #
 
 logger = logging.getLogger("medmnist_pipeline")
 
-@dataclass(frozen=True)
-class TrainingReport:
+class TrainingReport(BaseModel):
     """
-    Structured data container for summarizing a complete training experiment.
+    Validated data container for summarizing a complete training experiment.
     
     Provides a vertical DataFrame representation optimized for readability 
-    in spreadsheet software.
+    in spreadsheet software. The model is frozen to ensure integrity.
     """
-    timestamp: str
+    model_config = ConfigDict(
+        frozen=True,
+        arbitrary_types_allowed=True
+    )
+
+    timestamp: str = Field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    
     model: str
     dataset: str
     best_val_accuracy: float
@@ -63,19 +61,15 @@ class TrainingReport:
     seed: int
 
     def to_vertical_df(self) -> pd.DataFrame:
-        """Converts the report dataclass into a vertical pandas DataFrame."""
-        data = asdict(self)
+        """Converts the Pydantic model into a vertical pandas DataFrame."""
+        data = self.model_dump()
         return pd.DataFrame(list(data.items()), columns=["Parameter", "Value"]) 
 
     def save(self, path: Path) -> None:
         """
         Saves the report DataFrame to an Excel file with professional formatting.
-        
-        Applies specific column widths, header styles, and text wrapping to 
-        ensure long paths and augmentation strings are legible.
         """
         path.parent.mkdir(parents=True, exist_ok=True)
-
         df = self.to_vertical_df()
 
         with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
@@ -96,13 +90,12 @@ class TrainingReport:
             })
 
             worksheet.set_column('A:A', 25, base_format)
-            worksheet.set_column('B:B', 60, wrap_format)
+            worksheet.set_column('B:B', 65, wrap_format)
 
             for col_num, value in enumerate(df.columns.values):
                 worksheet.write(0, col_num, value, header_format)         
 
         logger.info(f"Summary Excel report saved to → {path}")
-
 
 def create_structured_report(
     val_accuracies: Sequence[float],
@@ -116,16 +109,12 @@ def create_structured_report(
 ) -> TrainingReport:
     """
     Constructs a TrainingReport object using final metrics and configuration.
-    
-    Dynamically extracts augmentation parameters if not explicitly provided.
     """
     if aug_info is None:
-        # Dynamic extraction from Pydantic config
         aug_dict = cfg.augmentation.model_dump()
         aug_info = ", ".join([f"{k.replace('_', ' ').capitalize()}: {v}" for k, v in aug_dict.items()])
 
     return TrainingReport(
-        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         model=cfg.model_name,
         dataset=cfg.dataset.dataset_name,
         best_val_accuracy=max(val_accuracies) if val_accuracies else 0.0,

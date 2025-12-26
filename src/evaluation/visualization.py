@@ -34,9 +34,8 @@ from src.core import Config
 # Global logger instance
 logger = logging.getLogger("medmnist_pipeline")
 
-
 # =========================================================================== #
-#                               VISUALIZATION FUNCTIONS                       #
+#                               PUBLIC INTERFACE                              #
 # =========================================================================== #
 
 def show_predictions(
@@ -49,89 +48,45 @@ def show_predictions(
     n: int | None = None
 ) -> None:
     """
-    Lazy-extracts a batch from the loader and displays model predictions.
+    Orchestrates the visualization of model predictions on a sample batch.
     
-    Highlights correct (green) vs. incorrect (red) predictions in a grid.
-    Handles denormalization using dataset stats from Config and handles
-    C,H,W to H,W,C transposition for Matplotlib.
-
-    Args:
-        model (nn.Module): Trained model for inference.
-        loader (DataLoader): Data-loader to sample from (usually Test/Val).
-        device (torch.device): Computation device.
-        classes (List[str]): Names of the target classes.
-        save_path (Path | None): Output destination for the figure.
-        cfg (Config | None): SSOT for grid layout, DPI, and normalization stats.
-        n (int | None): Number of samples. If None, uses cfg.evaluation.n_samples.
+    This function coordinates data extraction, model inference, grid layout 
+    generation, and image post-processing. Highlights correct (green) 
+    vs. incorrect (red) predictions.
     """
     model.eval()
 
-    # 1. Configuration Resolution
-    # Priority: Function Argument -> Config Pydantic -> Hardcoded Default
+    # 1. Parameter Resolution & Batch Inference
     num_samples = n or (cfg.evaluation.n_samples if cfg else 12)
-    dpi = cfg.evaluation.fig_dpi if cfg else 200
+    images, labels, preds = _get_predictions_batch(model, loader, device, num_samples)
+    
+    # 2. Grid & Figure Setup
     grid_cols = cfg.evaluation.grid_cols if cfg else 4
+    fig, axes = _setup_prediction_grid(len(images), grid_cols, cfg)
     
-    # 2. Lazy Extraction & Inference
-    batch = next(iter(loader))
-    images_tensor, labels_tensor = batch[0], batch[1]
-
-    with torch.no_grad():
-        images_tensor = images_tensor.to(device)
-        outputs = model(images_tensor)
-        preds = outputs.argmax(dim=1).cpu().numpy()
-    
-    images_batch = images_tensor.cpu().numpy()
-    true_labels = labels_tensor.cpu().numpy().flatten()
-    
-    # 3. Grid Setup
-    num_samples = min(num_samples, len(images_batch))
-    rows = int(np.ceil(num_samples / grid_cols))
-    
-    # Dynamic figsize based on rows
-    base_w, base_h = cfg.evaluation.fig_size_predictions if cfg else (12, 8)
-    plt.figure(figsize=(base_w, (base_h / 3) * rows))
-
-    for i in range(num_samples):
-        img = images_batch[i].copy()
-
-        # Denormalization Logic using SSOT (Config)
-        if cfg:
-            mean = np.array(cfg.dataset.mean).reshape(-1, 1, 1)
-            std = np.array(cfg.dataset.std).reshape(-1, 1, 1)
-            img = (img * std) + mean
-            img = np.clip(img, 0, 1)
-
-        # Transpose for Matplotlib: (C, H, W) -> (H, W, C)
-        if img.ndim == 3:
-            img = np.transpose(img, (1, 2, 0))
-
-        plt.subplot(rows, grid_cols, i + 1)
-        
-        # Support for grayscale (MedMNIST 2D) or RGB (MedMNIST 3D/Color)
-        if img.ndim == 2 or (img.ndim == 3 and img.shape[-1] == 1):
-            plt.imshow(img.squeeze(), cmap='gray')
-        else:
-            plt.imshow(img)
+    # 3. Plotting Loop
+    for i, ax in enumerate(axes):
+        if i < len(images):
+            # Process image for display
+            img = _denormalize_image(images[i], cfg) if cfg else images[i]
+            display_img = _prepare_for_plt(img)
             
-        color = "green" if true_labels[i] == preds[i] else "red"
-        plt.title(f"T:{classes[true_labels[i]]}\nP:{classes[preds[i]]}", 
-                  color=color, fontsize=9)
-        plt.axis("off")
+            ax.imshow(display_img, cmap='gray' if display_img.ndim == 2 else None)
+            
+            # Semantic highlighting
+            is_correct = labels[i] == preds[i]
+            ax.set_title(
+                f"T:{classes[labels[i]]}\nP:{classes[preds[i]]}", 
+                color="green" if is_correct else "red", 
+                fontsize=9
+            )
+        
+        ax.axis("off") # Always turn off axis, even for empty slots
     
-    model_name = cfg.model_name if cfg else "Model"
-    plt.suptitle(f"Sample Predictions Grid — {model_name}", fontsize=14)
-    plt.tight_layout()
-
-    # 4. Save Logic
-    if save_path:
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(save_path, dpi=dpi, bbox_inches="tight", facecolor="white")
-        logger.info(f"Predictions grid saved → {save_path.name} (DPI: {dpi})")
-    else:
-        plt.show()
+    plt.suptitle(f"Sample Predictions — {cfg.model_name if cfg else 'Inference'}", fontsize=14)
     
-    plt.close()
+    # 4. Export and Cleanup
+    _finalize_figure(plt, save_path, cfg)
 
 
 def plot_training_curves(
@@ -143,12 +98,6 @@ def plot_training_curves(
     """
     Plots training loss and validation accuracy curves on a dual-axis plot.
     Automatically saves raw numerical data to .npz for reproducibility.
-
-    Args:
-        train_losses (Sequence[float]): History of training losses.
-        val_accuracies (Sequence[float]): History of validation accuracies.
-        out_path (Path): Path to save the plot.
-        cfg (Config): SSOT for DPI and model metadata.
     """
     fig, ax1 = plt.subplots(figsize=(9, 6))
 
@@ -168,19 +117,12 @@ def plot_training_curves(
     plt.title(f"Training Metrics — {cfg.model_name}", fontsize=14, pad=15)
     fig.tight_layout()
     
-    # Save the figure using Config DPI
     plt.savefig(out_path, dpi=cfg.evaluation.fig_dpi, bbox_inches="tight")
     logger.info(f"Training curves saved → {out_path.name}")
 
     # Export raw data for post-run analysis
     npz_path = out_path.with_suffix('.npz')
-    np.savez(
-        npz_path,
-        train_losses=train_losses,
-        val_accuracies=val_accuracies
-    )
-    logger.debug(f"Raw history data saved to {npz_path.name}")
-
+    np.savez(npz_path, train_losses=train_losses, val_accuracies=val_accuracies)
     plt.close()
 
 
@@ -193,44 +135,94 @@ def plot_confusion_matrix(
 ) -> None:
     """
     Generates and saves a normalized confusion matrix plot.
-
-    Args:
-        all_labels (np.ndarray): True ground truth labels.
-        all_preds (np.ndarray): Predicted labels from model.
-        classes (List[str]): List of class names.
-        out_path (Path): Destination file path.
-        cfg (Config): SSOT for Colormap and DPI settings.
     """
-    # Normalized Confusion Matrix (Rows sum to 1)
     cm = confusion_matrix(
-        all_labels,
-        all_preds,
-        labels=np.arange(len(classes)),
-        normalize='true',
+        all_labels, all_preds, 
+        labels=np.arange(len(classes)), 
+        normalize='true'
     )
-    cm = np.nan_to_num(cm) # Handle potential empty classes
+    cm = np.nan_to_num(cm)
 
-    disp = ConfusionMatrixDisplay(
-        confusion_matrix=cm,
-        display_labels=classes,
-    )
-
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=classes)
     fig, ax = plt.subplots(figsize=(11, 9))
     
-    # Use Dynamic ColorMap from Config
     disp.plot(
-        ax=ax,
-        cmap=cfg.evaluation.cmap_confusion,
-        xticks_rotation=45,
+        ax=ax, 
+        cmap=cfg.evaluation.cmap_confusion, 
+        xticks_rotation=45, 
         values_format='.3f'
     )
 
     plt.title(f"Confusion Matrix — {cfg.model_name}", fontsize=14, pad=20)
     plt.tight_layout()
     
-    fig.savefig(out_path,
-                dpi=cfg.evaluation.fig_dpi,
-                bbox_inches="tight"
-                )
+    fig.savefig(out_path, dpi=cfg.evaluation.fig_dpi, bbox_inches="tight")
     plt.close()
     logger.info(f"Confusion matrix saved → {out_path.name}")
+
+
+# =========================================================================== #
+#                               INTERNAL HELPERS                              #
+# =========================================================================== #
+# The following functions are module-private and handle low-level numerical   #
+# transformations, model inference batches, and formatting for Matplotlib.    #
+# =========================================================================== #
+
+def _get_predictions_batch(model: nn.Module, loader: DataLoader, device: torch.device, n: int):
+    """Handles data extraction and model forward pass for a small sample."""
+    batch = next(iter(loader))
+    images_tensor = batch[0][:n].to(device)
+    labels_tensor = batch[1][:n]
+    
+    with torch.no_grad():
+        outputs = model(images_tensor)
+        preds = outputs.argmax(dim=1).cpu().numpy()
+        
+    return images_tensor.cpu().numpy(), labels_tensor.numpy().flatten(), preds
+
+
+def _setup_prediction_grid(num_samples: int, cols: int, cfg: Config | None):
+    """Calculates grid dimensions and initializes matplotlib subplots."""
+    rows = int(np.ceil(num_samples / cols))
+    base_w, base_h = cfg.evaluation.fig_size_predictions if cfg else (12, 8)
+    
+    fig, axes = plt.subplots(
+        rows, cols, 
+        figsize=(base_w, (base_h / 3) * rows),
+        constrained_layout=True
+    )
+    # Ensure axes is always an array even for 1x1 grids
+    return fig, np.atleast_1d(axes).flatten()
+
+
+def _finalize_figure(plt_obj, save_path: Path | None, cfg: Config | None):
+    """Handles saving to disk and cleaning up memory."""
+    if save_path:
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        dpi = cfg.evaluation.fig_dpi if cfg else 200
+        plt_obj.savefig(save_path, dpi=dpi, bbox_inches="tight", facecolor="white")
+        logger.info(f"Predictions grid saved → {save_path.name}")
+    else:
+        plt_obj.show()
+        logger.debug("Displaying figure interactive mode")
+    
+    plt_obj.close()
+
+
+def _denormalize_image(img: np.ndarray, cfg: Config) -> np.ndarray:
+    """Reverses the normalization transform using dataset-specific stats."""
+    mean = np.array(cfg.dataset.mean).reshape(-1, 1, 1)
+    std = np.array(cfg.dataset.std).reshape(-1, 1, 1)
+    img = (img * std) + mean
+    return np.clip(img, 0, 1)
+
+
+def _prepare_for_plt(img: np.ndarray) -> np.ndarray:
+    """Converts a deep learning tensor (C, H, W) to (H, W, C) for Matplotlib."""
+    if img.ndim == 3:
+        img = np.transpose(img, (1, 2, 0))
+    
+    if img.ndim == 3 and img.shape[-1] == 1:
+        img = img.squeeze(-1)
+        
+    return img
