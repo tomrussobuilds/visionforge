@@ -134,7 +134,11 @@ def main() -> None:
         raise e
         
     finally:
-        run_logger.info(f"Cleanup finished. Run directory: {paths.root}")
+        if 'orchestrator' in locals() and orchestrator:
+            orchestrator.cleanup()
+        if 'run_logger' in locals() and run_logger:
+            msg = f"Run directory: {paths.root}" if 'paths' in locals() and paths else "Cleanup finished."
+            run_logger.info(f"Pipeline Shutdown completed. {msg} ")
 
 
 # =========================================================================== #
