@@ -15,7 +15,6 @@ from pathlib import Path
 # =========================================================================== #
 #                             Third-Party Imports                             #
 # =========================================================================== #
-import numpy as np
 import torch
 
 # =========================================================================== #
@@ -26,7 +25,7 @@ from .system import (
     to_device_obj, load_model_weights, configure_system_libraries,
     release_single_instance, apply_cpu_threads, determine_tta_mode
 )
-from .io import save_config_as_yaml, validate_npz_keys
+from .io import save_config_as_yaml
 from .logger import Logger
 from .paths import RunPaths, setup_static_directories
 
@@ -172,6 +171,7 @@ class RootOrchestrator:
             torch.device: The active computing device (CPU/CUDA/MPS).
         """
         return to_device_obj(self.cfg.system.device)
+    
 
     def load_weights(self, model: torch.nn.Module, path: Path) -> None:
         """
@@ -187,56 +187,41 @@ class RootOrchestrator:
             f"Checkpoint weights successfully restored from: {path.name}"
         )
 
-    def load_raw_dataset(self, path: Path) -> np.lib.npyio.NpzFile:
-        """
-        Loads and validates MedMNIST NPZ archives for structural integrity.
-
-        Args:
-            path (Path): Path to the MedMNIST NPZ file.
-
-        Returns:
-            np.lib.npyio.NpzFile: The validated numpy data archive.
-        """
-        data = np.load(path)
-        validate_npz_keys(data)
-        return data
 
     def _log_initial_status(self) -> None:
         """
         Logs the verified baseline environment configuration upon initialization.
-        Includes hardware-specific optimization details and data domain mode.
+        Organizzato per sezioni: Hardware, Dataset, Training.
         """
         device_obj = self.get_device()
-        device_str = self.cfg.system.device
-        self.run_logger.info(f"Execution Device: {str(device_obj).upper()}")
-
-        # Data Domain tracking: Crucial for verifying RGB promotion logic
-        mode_str = "RGB-PROMOTED" if self.cfg.dataset.force_rgb else "NATIVE-GRAY"
-        self.run_logger.info(f"Data Mode: {mode_str} (Input: {self.cfg.dataset.img_size}px)")
-
-        # Log CPU-specific thread optimizations via system utility
-        if device_obj.type == 'cpu':
-            optimal_threads = apply_cpu_threads(self.cfg.num_workers)
-            self.run_logger.info(f"CPU Optimization: Configured with {optimal_threads} compute threads.")
-            self.run_logger.info(f"Worker Strategy: {self.cfg.num_workers} data loaders active.")
+        device_str_requested = self.cfg.system.device
         
-        # TTA Status via system utility logic
+        self.run_logger.info(f"--- Environment Status Report ---")
+        
+        # 1. Hardware & System
+        self.run_logger.info(f"Execution Device: {str(device_obj).upper()}")
+        if device_str_requested != "cpu" and device_obj.type == "cpu":
+            self.run_logger.warning(f"HARDWARE FALLBACK: Requested {device_str_requested} is unavailable.")
+        
+        if device_obj.type == 'cuda':
+            gpu_name = get_cuda_name()
+            if gpu_name: self.run_logger.info(f"GPU Model: {gpu_name}")
+        elif device_obj.type == 'cpu':
+            opt_threads = apply_cpu_threads(self.cfg.num_workers)
+            self.run_logger.info(f"CPU Threads: {opt_threads} (Workers: {self.cfg.num_workers})")
+
+        # 2. Dataset & Domain
+        mode_str = "RGB-PROMOTED" if self.cfg.dataset.force_rgb else "NATIVE-GRAY"
+        self.run_logger.info(f"Dataset: {self.cfg.dataset.dataset_name} ({self.cfg.dataset.img_size}px)")
+        self.run_logger.info(f"Data Mode: {mode_str}")
+
+        # 3. Training Strategy
         tta_status = determine_tta_mode(self.cfg.training.use_tta, device_obj.type)
         self.run_logger.info(f"TTA Status: {tta_status}")
-
-        # Hardware fallback warning and metadata logging
-        if device_str == "cuda":
-            gpu_name = get_cuda_name()
-            if gpu_name:
-                self.run_logger.info(f"GPU Model: {gpu_name}")
-        
-        if device_str != "cpu" and device_obj.type == "cpu":
-            self.run_logger.warning(
-                f"HARDWARE FALLBACK: Requested {device_str}, but it is unavailable. Using CPU."
-            )
-
-        self.run_logger.info(f"Run Directory initialized: {self.paths.root}")
         self.run_logger.info(
-            f"Hyperparameters: LR={self.cfg.training.learning_rate:.4f}, "
-            f"Batch={self.cfg.training.batch_size}, Epochs={self.cfg.training.epochs}"
+            f"Hyperparameters: Epochs={self.cfg.training.epochs}, "
+            f"Batch={self.cfg.training.batch_size}, LR={self.cfg.training.learning_rate:.4f}"
         )
+        
+        self.run_logger.info(f"Run Directory: {self.paths.root}")
+        self.run_logger.info(f"---------------------------------")
