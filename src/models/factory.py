@@ -67,7 +67,7 @@ def get_model(
 
     metadata = DATASET_REGISTRY[dataset_key] 
     num_classes = len(metadata.classes)
-    in_channels = metadata.in_channels
+    in_channels = cfg.dataset.effective_in_channels
 
     # Routing logic (Factory Pattern)
     if "resnet-18 adapted" in model_name_lower:
