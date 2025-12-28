@@ -21,7 +21,7 @@ import torch
 #                                Internal Imports                             #
 # =========================================================================== #
 from .system import (
-    set_seed, ensure_single_instance, kill_duplicate_processes, get_cuda_name,
+    set_seed, ensure_single_instance, get_cuda_name,
     to_device_obj, load_model_weights, configure_system_libraries,
     release_single_instance, apply_cpu_threads, determine_tta_mode
 )
@@ -131,7 +131,7 @@ class RootOrchestrator:
 
         # 6. Environment initialization and safety: Lock instance and clean zombies
         self.cfg.system.manage_environment()
-        
+
         ensure_single_instance(
             lock_file=self.cfg.system.lock_file_path,
             logger=self.run_logger
