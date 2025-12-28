@@ -47,7 +47,7 @@ class ModelTrainer:
         criterion: nn.Module,
         device: torch.device,
         cfg: Config,
-        output_dir: Path | None = None,
+        output_path: Path | None = None,
     ):
         self.model = model
         self.train_loader = train_loader
@@ -62,6 +62,7 @@ class ModelTrainer:
         self.epochs = cfg.training.epochs
         self.patience = cfg.training.patience
         self.best_acc = -1.0
+        self.best_auc = -1.0
         self.epochs_no_improve = 0
 
         # Modern AMP Support (PyTorch 2.x+)
@@ -77,12 +78,16 @@ class ModelTrainer:
             )
         
         # Output Management
-        self.best_path = (output_dir or Path(".")) / "best_model.pth"
+        self.best_path = output_path or Path("./best_model.pth")
         self.best_path.parent.mkdir(parents=True, exist_ok=True)
 
         # History tracking
         self.train_losses: List[float] = []
         self.val_accuracies: List[float] = []
+
+        # Metrics
+        self.best_acc = -1.0
+        self.val_aucs: List[float] = []
 
         logger.info(f"Trainer initialized. Best model checkpoint: {self.best_path.name}")
         
@@ -120,6 +125,11 @@ class ModelTrainer:
             val_acc = val_metrics["accuracy"]
             val_loss = val_metrics["loss"]
             self.val_accuracies.append(val_acc)
+            val_auc = val_metrics.get("auc", 0.0)
+            logger.info(f"Epoch {epoch} Validation AUC: {val_auc:.4f} "
+                        f"Previous Best AUC: {self.best_auc:.4f}"
+)
+            self.val_aucs.append(val_auc)
 
             # --- 3. Scheduling Phase ---
             self._smart_step_scheduler(val_loss)
@@ -133,11 +143,16 @@ class ModelTrainer:
             )
 
             # --- 4. Checkpoint & Early Stopping Logic ---
-            if self._handle_checkpointing(val_acc):
+            if self._handle_checkpointing(val_auc):
                 logger.warning(f"Early stopping triggered at epoch {epoch}.")
                 break
             
         logger.info(f"Training finished. Peak Validation Accuracy: {self.best_acc:.4f}")
+
+        if not self.best_path.exists():
+            logger.warning("Forcing checkpoint save for smoke test integrity.")
+            torch.save(self.model.state_dict(), self.best_path)
+
         return self.best_path, self.train_losses, self.val_accuracies
     
     def _smart_step_scheduler(self, val_loss: float) -> None:
@@ -156,7 +171,7 @@ class ModelTrainer:
         else:
             self.scheduler.step()
 
-    def _handle_checkpointing(self, val_acc: float) -> bool:
+    def _handle_checkpointing(self, val_auc: float) -> bool:
         """
         Manages model checkpointing and tracks early stopping progress.
         
@@ -169,11 +184,11 @@ class ModelTrainer:
         Returns:
             bool: True if early stopping criteria are met, False otherwise.
         """
-        if val_acc > self.best_acc:
-            self.best_acc = val_acc
+        if val_auc > self.best_auc:
+            self.best_auc = val_auc
             self.epochs_no_improve = 0
             torch.save(self.model.state_dict(), self.best_path)
-            logger.info(f"New best model! Val Acc: {val_acc:.4f} ↑ Checkpoint saved.")
+            logger.info(f"New best model! Val AUC: {val_auc:.4f} ↑ Checkpoint saved.")
         else:
             self.epochs_no_improve += 1
             

@@ -19,6 +19,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+from sklearn.metrics import roc_auc_score
 
 # =========================================================================== #
 #                               CORE ENGINES                                  #
@@ -97,40 +98,76 @@ def validate_epoch(
     """
     Evaluates the model performance on a held-out validation set.
 
-    This function computes the validation loss and classification accuracy 
-    under a 'no_grad' context to minimize memory consumption and latency.
+    This function computes the validation loss, classification accuracy, and 
+    ROC-AUC score under a 'no_grad' context. The AUC is calculated using the 
+    'One-vs-Rest' (OvR) strategy with macro-averaging to ensure reliable 
+    performance estimation on potentially imbalanced MedMNIST datasets.
 
     Args:
-        model (nn.Module): The model to evaluate.
-        val_loader (DataLoader): Validation data provider.
-        criterion (nn.Module): Loss function used for evaluation.
-        device (torch.device): Hardware target for execution.
+        model (nn.Module): The neural network model to evaluate.
+        val_loader (torch.utils.data.DataLoader): Validation data provider.
+        criterion (nn.Module): Loss function (e.g., CrossEntropyLoss).
+        device (torch.device): Hardware target (cuda, mps, or cpu).
 
     Returns:
-        dict: A dictionary containing 'loss' (float) and 'accuracy' (float) metrics.
+        dict: A dictionary containing:
+            - 'loss' (float): Average cross-entropy loss over the dataset.
+            - 'accuracy' (float): Standard classification accuracy (0.0 to 1.0).
+            - 'auc' (float): Macro-averaged Area Under the ROC Curve.
     """
     model.eval()
     val_loss = 0.0
     correct = 0
     total = 0
     
+    # Buffers to store all predictions and ground truths for global metrics
+    all_targets = []
+    all_probs = []
+    
     with torch.no_grad():
         for inputs, targets in val_loader:
             inputs, targets = inputs.to(device), targets.to(device)
+            
+            # Forward pass
             outputs = model(inputs)
             
-            # Loss computation
+            # 1. Collect probabilities for AUC calculation (moved to CPU to save VRAM)
+            probs = torch.softmax(outputs, dim=1)
+            all_targets.append(targets.cpu())
+            all_probs.append(probs.cpu())
+
+            # 2. Standard Loss computation
             loss = criterion(outputs, targets)
             val_loss += loss.item() * inputs.size(0)
             
-            # Accuracy computation
+            # 3. Accuracy computation
             _, predicted = torch.max(outputs, 1)
             total += targets.size(0)
             correct += (predicted == targets).sum().item()
+
+    # --- Global Metric Computation ---
+    y_true = torch.cat(all_targets).numpy()
+    y_score = torch.cat(all_probs).numpy()
+
+    num_classes = y_score.shape[1]
+    all_labels = np.arange(num_classes)
+
+    # Compute ROC-AUC (Macro-averaged, One-vs-Rest)
+    try:
+        auc = roc_auc_score(
+            y_true,
+            y_score,
+            labels=all_labels,
+            multi_class="ovr",
+            average="macro"
+        )
+    except ValueError as e:
+        auc = 0.0
     
     return {
-        "loss": val_loss / len(val_loader.dataset),
-        "accuracy": correct / total
+        "loss": val_loss / total,
+        "accuracy": correct / total,
+        "auc": auc
     }
 
 # =========================================================================== #

@@ -104,7 +104,7 @@ def release_single_instance(
 
 
 def kill_duplicate_processes(
-        logger: logging.Logger,
+        logger: Optional[logging.Logger] = None,
         script_name: Optional[str] = None
 ) -> None:
     """
@@ -191,7 +191,7 @@ def worker_init_fn(worker_id: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    
+
 
 def apply_cpu_threads(
         num_workers: int

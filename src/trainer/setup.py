@@ -26,17 +26,11 @@ def get_criterion(cfg: Config) -> nn.Module:
     """
     Returns the appropriate loss function for the classification task.
     
-    Standardizes on CrossEntropyLoss for MedMNIST multi-class objectives.
-    Label smoothing is enabled for modern architectures (ViT/EfficientNet)
-    to prevent over-confidence.
+    Standardizes on CrossEntropyLoss using the label_smoothing value 
+    provided in the configuration.
     """
-    model_name = cfg.model_name.lower()
-    
-    if "vit" in model_name or "efficientnet" in model_name:
-        return nn.CrossEntropyLoss(label_smoothing=0.1)
-    
-    return nn.CrossEntropyLoss()
-
+    # CrossEntropyLoss natively supports multi-class classification
+    return nn.CrossEntropyLoss(label_smoothing=cfg.training.label_smoothing)
 
 def get_optimizer(model: nn.Module, cfg: Config) -> optim.Optimizer:
     """

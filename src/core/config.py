@@ -1,20 +1,25 @@
 """
-Configuration Engine and Schema Definitions
+    Main Configuration Manifest for the MedMNIST Pipeline.
+    
+    This root container aggregates specialized sub-configurations (System, Training, 
+    Augmentation, Dataset, Evaluation) into a unified, immutable schema. It acts 
+    as the central validator for cross-module logic, ensuring that hardware 
+    capabilities (AMP, Device) align with training strategies (MixUp, Pretraining).
 
-This module serves as the Single Source of Truth (SSOT) for experiment 
-parameters and reproducibility. It defines a strict, hierarchical data 
-structure using Pydantic to ensure type safety and immutability.
+    The class provides robust factory methods (`from_args`, `from_yaml`) to 
+    seamlessly bridge external inputs into a type-safe, validated environment.
 
-Key Features:
-    * Hierarchical Schema: Decouples system, training, augmentation, and 
-      dataset-specific parameters into specialized sub-configurations.
-    * Validation & Type Safety: Enforces runtime constraints (e.g., value ranges, 
-      hardware availability) and prevents accidental modification via frozen models.
-    * Environment Awareness: Orchestrates hardware-dependent settings like 
-      device selection and optimal worker allocation.
-    * CLI Integration: Provides a factory bridge to transform raw CLI namespaces 
-      (parsed externally) into validated, immutable Config objects.
+    Attributes:
+        system (SystemConfig): Infrastructure and hardware settings.
+        training (TrainingConfig): Optimization and regularization hyperparameters.
+        augmentation (AugmentationConfig): Data transformation and TTA parameters.
+        dataset (DatasetConfig): Metadata and constraints for the specific MedMNIST task.
+        evaluation (EvaluationConfig): Visualization and reporting preferences.
+        num_workers (int): Validated CPU worker count for data loading.
+        model_name (str): Architecture identifier.
+        pretrained (bool): Flag to enable/disable ImageNet weight transfer.
 """
+
 # =========================================================================== #
 #                                Standard Imports                             #
 # =========================================================================== #
@@ -35,9 +40,10 @@ from pydantic import (
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from .system import detect_best_device, get_num_workers
+from .system import detect_best_device, get_num_workers, kill_duplicate_processes
 from .paths import DATASET_DIR, OUTPUTS_ROOT
 from .io import load_config_from_yaml
+from .metadata import DATASET_REGISTRY
 
 # =========================================================================== #
 #                                TYPE ALIASES                                 #
@@ -78,6 +84,10 @@ class SystemConfig(BaseModel):
     save_model: bool = True
     log_interval: PositiveInt = Field(default=10)
     project_name: str = "medmnist_experiment"
+    allow_process_kill: bool = Field(
+        default=True,
+        description="Enable automatic termination of duplicate processes."
+    )
 
     @property
     def lock_file_path(self) -> Path:
@@ -100,6 +110,19 @@ class SystemConfig(BaseModel):
         if "mps" in requested and not torch.backends.mps.is_available():
             return "cpu"
         return requested
+    
+    def manage_environment(self) -> None:
+        """"
+        Handles environment setup tasks such as killing duplicates if enabled.
+        Safeguards against termination in shared cluster environments.
+        """
+        if not self.allow_process_kill:
+            return
+        is_shared = any(env in os.environ for env in ["SLURM_JOB_ID", "PBS_JOBID"])
+        if is_shared:
+            return
+        kill_duplicate_processes()
+        
 
 class TrainingConfig(BaseModel):
     """Sub-configuration for core training hyperparameters."""
@@ -241,11 +264,25 @@ class EvaluationConfig(BaseModel):
 
 class Config(BaseModel):
     """
-    Main configuration manifest.
+    Main Configuration Manifest for the MedMNIST Pipeline.
     
-    Acts as the root container for all sub-configurations and provides 
-    the `from_args` factory to bridge raw CLI arguments into this 
-    validated schema.
+    This root container aggregates specialized sub-configurations (System, Training, 
+    Augmentation, Dataset, Evaluation) into a unified, immutable schema. It acts 
+    as the central validator for cross-module logic, ensuring that hardware 
+    capabilities (AMP, Device) align with training strategies (MixUp, Pretraining).
+
+    The class provides robust factory methods (`from_args`, `from_yaml`) to 
+    seamlessly bridge external inputs into a type-safe, validated environment.
+
+    Attributes:
+        system (SystemConfig): Infrastructure and hardware settings.
+        training (TrainingConfig): Optimization and regularization hyperparameters.
+        augmentation (AugmentationConfig): Data transformation and TTA parameters.
+        dataset (DatasetConfig): Metadata and constraints for the specific MedMNIST task.
+        evaluation (EvaluationConfig): Visualization and reporting preferences.
+        num_workers (int): Validated CPU worker count for data loading.
+        model_name (str): Architecture identifier.
+        pretrained (bool): Flag to enable/disable ImageNet weight transfer.
     """
     model_config = ConfigDict(
             extra="forbid",
@@ -312,26 +349,18 @@ class Config(BaseModel):
         compatibility and dataset metadata resolution.
         """
         
-        # 1. Short-circuit: If a --config YAML is provided, load directly from file
+        # 1. Short-circuit: If a --config YAML is provided, load direttamente dal file
         if hasattr(args, 'config') and args.config:
             return cls.from_yaml(Path(args.config))
 
         # --- (Encapsulation) ---
 
         def resolve_dataset_metadata():
-            """Retrieve static metadata for the dataset."""
-            from .metadata import DATASET_REGISTRY
+            """Retrieve static metadata for the dataset from the central registry."""
             key = args.dataset.lower()
             if key not in DATASET_REGISTRY:
                 raise ValueError(f"Dataset '{args.dataset}' not supported in DATASET_REGISTRY.")
             return DATASET_REGISTRY[key]
-
-        def resolve_rgb_logic(ds_meta):
-            """Decide whether to force conversion to 3-channel (RGB)."""
-            if hasattr(args, 'force_rgb') and args.force_rgb is not None:
-                return args.force_rgb
-            # Default logic: force RGB if using pretrained on grayscale
-            return (ds_meta.in_channels == 1) and getattr(args, 'pretrained', False)
 
         def build_training_subconfig():
             """Map training parameters ensuring defaults are present."""
@@ -368,7 +397,11 @@ class Config(BaseModel):
         # --- LOGIC EXECUTION ---
 
         ds_meta = resolve_dataset_metadata()
-        should_force_rgb = resolve_rgb_logic(ds_meta)
+        
+        # Determine RGB logic: User override or automatic for pretrained grayscale
+        force_rgb_arg = getattr(args, 'force_rgb', None)
+        should_force_rgb = force_rgb_arg if force_rgb_arg is not None else \
+                          (ds_meta.in_channels == 1 and getattr(args, 'pretrained', False))
         
         # Determine final max_samples value
         final_max_samples = args.max_samples if (getattr(args, 'max_samples', 0) > 0) else None

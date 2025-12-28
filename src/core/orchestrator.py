@@ -130,9 +130,8 @@ class RootOrchestrator:
         self.run_logger = logging.getLogger(LOGGER_NAME)
 
         # 6. Environment initialization and safety: Lock instance and clean zombies
-        kill_duplicate_processes(
-            logger=self.run_logger
-        )
+        self.cfg.system.manage_environment()
+        
         ensure_single_instance(
             lock_file=self.cfg.system.lock_file_path,
             logger=self.run_logger

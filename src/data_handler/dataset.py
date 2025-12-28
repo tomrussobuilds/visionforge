@@ -62,7 +62,8 @@ class MedMNISTDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         """
         if not path.exists():
             raise FileNotFoundError(f"Dataset file not found at: {path}")
-            
+        
+        self.cfg: Final[Config] = cfg
         self.path: Final[Path] = path
         self.transform: Final[transforms.Compose | None] = transform
         self.split: Final[str] = split
@@ -103,12 +104,11 @@ class MedMNISTDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         img = self.images[idx]
         label = self.labels[idx]
 
+        pil_img = Image.fromarray(img.squeeze() if img.shape[-1] == 1 else img)
+        
         if self.transform:
-            # Handle Grayscale (Squeeze last dim) vs RGB (Keep as is)
-            pil_img = Image.fromarray(img.squeeze() if img.shape[-1] == 1 else img)
             img = self.transform(pil_img)
         else:
-            # Optimized manual HWC -> CHW conversion and normalization
-            img = torch.from_numpy(img.transpose(2, 0, 1)).float() / 255.0
+            img = transforms.functional.to_tensor(pil_img)
 
         return img, torch.tensor(label, dtype=torch.long)

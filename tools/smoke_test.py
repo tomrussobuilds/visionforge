@@ -60,7 +60,7 @@ def run_smoke_test(args: argparse.Namespace) -> None:
             "grad_clip": 1.0
         }),
         "dataset": base_cfg.dataset.model_copy(update={
-            "max_samples": 16,
+            "max_samples": 64,
             "use_weighted_sampler": False
         })
     })
@@ -108,7 +108,7 @@ def run_smoke_test(args: argparse.Namespace) -> None:
                 criterion=criterion,
                 device=device,
                 cfg=cfg,
-                output_dir=paths.models
+                output_path=paths.best_model_path
             )
             
             best_path, train_losses, val_accuracies = trainer.train()

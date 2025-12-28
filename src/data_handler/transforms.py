@@ -75,8 +75,12 @@ def get_pipeline_transforms(
     
     # 2. Extract Normalization Stats from Registry (Pydantic models)
     # Ensuring consistency between dataset domain and pixel distributions.
-    mean = ds_meta.mean
-    std = ds_meta.std
+    if ds_meta.in_channels == 1:
+        mean = [ds_meta.mean[0]] * 3
+        std = [ds_meta.std[0]] * 3
+    else:
+        mean = ds_meta.mean
+        std = ds_meta.std
 
     def get_base_ops():
         """Foundational operations common to all pipelines."""

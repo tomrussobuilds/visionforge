@@ -69,10 +69,13 @@ def get_model(
     num_classes = len(metadata.classes)
     in_channels = cfg.dataset.effective_in_channels
 
+    logger.info(f"Instantiating model '{cfg.model_name}' | "
+                f"Num Classes: {num_classes}, | In Channels: {in_channels}"
+)
     # Routing logic (Factory Pattern)
     if "resnet-18 adapted" in model_name_lower:
         # Currently routes to the adapted ResNet-18 implementation
-        return build_resnet18_adapted(
+        model = build_resnet18_adapted(
             device=device, 
             num_classes=num_classes, 
             in_channels=in_channels,
@@ -82,3 +85,12 @@ def get_model(
         error_msg = f"Model architecture '{cfg.model_name}' is not recognized by the Factory."
         logger.error(error_msg)
         raise ValueError(error_msg)
+    
+    model = model.to(device)
+
+    total_params = sum(p.numel() for p in model.parameters())
+    logger.info(f"Model initialized on {str(device).upper()} | "
+                f"Total Parameters: {total_params:,}"
+                )
+    
+    return model
