@@ -349,11 +349,11 @@ class Config(BaseModel):
         compatibility and dataset metadata resolution.
         """
         
-        # 1. Short-circuit: If a --config YAML is provided, load direttamente dal file
+        # 1. Short-circuit: If a --config YAML is provided, load direttaly from it
         if hasattr(args, 'config') and args.config:
             return cls.from_yaml(Path(args.config))
 
-        # --- (Encapsulation) ---
+        # --- ENCAPSULATION ---
 
         def resolve_dataset_metadata():
             """Retrieve static metadata for the dataset from the central registry."""
