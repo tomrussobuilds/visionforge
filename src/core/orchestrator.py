@@ -1,9 +1,24 @@
 """
-Core Environment Orchestrator
+Environment Orchestration & Lifecycle Management.
 
-This module centralizes the initialization of the system environment, 
-coupling static configuration with runtime safety and logging services 
-to provide a consistent state for the experiment.
+This module provides the `RootOrchestrator`, the central authority for 
+initializing and managing the experiment's execution state. It synchronizes 
+hardware (CUDA/CPU), filesystem (RunPaths), and telemetry (Logging) into a 
+unified, reproducible context.
+
+Key Responsibilities:
+    - Deterministic Seeding: Ensures global RNG state is locked for reproducibility.
+    - Resource Guarding: Implements single-instance locking to prevent race 
+      conditions on shared hardware or filesystem resources.
+    - Path Atomicity: Dynamically generates and validates experiment workspaces.
+    - Hardware Abstraction: Manages device-specific optimizations (CUDA names, 
+      CPU threading levels).
+    - Lifecycle Safety: Uses the Context Manager pattern to guarantee resource 
+      cleanup and state persistence even during runtime failures.
+
+The orchestrator acts as the Single Source of Truth (SSOT) for the pipeline 
+environment, ensuring that if an experiment starts, it does so in a 
+validated and logged state.
 """
 
 # =========================================================================== #
@@ -233,7 +248,6 @@ class RootOrchestrator:
 
     def _log_dataset_section(self):
         ds = self.cfg.dataset
-        # Logica di determinazione del modo estratta per chiarezza
         if ds.effective_in_channels == 3:
             mode_str = "NATIVE-RGB" if ds.in_channels == 3 else "RGB-PROMOTED"
         else:
