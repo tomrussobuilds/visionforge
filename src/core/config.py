@@ -41,7 +41,8 @@ from pydantic import (
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from .system import detect_best_device, get_num_workers, kill_duplicate_processes
+from .system import (
+    detect_best_device, get_num_workers, kill_duplicate_processes)
 from .paths import DATASET_DIR, OUTPUTS_ROOT
 from .io import load_config_from_yaml
 from .metadata import DATASET_REGISTRY
