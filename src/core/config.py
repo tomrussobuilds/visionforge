@@ -1,23 +1,23 @@
 """
-MedMNIST Configuration Engine.
+MedMNIST Configuration & Orchestration Engine.
 
-This module defines the schema and validation logic for the MedMNIST training 
-pipeline. It leverages Pydantic for type-safe configuration management, 
-handling hardware abstraction, hyperparameter validation, and dataset 
-metadata resolution.
+This module acts as the declarative core of the pipeline, defining the 
+hierarchical schema and validation logic required to drive the Orchestrator. 
+It leverages Pydantic to transform raw inputs (CLI, YAML) into a structured, 
+type-safe manifest that synchronizes hardware state with experiment logic.
 
-The module provides:
-    * Custom Type Aliases: Validated constraints for DL metrics (LR, Probabilities).
-    * Sub-Configurations: Modular schemas for System, Training, Augmentation, 
-      Dataset, and Evaluation settings.
-    * Main Config Manifest: A unified entry point with cross-field validation 
-      logic (e.g., ensuring AMP compatibility with CPU).
-    * Multi-Source Factories: Support for initializing experiments via 
-      CLI arguments (argparse) or YAML manifests.
+Key Architectural Components:
+    * Sub-Config Registry: Modular schemas for System, Dataset, Training, 
+      Augmentation, and Evaluation settings.
+    * Integrity Layer: Cross-field validators that safeguard against 
+      invalid experiment states (e.g., incompatible device/AMP settings).
+    * Metadata Resolver: Dynamic binding of MedMNIST dataset properties 
+      to model architecture requirements.
+    * Orchestrator Interface: Provides the immutable contract used by the 
+      Main Orchestrator to initialize data streams, models, and loggers.
 
-Hardware and environment states (device detection, worker counts) are 
-automatically synchronized during instantiation to ensure reproducibility 
-across different compute environments.
+The engine ensures that every experiment is reproducible, self-documenting, 
+and hardware-agnostic by resolving environment constraints during instantiation.
 """
 
 # =========================================================================== #
@@ -72,7 +72,13 @@ Degrees = Annotated[int, Field(ge=0, le=180)]
 # =========================================================================== #
 
 class SystemConfig(BaseModel):
-    """Sub-configuration for system paths and hardware settings."""
+    """
+    Manages infrastructure, hardware abstraction, and environment state.
+    
+    Handles SSOT (Single Source of Truth) for device selection, ensuring 
+    requested accelerators (CUDA/MPS) are physically available, and manages 
+    experimental artifacts through validated directory paths.
+    """
     model_config = ConfigDict(
         frozen=True,
         extra="forbid"
@@ -124,10 +130,28 @@ class SystemConfig(BaseModel):
         if is_shared:
             return
         kill_duplicate_processes()
-        
+    
+
+    @classmethod
+    def from_args(cls, args: argparse.Namespace) -> "SystemConfig":
+        """Map infrastructure and hardware settings."""
+        return cls(
+            device=getattr(args, 'device', "auto"),
+            data_dir=Path(getattr(args, 'data_dir', DATASET_DIR)),
+            output_dir=Path(getattr(args, 'output_dir', OUTPUTS_ROOT)),
+            save_model=getattr(args, 'save_model', True),
+            log_interval=getattr(args, 'log_interval', 10),
+            project_name=getattr(args, 'project_name', "medmnist_experiment")
+        )
 
 class TrainingConfig(BaseModel):
-    """Sub-configuration for core training hyperparameters."""
+    """
+    Defines the optimization landscape and regularization strategies.
+    
+    Encapsulates hyperparameters for the optimizer, learning rate schedules, 
+    and advanced training techniques like Mixed Precision (AMP) and Mixup 
+    augmentation duration.
+    """
     model_config = ConfigDict(
         frozen=True,
         extra="forbid"
@@ -161,8 +185,36 @@ class TrainingConfig(BaseModel):
     )
 
 
+    @classmethod
+    def from_args(cls, args: argparse.Namespace) -> "TrainingConfig":
+        """Map training parameters ensuring defaults are present."""
+        return cls(
+            seed=getattr(args, 'seed', 42),
+            batch_size=getattr(args, 'batch_size', 128),
+            learning_rate=getattr(args, 'lr', 0.008),
+            momentum=getattr(args, 'momentum', 0.9),
+            weight_decay=getattr(args, 'weight_decay', 5e-4),
+            epochs=getattr(args, 'epochs', 60),
+            patience=getattr(args, 'patience', 15),
+            mixup_alpha=getattr(args, 'mixup_alpha', 0.2),
+            mixup_epochs=getattr(args, 'mixup_epochs', 20),
+            use_tta=getattr(args, 'use_tta', True),
+            cosine_fraction=getattr(args, 'cosine_fraction', 0.5),
+            use_amp=getattr(args, 'use_amp', False),
+            grad_clip=getattr(args, 'grad_clip', 1.0),
+            label_smoothing=getattr(args, 'label_smoothing', 0.0),
+            min_lr=getattr(args, 'min_lr', 1e-6)
+        )
+
+
 class AugmentationConfig(BaseModel):
-    """Sub-configuration for data augmentation parameters."""
+    """
+    Configures the stochastic transformation pipeline for training and TTA.
+    
+    Standardizes parameters for geometric and photometric augmentations, 
+    ensuring consistency between training-time noise and Test-Time 
+    Augmentation (TTA) intensity.
+    """
     model_config = ConfigDict(
         frozen=True,
         extra="forbid"
@@ -187,8 +239,28 @@ class AugmentationConfig(BaseModel):
     )
 
 
+    @classmethod
+    def from_args(cls, args: argparse.Namespace) -> "AugmentationConfig":
+        """Map augmentation parameters ensuring defaults are present."""
+        return cls(
+            hflip=getattr(args, 'hflip', 0.5),
+            rotation_angle=getattr(args, 'rotation_angle', 10),
+            jitter_val=getattr(args, 'jitter_val', 0.2),
+            min_scale=getattr(args, 'min_scale', 0.9),
+            tta_translate=getattr(args, 'tta_translate', 2.0),
+            tta_scale=getattr(args, 'tta_scale', 1.1),
+            tta_blur_sigma=getattr(args, 'tta_blur_sigma', 0.4)
+        )
+
+
 class DatasetConfig(BaseModel):
-    """Sub-configuration for dataset-specific metadata and sampling."""
+    """
+    Resolves dataset-specific constraints and normalization metadata.
+    
+    Acts as the interface between the MedMNIST Metadata Registry and the 
+    training pipeline, handling automated 3-channel expansion for 
+    pretrained models and class-balance sampling logic.
+    """
     model_config = ConfigDict(
         frozen=True,
         extra="forbid"
@@ -225,15 +297,59 @@ class DatasetConfig(BaseModel):
     normalization_info: str = "N/A"
     is_anatomical: bool = True
     is_texture_based: bool = True
+    
 
     @property
     def effective_in_channels(self) -> int:
         """Returns the actual number of channels the model will see"""
         return 3 if self.force_rgb else self.in_channels
     
+    @staticmethod
+    def _resolve_dataset_metadata(dataset_raw: str):
+        """Retrieve static metadata for the dataset from the central registry."""
+        key = dataset_raw.lower()
+        if key not in DATASET_REGISTRY:
+            raise ValueError(f"Dataset '{dataset_raw}' not supported in DATASET_REGISTRY.")
+        return DATASET_REGISTRY[key]
+
+    @classmethod
+    def from_args(cls, args: argparse.Namespace) -> "DatasetConfig":
+        """Map dataset-specific metadata and resolve conditional RGB/sampling logic."""
+        
+        ds_name = getattr(args, 'dataset', "BloodMNIST")
+        ds_meta = cls._resolve_dataset_metadata(ds_name)
+            
+        # Determine RGB logic: User override or automatic for pretrained grayscale
+        force_rgb_arg = getattr(args, 'force_rgb', None)
+        should_force_rgb = force_rgb_arg if force_rgb_arg is not None else \
+                            (ds_meta.in_channels == 1 and getattr(args, 'pretrained', False))
+            
+        # Determine final max_samples value
+        final_max_samples = args.max_samples if (getattr(args, 'max_samples', 0) > 0) else None
+
+        return cls(
+            dataset_name=ds_meta.name,
+            max_samples=final_max_samples,
+            use_weighted_sampler=getattr(args, 'use_weighted_sampler', True),
+            in_channels=ds_meta.in_channels,
+            num_classes=len(ds_meta.classes),
+            mean=ds_meta.mean,
+            std=ds_meta.std,
+            normalization_info=f"Mean={ds_meta.mean}, Std={ds_meta.std}",
+            is_anatomical=ds_meta.is_anatomical,
+            is_texture_based=ds_meta.is_texture_based,
+            force_rgb=should_force_rgb,
+            img_size=getattr(args, 'img_size', 28)
+        )
+    
 
 class EvaluationConfig(BaseModel):
-    """Sub-configuration for model evaluation and reporting."""
+    """
+    Controls the visual reporting and performance metric persistence.
+    
+    Sets the aesthetics for confusion matrices, prediction grids, and 
+    defines the export format for quantitative tabular reports.
+    """
     model_config = ConfigDict(
         frozen=True,
         extra="forbid"
@@ -260,31 +376,39 @@ class EvaluationConfig(BaseModel):
     fig_size_predictions: tuple[int, int] = (12, 8)
 
 
+    @classmethod
+    def from_args(cls, args: argparse.Namespace) -> "EvaluationConfig":
+        """Map evaluation and reporting preferences."""
+        return cls(
+            n_samples=getattr(args, 'n_samples', 12),
+            fig_dpi=getattr(args, 'fig_dpi', 200),
+            plot_style=getattr(args, 'plot_style', "seaborn-v0_8-muted"),
+            report_format=getattr(args, 'report_format', "xlsx")
+        )    
+
+
 # =========================================================================== #
 #                                MAIN CONFIGURATION                          #
 # =========================================================================== #
 
 class Config(BaseModel):
     """
-    Main Configuration Manifest for the MedMNIST Pipeline.
+    Main Experiment Manifest and Orchestration Schema.
     
-    This root container aggregates specialized sub-configurations (System, Training, 
-    Augmentation, Dataset, Evaluation) into a unified, immutable schema. It acts 
-    as the central validator for cross-module logic, ensuring that hardware 
-    capabilities (AMP, Device) align with training strategies (MixUp, Pretraining).
+    This class serves as the central source of truth for the entire pipeline,
+    aggregating specialized sub-configurations into a single validated object.
+    It acts as the primary configuration provider for the Orchestrator, 
+    ensuring that hardware settings, dataset constraints, and optimization 
+    strategies are logically aligned before execution.
 
-    The class provides robust factory methods (`from_args`, `from_yaml`) to 
-    seamlessly bridge external inputs into a type-safe, validated environment.
-
-    Attributes:
-        system (SystemConfig): Infrastructure and hardware settings.
-        training (TrainingConfig): Optimization and regularization hyperparameters.
-        augmentation (AugmentationConfig): Data transformation and TTA parameters.
-        dataset (DatasetConfig): Metadata and constraints for the specific MedMNIST task.
-        evaluation (EvaluationConfig): Visualization and reporting preferences.
-        num_workers (int): Validated CPU worker count for data loading.
-        model_name (str): Architecture identifier.
-        pretrained (bool): Flag to enable/disable ImageNet weight transfer.
+    Key Responsibilities:
+        * State Validation: Enforces cross-module consistency (e.g., matching 
+          model input channels with dataset transformations).
+        * Resource Negotiation: Bridges system capabilities (CPU/GPU/AMP) 
+          with training requirements.
+        * Orchestrator Interface: Provides a structured, immutable contract 
+          that the Orchestrator uses to initialize data loaders, model 
+          architectures, and logging utilities.
     """
     model_config = ConfigDict(
             extra="forbid",
@@ -354,105 +478,16 @@ class Config(BaseModel):
         # 1. Short-circuit: If a --config YAML is provided, load directly from it
         if hasattr(args, 'config') and args.config:
             return cls.from_yaml(Path(args.config))
-
-        # --- ENCAPSULATION ---
-
-        def resolve_dataset_metadata():
-            """Retrieve static metadata for the dataset from the central registry."""
-            dataset_raw = getattr(args, 'dataset', "BloodMNIST")
-            key = dataset_raw.lower()
-            if key not in DATASET_REGISTRY:
-                raise ValueError(f"Dataset '{dataset_raw}' not supported in DATASET_REGISTRY.")
-            return DATASET_REGISTRY[key]
-
-        def build_system_subconfig():
-            """Map infrastructure and hardware settings."""
-            return SystemConfig(
-                device=getattr(args, 'device', "auto"),
-                data_dir=Path(getattr(args, 'data_dir', "./data")),
-                output_dir=Path(getattr(args, 'output_dir', "./outputs")),
-                save_model=getattr(args, 'save_model', True),
-                log_interval=getattr(args, 'log_interval', 10),
-                project_name=getattr(args, 'project_name', "medmnist_experiment")
-            )
-
-        def build_training_subconfig():
-            """Map training parameters ensuring defaults are present."""
-            return TrainingConfig(
-                seed=getattr(args, 'seed', 42),
-                batch_size=getattr(args, 'batch_size', 128),
-                learning_rate=getattr(args, 'lr', 0.008),
-                momentum=getattr(args, 'momentum', 0.9),
-                weight_decay=getattr(args, 'weight_decay', 5e-4),
-                epochs=getattr(args, 'epochs', 60),
-                patience=getattr(args, 'patience', 15),
-                mixup_alpha=getattr(args, 'mixup_alpha', 0.2),
-                mixup_epochs=getattr(args, 'mixup_epochs', 20),
-                use_tta=getattr(args, 'use_tta', True),
-                cosine_fraction=getattr(args, 'cosine_fraction', 0.5),
-                use_amp=getattr(args, 'use_amp', False),
-                grad_clip=getattr(args, 'grad_clip', 1.0),
-                label_smoothing=getattr(args, 'label_smoothing', 0.0),
-                min_lr=getattr(args, 'min_lr', 1e-6)
-            )
-
-        def build_augmentation_subconfig():
-            """Map augmentation parameters ensuring defaults are present."""
-            return AugmentationConfig(
-                hflip=getattr(args, 'hflip', 0.5),
-                rotation_angle=getattr(args, 'rotation_angle', 10),
-                jitter_val=getattr(args, 'jitter_val', 0.2),
-                min_scale=getattr(args, 'min_scale', 0.9),
-                tta_translate=getattr(args, 'tta_translate', 2.0),
-                tta_scale=getattr(args, 'tta_scale', 1.1),
-                tta_blur_sigma=getattr(args, 'tta_blur_sigma', 0.4)
-            )
-
-        def build_dataset_subconfig():
-            """Map dataset-specific metadata and resolve conditional RGB/sampling logic."""
-            ds_meta = resolve_dataset_metadata()
-            
-            # Determine RGB logic: User override or automatic for pretrained grayscale
-            force_rgb_arg = getattr(args, 'force_rgb', None)
-            should_force_rgb = force_rgb_arg if force_rgb_arg is not None else \
-                              (ds_meta.in_channels == 1 and getattr(args, 'pretrained', False))
-            
-            # Determine final max_samples value
-            final_max_samples = args.max_samples if (getattr(args, 'max_samples', 0) > 0) else None
-
-            return DatasetConfig(
-                dataset_name=ds_meta.name,
-                max_samples=final_max_samples,
-                use_weighted_sampler=getattr(args, 'use_weighted_sampler', True),
-                in_channels=ds_meta.in_channels,
-                num_classes=len(ds_meta.classes),
-                mean=ds_meta.mean,
-                std=ds_meta.std,
-                normalization_info=f"Mean={ds_meta.mean}, Std={ds_meta.std}",
-                is_anatomical=ds_meta.is_anatomical,
-                is_texture_based=ds_meta.is_texture_based,
-                force_rgb=should_force_rgb,
-                img_size=getattr(args, 'img_size', 28)
-            )
-
-        def build_evaluation_subconfig():
-            """Map evaluation and reporting preferences."""
-            return EvaluationConfig(
-                n_samples=getattr(args, 'n_samples', 12),
-                fig_dpi=getattr(args, 'fig_dpi', 200),
-                plot_style=getattr(args, 'plot_style', "seaborn-v0_8-muted"),
-                report_format=getattr(args, 'report_format', "xlsx")
-            )
-
+        
         # --- LOGIC EXECUTION & ASSEMBLY ---
 
         return cls(
             model_name=getattr(args, 'model_name', "ResNet-18 Adapted"),
             pretrained=getattr(args, 'pretrained', True),
             num_workers=getattr(args, 'num_workers', 4),
-            system=build_system_subconfig(),
-            training=build_training_subconfig(),
-            augmentation=build_augmentation_subconfig(),
-            dataset=build_dataset_subconfig(),
-            evaluation=build_evaluation_subconfig()
+            system=SystemConfig.from_args(args),
+            training=TrainingConfig.from_args(args),
+            augmentation=AugmentationConfig.from_args(args),
+            dataset=DatasetConfig.from_args(args),
+            evaluation=EvaluationConfig.from_args(args)
         )
