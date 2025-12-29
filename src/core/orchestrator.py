@@ -45,7 +45,7 @@ from .logger import Logger
 from .paths import RunPaths, setup_static_directories, LOGGER_NAME
 
 # =========================================================================== #
-#                              Root Orchestrator RootOrchestrator             #
+#                              Root Orchestrator                              #
 # =========================================================================== #
 
 class RootOrchestrator:
