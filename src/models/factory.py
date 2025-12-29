@@ -52,7 +52,7 @@ def get_model(
     """
     
     # Normalize model name for robust matching
-    model_name_lower = cfg.model_name.lower()
+    model_name_lower = cfg.model.name.lower()
     
     dataset_key = cfg.dataset.dataset_name.lower()
     
@@ -69,11 +69,11 @@ def get_model(
     num_classes = len(metadata.classes)
     in_channels = cfg.dataset.effective_in_channels
 
-    logger.info(f"Instantiating model '{cfg.model_name}' | "
+    logger.info(f"Instantiating model '{cfg.model.name}' | "
                 f"Num Classes: {num_classes}, | In Channels: {in_channels}"
 )
     # Routing logic (Factory Pattern)
-    if "resnet-18 adapted" in model_name_lower:
+    if "resnet_18_adapted" in model_name_lower:
         # Currently routes to the adapted ResNet-18 implementation
         model = build_resnet18_adapted(
             device=device, 
@@ -82,7 +82,7 @@ def get_model(
             cfg=cfg
         )
     else:
-        error_msg = f"Model architecture '{cfg.model_name}' is not recognized by the Factory."
+        error_msg = f"Model architecture '{cfg.model.name}' is not recognized by the Factory."
         logger.error(error_msg)
         raise ValueError(error_msg)
     

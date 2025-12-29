@@ -38,6 +38,7 @@ from .training_config import TrainingConfig
 from .augmentation_config import AugmentationConfig
 from .dataset_config import DatasetConfig
 from .evaluation_config import EvaluationConfig
+from .models_config import ModelConfig
 
 from ..system import get_num_workers
 from ..io import load_config_from_yaml
@@ -77,10 +78,9 @@ class Config(BaseModel):
     augmentation: AugmentationConfig = Field(default_factory=AugmentationConfig)
     dataset: DatasetConfig = Field(default_factory=DatasetConfig)
     evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
-    
+    model: ModelConfig = Field(default_factory=ModelConfig)
+
     num_workers: NonNegativeInt = Field(default_factory=get_num_workers)
-    model_name: str = "ResNet-18 Adapted"
-    pretrained: bool = True
 
 
     @model_validator(mode="after")
@@ -94,7 +94,7 @@ class Config(BaseModel):
         is_cpu = self.system.device == "cpu"
         if is_cpu and self.training.use_amp:
             raise ValueError("AMP cannot be enabled when using CPU device.")
-        if self.pretrained and self.dataset.in_channels == 1 and not self.dataset.force_rgb:
+        if self.model.pretrained and self.dataset.in_channels == 1 and not self.dataset.force_rgb:
             raise ValueError(
                 "Pretrained models require 3-channel input. "
                 "Set force_rgb=True in dataset config."
@@ -137,12 +137,11 @@ class Config(BaseModel):
         # --- LOGIC EXECUTION & ASSEMBLY ---
 
         return cls(
-            model_name=getattr(args, 'model_name', "ResNet-18 Adapted"),
-            pretrained=getattr(args, 'pretrained', True),
             num_workers=getattr(args, 'num_workers', 4),
             system=SystemConfig.from_args(args),
             training=TrainingConfig.from_args(args),
             augmentation=AugmentationConfig.from_args(args),
             dataset=DatasetConfig.from_args(args),
-            evaluation=EvaluationConfig.from_args(args)
+            evaluation=EvaluationConfig.from_args(args),
+            model=ModelConfig.from_args(args)
         )

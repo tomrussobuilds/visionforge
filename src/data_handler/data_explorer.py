@@ -36,7 +36,6 @@ def show_sample_images(
         classes: List[str],
         save_path: Path,
         cfg: Config,
-        num_samples: int = 16
     ) -> None:  
     """
     Extracts a batch from the DataLoader and saves a grid of sample images 
@@ -94,7 +93,7 @@ def show_sample_images(
         plt.title(f"{label_idx} — {class_name}", fontsize=11)
         plt.axis("off")
 
-    model_title = cfg.model_name if cfg else "Model"
+    model_title = cfg.model.name if cfg else "Model"
     plt.suptitle(f"{model_title} — 9 Samples from Training Loader", fontsize=16)
     
     # Adjust layout to prevent title overlap

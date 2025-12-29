@@ -60,7 +60,9 @@ def main() -> None:
 
         try:
             # --- 2. Data Preparation ---
-            run_logger.info(f" Preparing Dataset: {cfg.dataset.dataset_name} ".center(60, "-"))
+            run_logger.info(
+                f"\n{'━' * 80}\n{' DATA PREPARATION ':^80}\n{'━' * 80}"
+            )
             
             data    = load_medmnist(ds_meta)
             loaders = get_dataloaders(data, cfg)
@@ -74,7 +76,10 @@ def main() -> None:
             )
 
             # --- 3. Model & Training Execution ---
-            run_logger.info(f" Starting Pipeline: {cfg.model_name} ".center(60, "#"))
+            pipeline_title = f" STARTING PIPELINE: {cfg.model.name.upper()} "
+            run_logger.info(
+                f"\n{'#' * 80}\n{pipeline_title:^80}\n{'#' * 80}"
+            )
 
             model   = get_model(device=device, cfg=cfg)
 
@@ -91,14 +96,16 @@ def main() -> None:
                 criterion    = criterion,
                 device       = device,
                 cfg          = cfg,
-                output_path  = paths.models
+                output_path  = paths.models / "best_model.pth"
             )
             
             # Start training and return explicit history lists
             best_path, train_losses, val_accuracies = trainer.train()
 
             # --- 4. Model Recovery & Evaluation ---
-            run_logger.info(" Final Evaluation Phase ".center(60, "-"))
+            run_logger.info(
+                f"\n{'━' * 80}\n{' FINAL EVALUATION PHASE ':^80}\n{'━' * 80}"
+            )
             
             # Recover best weights found during validation
             orchestrator.load_weights(model, best_path)
@@ -113,27 +120,27 @@ def main() -> None:
                 paths          = paths,
                 cfg            = cfg,
                 aug_info       = get_augmentations_description(cfg),
-                log_path      = paths.logs / f"{paths.project_id}.log"
+                log_path       = paths.logs / f"{paths.project_id}.log"
             )
 
             # --- 5. Structured Summary Logging ---
             summary = (
-                f"\n{'#'*60}\n"
-                f"{' PIPELINE EXECUTION SUMMARY ':^60}\n"
-                f"{'-'*60}\n"
+                f"\n{'#'*80}\n"
+                f"{' PIPELINE EXECUTION SUMMARY ':^80}\n"
+                f"{'━'*80}\n"
                 f"  » Dataset:      {cfg.dataset.dataset_name}\n"
-                f"  » Architecture: {cfg.model_name}\n"
+                f"  » Architecture: {cfg.model.name}\n"
                 f"  » Test Acc:     {test_acc:>8.2%}\n"
                 f"  » Macro F1:     {macro_f1:>8.4f}\n"
                 f"  » Artifacts:    {paths.root}\n"
-                f"{'#'*60}"
+                f"{'#'*80}"
             )
             run_logger.info(summary)
         
         except KeyboardInterrupt:
-            run_logger.warning("Interrupted by user. Cleaning up and exiting...")
+            run_logger.warning("\n[!] Interrupted by user. Cleaning up and exiting...")
         except Exception as e:
-            run_logger.error(f"Pipeline crashed during execution: {e}", exc_info=True)
+            run_logger.error(f"\n[!] Pipeline crashed during execution: {e}", exc_info=True)
             raise e
             
         finally:

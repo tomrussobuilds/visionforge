@@ -42,7 +42,7 @@ def get_optimizer(model: nn.Module, cfg: Config) -> optim.Optimizer:
         - Other (ViT/Transformers): Defaults to AdamW to handle decoupled 
           weight decay and adaptive learning rates.
     """
-    model_name = cfg.model_name.lower()
+    model_name = cfg.model.name.lower()
     
     if "resnet" in model_name:
         return optim.SGD(

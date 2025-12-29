@@ -270,13 +270,13 @@ def parse_args() -> argparse.Namespace:
     model_group.add_argument(
         '--model_name',
         type=str,
-        default=default_cfg.model_name,
+        default=default_cfg.model.name,
         help="Architecture identifier."
     )
     model_group.add_argument(
         '--pretrained',
         action='store_true',
-        default=default_cfg.pretrained,
+        default=default_cfg.model.pretrained,
         help="Load ImageNet weights for the backbone (default: True)."
     )
     model_group.add_argument(

@@ -186,7 +186,7 @@ def create_structured_report(
         aug_info = ", ".join([f"{k.replace('_', ' ').capitalize()}: {v}" for k, v in aug_dict.items()])
 
     return TrainingReport(
-        model=cfg.model_name,
+        model=cfg.model.name,
         dataset=cfg.dataset.dataset_name,
         best_val_accuracy=max(val_accuracies) if val_accuracies else 0.0,
         test_accuracy=test_acc,

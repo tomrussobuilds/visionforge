@@ -91,7 +91,7 @@ def run_smoke_test(args: argparse.Namespace) -> None:
 
             # 4. Model Factory Check
             model = get_model(device=device, cfg=cfg)
-            run_logger.info(f"Model {cfg.model_name} instantiated.")
+            run_logger.info(f"Model {cfg.model.name} instantiated.")
 
             criterion = nn.CrossEntropyLoss()
             optimizer = optim.Adam(model.parameters(), lr=cfg.training.learning_rate)

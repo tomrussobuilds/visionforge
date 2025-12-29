@@ -146,7 +146,7 @@ class RootOrchestrator:
         # 4. Dynamic Path Initialization: Create run-specific folder
         self.paths = RunPaths(
             dataset_slug=self.cfg.dataset.dataset_name,
-            model_name=self.cfg.model_name,
+            model_name=self.cfg.model.name,
             base_dir=self.cfg.system.output_dir
         )
 
@@ -269,6 +269,9 @@ class RootOrchestrator:
         tta_status = determine_tta_mode(train.use_tta, self.get_device().type)
         
         self.run_logger.info(f"[STRATEGY]")
+        self.run_logger.info(
+            f"  Model: {self.cfg.model.name} | Pretrained: {self.cfg.model.pretrained}"
+        )
         self.run_logger.info(f"  TTA: {tta_status}")
         self.run_logger.info(
             f"  Params: Epochs={train.epochs}, Batch={train.batch_size}, LR={train.learning_rate:.4f}"

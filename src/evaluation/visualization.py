@@ -87,7 +87,7 @@ def show_predictions(
                               'Anatomical' if cfg.dataset.is_anatomical else 'Standard'}" if cfg else ""
     plt.suptitle(
         f"Sample Predictions — "
-        f"{cfg.model_name if cfg else 'Inference'}{tta_info}{domain_info}",
+        f"{cfg.model.name if cfg else 'Inference'}{tta_info}{domain_info}",
         fontsize=14
     )
 
@@ -121,7 +121,7 @@ def plot_training_curves(
     ax2.set_ylabel("Accuracy", color='#3498db', fontweight='bold')
     ax2.tick_params(axis='y', labelcolor='#3498db')
 
-    plt.title(f"Training Metrics — {cfg.model_name}", fontsize=14, pad=15)
+    plt.title(f"Training Metrics — {cfg.model.name}", fontsize=14, pad=15)
     fig.tight_layout()
     
     plt.savefig(out_path, dpi=cfg.evaluation.fig_dpi, bbox_inches="tight")
@@ -160,7 +160,7 @@ def plot_confusion_matrix(
         values_format='.3f'
     )
 
-    plt.title(f"Confusion Matrix — {cfg.model_name}", fontsize=14, pad=20)
+    plt.title(f"Confusion Matrix — {cfg.model.name}", fontsize=14, pad=20)
     plt.tight_layout()
     
     fig.savefig(out_path, dpi=cfg.evaluation.fig_dpi, bbox_inches="tight")
