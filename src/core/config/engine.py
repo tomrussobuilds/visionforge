@@ -53,18 +53,17 @@ class Config(BaseModel):
     
     This class serves as the central source of truth for the entire pipeline,
     aggregating specialized sub-configurations into a single validated object.
-    It acts as the primary configuration provider for the Orchestrator, 
-    ensuring that hardware settings, dataset constraints, and optimization 
-    strategies are logically aligned before execution.
+    It provides the descriptive blueprint that the RootOrchestrator and 
+    InfrastructureManager use to prepare and execute the experiment.
 
     Key Responsibilities:
         * State Validation: Enforces cross-module consistency (e.g., matching 
           model input channels with dataset transformations).
         * Resource Negotiation: Bridges system capabilities (CPU/GPU/AMP) 
           with training requirements.
-        * Orchestrator Interface: Provides a structured, immutable contract 
-          that the Orchestrator uses to initialize data loaders, model 
-          architectures, and logging utilities.
+        * Manifest Contract: Provides a structured, immutable contract 
+          that ensures all experiment parameters are validated before 
+          any infrastructure resources are allocated.
     """
     model_config = ConfigDict(
             extra="forbid",
@@ -72,7 +71,7 @@ class Config(BaseModel):
             frozen=True
     )
     
-    # Nested configurations - Explicit access required (e.g., cfg.training.seed)
+    # Nested configurations - Explicit access required (e.g., cfg.system.seed)
     system: SystemConfig = Field(default_factory=SystemConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
     augmentation: AugmentationConfig = Field(default_factory=AugmentationConfig)
@@ -85,20 +84,27 @@ class Config(BaseModel):
 
     @model_validator(mode="after")
     def validate_logic(self) -> "Config":
-        """Cross-field logic validation after instantiation."""
+        """
+        Cross-field logic validation after instantiation.
+        Ensures that the requested experiment strategy is physically 
+        and logically feasible given the system and model constraints.
+        """
         if self.training.mixup_epochs > self.training.epochs:
             raise ValueError(
                 f"mixup_epochs ({self.training.mixup_epochs}) cannot exceed "
                 f"epochs ({self.training.epochs})."
             )
+            
         is_cpu = self.system.device == "cpu"
         if is_cpu and self.training.use_amp:
             raise ValueError("AMP cannot be enabled when using CPU device.")
+            
         if self.model.pretrained and self.dataset.in_channels == 1 and not self.dataset.force_rgb:
             raise ValueError(
                 "Pretrained models require 3-channel input. "
                 "Set force_rgb=True in dataset config."
             )
+            
         if self.training.min_lr >= self.training.learning_rate:
             raise ValueError(
                 f"min_lr ({self.training.min_lr}) must be less than "
@@ -109,14 +115,13 @@ class Config(BaseModel):
     @field_validator("num_workers")
     @classmethod
     def check_cpu_count(cls, v: int) -> int:
+        """Limits worker count to the physical capabilities of the host."""
         cpu_count = os.cpu_count() or 1
         return min(v, cpu_count)
     
     @classmethod
     def from_yaml(cls, yaml_path: Path) -> "Config":
-        """
-        Factory method to create a validated Config instance from a YAML file.
-        """
+        """Factory method to create a validated Config instance from a YAML file."""
         raw_data = load_config_from_yaml(yaml_path)
         return cls(**raw_data)        
             
@@ -125,17 +130,14 @@ class Config(BaseModel):
         """
         Factory method to create a validated Config instance from a CLI namespace.
         
-        This method orchestrates the transformation of raw argparse parameters into 
-        the hierarchical Pydantic schema, applying conditional logic for hardware 
-        compatibility and dataset metadata resolution.
+        Transforms raw argparse parameters into the hierarchical Pydantic schema, 
+        triggering the full validation suite (field, validator, and model levels).
         """
         
-        # 1. Short-circuit: If a --config YAML is provided, load directly from it
+        # Short-circuit: If a --config YAML is provided, load directly from it
         if hasattr(args, 'config') and args.config:
             return cls.from_yaml(Path(args.config))
         
-        # --- LOGIC EXECUTION & ASSEMBLY ---
-
         return cls(
             num_workers=getattr(args, 'num_workers', 4),
             system=SystemConfig.from_args(args),

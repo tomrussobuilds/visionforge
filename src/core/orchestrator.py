@@ -9,7 +9,7 @@ unified, reproducible context.
 Key Responsibilities:
     - Deterministic Seeding: Ensures global RNG state is locked for reproducibility.
     - Resource Guarding: Implements single-instance locking to prevent race 
-      conditions on shared hardware or filesystem resources.
+      conditions on shared hardware or filesystem resources via InfrastructureManager.
     - Path Atomicity: Dynamically generates and validates experiment workspaces.
     - Hardware Abstraction: Manages device-specific optimizations (CUDA names, 
       CPU threading levels).
@@ -40,9 +40,7 @@ from .environment import (
     set_seed, get_cuda_name, to_device_obj, configure_system_libraries,
     apply_cpu_threads, determine_tta_mode
 )
-from .processes import (
-    ensure_single_instance, release_single_instance
-)
+from .config.infrastructure_config import InfrastructureManager
 from .io import (
     save_config_as_yaml, load_model_weights
 )
@@ -70,6 +68,7 @@ class RootOrchestrator:
 
     Attributes:
         cfg (Config): The immutable global configuration manifest.
+        infra (InfrastructureManager): Handler for OS-level resource guarding.
         paths (Optional[RunPaths]): Orchestrator for session-specific directories.
         run_logger (Optional[logging.Logger]): Active logger instance for the run.
         _device_cache (Optional[torch.device]): Memoized compute device.
@@ -81,8 +80,10 @@ class RootOrchestrator:
 
         Args:
             cfg (Config): The validated global configuration manifest.
+            log_initializer (callable): Function to initialize the logging system.
         """
         self.cfg = cfg
+        self.infra = InfrastructureManager()
         self._log_initializer = log_initializer
         self.paths: Optional[RunPaths] = None
         self.run_logger: Optional[logging.Logger] = None
@@ -148,12 +149,8 @@ class RootOrchestrator:
             level=self.cfg.system.log_level
         )
 
-        # 6. Environment Initialization & Safety
-        self.cfg.system.manage_environment()
-        ensure_single_instance(
-            lock_file=self.cfg.system.lock_file_path, 
-            logger=self.run_logger
-        )
+        # 6. Environment Initialization & Safety (Delegated to Infrastructure)
+        self.infra.prepare_environment(self.cfg, logger=self.run_logger)
         
         # 7. Metadata Preservation
         save_config_as_yaml(
@@ -168,18 +165,11 @@ class RootOrchestrator:
 
     def cleanup(self) -> None:
         """
-        Releases system resources and removes the execution lock file.
+        Releases system resources and removes the execution lock file via InfrastructureManager.
         Guarantees a clean state for subsequent pipeline runs.
         """
         try:
-            release_single_instance(self.cfg.system.lock_file_path)
-            msg = "System resource lock released successfully."
-            
-            if self.run_logger:
-                self.run_logger.info(f" » {msg}")
-            else:
-                logging.info(msg)
-                
+            self.infra.release_resources(self.cfg, logger=self.run_logger)
         except Exception as e:
             err_msg = f"Failed to release system lock: {e}"
             if self.run_logger:

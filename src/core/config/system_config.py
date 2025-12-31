@@ -3,26 +3,25 @@ System & Infrastructure Configuration Schema.
 
 This module defines the declarative schema for hardware abstraction and 
 filesystem orchestration. It acts as the bridge between raw environment 
-settings (CLI/YAML) and the physical resources of the machine, ensuring 
+settings (CLI/YAML) and the physical resources of the machine, providing the 
 Single Source of Truth (SSOT) for device selection and path integrity.
 
 Key Functionalities:
     * Hardware Negotiation: Resolves 'auto' device requests into concrete 
       accelerators (CUDA/MPS) based on runtime availability.
-    * Environment Sanitization: Manages process lifecycle (duplicate killing) 
-      and ensures lock file consistency across different OS platforms.
-    * Artifact Management: Enforces validated directory structures for 
-      datasets and experiment outputs via Pydantic-driven path resolution.
+    * Path Validation: Enforces structured directory resolution for datasets 
+      and experiment outputs via Pydantic-driven validation.
+    * Metadata Blueprint: Provides the necessary parameters for the 
+      InfrastructureManager to perform environment sanitization and locking.
 
-The SystemConfig class ensures that the Orchestrator starts on a 
-predictable and hardware-aligned environment.
+The SystemConfig class ensures that the experiment state is defined in a 
+predictable and hardware-aligned manifest.
 """
 
 # =========================================================================== #
 #                                Standard Imports                             #
 # =========================================================================== #
 import argparse
-import os
 import tempfile
 from pathlib import Path
 
@@ -40,55 +39,58 @@ from pydantic import (
 from .types import (
     ValidatedPath, ProjectSlug, LogFrequency, LogLevel
 )
-from ..processes import kill_duplicate_processes
 from ..environment import detect_best_device
 from ..paths import DATASET_DIR, OUTPUTS_ROOT
 
 # =========================================================================== #
 #                             SYSTEM CONFIGURATION                            #
 # =========================================================================== #
- 
+
 class SystemConfig(BaseModel):
     """
-    Manages infrastructure, hardware abstraction, and environment state.
+    Declarative manifest for infrastructure and hardware abstraction.
     
-    Handles SSOT (Single Source of Truth) for device selection, ensuring 
-    requested accelerators (CUDA/MPS) are physically available, and manages 
-    experimental artifacts through validated directory paths.
+    This class serves as the SSOT (Single Source of Truth) for the pipeline's 
+    physical requirements. It validates that requested compute devices are 
+    accessible and defines the filesystem boundaries for the experiment.
     """
     model_config = ConfigDict(
         frozen=True,
         extra="forbid"
     )
-    # Hardware
+
+    # Hardware Configuration
     device: str = Field(
         default_factory=detect_best_device,
         description="Computing device (cpu, cuda, mps or auto)."
     )
     log_level: LogLevel = "INFO"
 
-    # Filesystem
+    # Filesystem Strategy
     data_dir: ValidatedPath = Field(default=DATASET_DIR)
     output_dir: ValidatedPath = Field(default=OUTPUTS_ROOT)
 
-    # Environment Management
+    # Execution Policy
     save_model: bool = True
     log_interval: LogFrequency = Field(default=10)
     project_name: ProjectSlug = "vision_experiment"
     allow_process_kill: bool = Field(
         default=True,
-        description="Enable automatic termination of duplicate processes."
+        description="Permission flag for InfrastructureManager to terminate duplicate processes."
     )
 
     @property
     def lock_file_path(self) -> Path:
-        """Dynamically generates a cross-platform lock file path."""
+        """
+        Dynamically generates the cross-platform lock file location.
+        Used by InfrastructureManager to ensure mutual exclusion.
+        """
         safe_name = self.project_name.replace("/", "_") 
         return Path(tempfile.gettempdir()) / f"{safe_name}.lock"
     
     @property
     def support_amp(self) -> bool:
-        """True if the selected device supports Automatic Mixed Precision."""
+        """Checks if the validated device supports Automatic Mixed Precision (AMP)."""
         return self.device.lower().startswith("cuda") or \
                 self.device.lower().startswith("mps")
     
@@ -108,23 +110,18 @@ class SystemConfig(BaseModel):
         if "mps" in requested and not torch.backends.mps.is_available():
             return "cpu"
         return requested
-    
-    def manage_environment(self) -> None:
-        """"
-        Handles environment setup tasks such as killing duplicates if enabled.
-        Safeguards against termination in shared cluster environments.
-        """
-        if not self.allow_process_kill:
-            return
-        is_shared = any(env in os.environ for env in ["SLURM_JOB_ID", "PBS_JOBID"])
-        if is_shared:
-            return
-        kill_duplicate_processes()
-    
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "SystemConfig":
-        """Map infrastructure and hardware settings."""
+        """
+        Factory method to map CLI arguments to the SystemConfig schema.
+        
+        Args:
+            args (argparse.Namespace): Parsed command line arguments.
+            
+        Returns:
+            SystemConfig: A validated instance of the system configuration.
+        """
         return cls(
             device=getattr(args, 'device', "auto"),
             data_dir=Path(getattr(args, 'data_dir', DATASET_DIR)),
