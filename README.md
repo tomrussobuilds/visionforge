@@ -1,12 +1,15 @@
 # 🩺 MedMNIST Classification with Adapted ResNet-18
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-orange?logo=pytorch&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-v2-e92063?logo=pydantic&logoColor=white)
+
+![Architecture](https://img.shields.io/badge/Architecture-Decoupled-blueviolet)
+![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ![Status](https://img.shields.io/badge/status-WIP-orange)
 ![Issues](https://img.shields.io/github/issues/tomrussobuilds/medmnist)
-![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 ---
 
@@ -20,6 +23,7 @@
 * [🚀 Getting Started](#-getting-started)
 * [✨ Key Features](#-key-features--defensive-engineering)
 * [🏗 Architecture Details](#-architecture-details)
+* [🧩 Internal Dependency Mapping](#-internal-dependency-mapping)
 * [📁 Project Structure](#-project-structure)
 * [⚙️ Requirements & Installation](#️-requirements--installation)
 * [💻 Usage (Local)](#-usage-local)
@@ -57,15 +61,15 @@ Every run is fully documented through a suite of automatically generated artifac
 
 ### Visual Diagnostics
 
-<table style="width: 100%; border-collapse: collapse; border: none;">
-  <tr style="border: none;">
-    <td style="width: 50%; border: none; text-align: center;">
+<table style="width: 100%; border: none;">
+  <tr>
+    <td style="width: 35%; text-align: center; border: none; vertical-align: top;">
       <b>Confusion Matrix</b><br>
-      <img src="docs/media/confusion_matrix.png" width="100%">
+      <img src="docs/media/confusion_matrix.png" style="width: 100%; max-width: 300px;">
     </td>
-    <td style="width: 50%; border: none; text-align: center;">
-      <b>Training Curves</b><br>
-      <img src="docs/media/training_curves.png" width="100%">
+    <td style="width: 65%; text-align: center; border: none; vertical-align: top;">
+      <b>Training Dynamics</b><br>
+      <img src="docs/media/training_curves.png" style="width: 100%;">
     </td>
   </tr>
 </table>
@@ -116,6 +120,17 @@ This pipeline is engineered for unattended, robust execution in research environ
 **Dynamic Path Anchoring**: Leveraging a "Search-up" logic, the system dynamically locates the project root by searching for markers (`.git` or `README.md`). This ensures absolute path stability regardless of whether the script is launched from the root, `src/`, or a subfolder.
 
 **Graceful Logger Reconfiguration**: Implements a two-stage logging lifecycle. Initial logs are routed to `STDOUT` for immediate feedback; once the Orchestrator initializes the run directory, the logger seamlessly hot-swaps to include a timestamped file handler without losing previous trace data.
+
+---
+
+### 🧩 Internal Dependency Mapping
+The framework is designed with strict **Separation of Concerns (SoC)**. Below is the architectural graph showing the decoupling between the core engine, the data handlers, and the reporting silos.
+
+<p align="center">
+  <img src="docs/media/framework_map.svg" width="850" alt="Framework Map">
+</p>
+
+> *Generated via pydeps. Highlighting the centralized Config hub and the linear flow from Orchestrator to Trainer.*
 
 ---
 
@@ -177,15 +192,20 @@ Where $\lambda \in [0, 1]$ is drawn from a $\text{Beta}(\alpha, \alpha)$ distrib
 ```bash
 med_mnist/
 ├── main.py                      # Global entry point: CLI parsing and RootOrchestrator lifecycle.
-├── smoke_test.py                # Rapid diagnostic tool: End-to-End pipeline verification (1 epoch).
-├── health_check.py              # System diagnostic: MD5 integrity, NPZ keys, and sample generation.
 ├── Dockerfile                   # Image definition: Multi-stage build for reproducibility.
 ├── requirements.txt             # Python dependencies: Torch 2.0+, V2 Transforms, Pydantic 2.0.
+├── tools/                       # Diagnostic & Validation Tools:
+│   ├── health_check.py          # Global diagnostic: MD5 integrity, NPZ keys, & samples.
+│   ├── smoke_test.py            # Rapid E2E verification: 1-epoch diagnostic.
+│   └── unit_test.py             # Initial unit testing suite (WIP).
 ├── src/                         # Modular package: Core classification framework logic.
-│   ├── core/                    # Config & Constants: Centralized logic and SSOT.
-│   │   ├── metadata/            # Dataset Registry: Schema definitions and class mappings.
-│   │   ├── config.py            # Pydantic models for structured configuration validation.
-│   │   └── system.py            # System safeguards: Exclusive locks and process management.
+│   ├── core/                    # System Hub: Centralized SSOT.
+│   │   ├── config/              # Granular Pydantic Modules (9-module schema).
+│   │   ├── logger/              # Telemetry: Logger init & Reporter engine.
+│   │   ├── metadata/            # Dataset Registry: Schema & Class mappings.
+│   │   ├── orchestrator.py      # Lifecycle Master: Context Manager & Coordination.
+│   │   ├── environment.py       # Hardware abstraction: CUDA/CPU/Seeding.
+│   │   └── processes.py
 │   ├── data_handler/            # Loading & Augmentation:
 │   │   ├── dataset.py           # MedMNIST logic: RAM caching and index management.
 │   │   └── transforms.py        # V2 Augmentations: Optimized RGB/Gray pipelines.
