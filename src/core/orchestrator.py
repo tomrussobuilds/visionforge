@@ -37,14 +37,15 @@ import torch
 #                                Internal Imports                             #
 # =========================================================================== #
 from .environment import (
-    set_seed, get_cuda_name, to_device_obj, configure_system_libraries,
-    apply_cpu_threads, determine_tta_mode
+    set_seed, to_device_obj, configure_system_libraries
 )
 from .config.infrastructure_config import InfrastructureManager
 from .io import (
     save_config_as_yaml, load_model_weights
 )
-from .logger import Logger
+from .logger import (
+    Logger, Reporter
+)
 from .paths import (
     RunPaths, setup_static_directories, LOGGER_NAME
 )
@@ -69,6 +70,7 @@ class RootOrchestrator:
     Attributes:
         cfg (Config): The immutable global configuration manifest.
         infra (InfrastructureManager): Handler for OS-level resource guarding.
+        reporter (Reporter): Specialized utility for environment telemetry.
         paths (Optional[RunPaths]): Orchestrator for session-specific directories.
         run_logger (Optional[logging.Logger]): Active logger instance for the run.
         _device_cache (Optional[torch.device]): Memoized compute device.
@@ -84,6 +86,7 @@ class RootOrchestrator:
         """
         self.cfg = cfg
         self.infra = InfrastructureManager()
+        self.reporter = Reporter()
         self._log_initializer = log_initializer
         self.paths: Optional[RunPaths] = None
         self.run_logger: Optional[logging.Logger] = None
@@ -149,8 +152,11 @@ class RootOrchestrator:
             level=self.cfg.system.log_level
         )
 
-        # 6. Environment Initialization & Safety (Delegated to Infrastructure)
-        self.infra.prepare_environment(self.cfg, logger=self.run_logger)
+        # 6. Environment Initialization & Safety
+        self.infra.prepare_environment(
+            self.cfg,
+            logger=self.run_logger
+        )
         
         # 7. Metadata Preservation
         save_config_as_yaml(
@@ -159,7 +165,12 @@ class RootOrchestrator:
         )
         
         # 8. Environment Reporting
-        self._log_initial_status()
+        self.reporter.log_initial_status(
+            logger=self.run_logger,
+            cfg=self.cfg,
+            paths=self.paths,
+            device=self.get_device()
+        )
         
         return self.paths
 
@@ -201,74 +212,3 @@ class RootOrchestrator:
         
         if self.run_logger:
             self.run_logger.info(f" » Checkpoint weights restored from: {path.name}")
-
-    def _log_initial_status(self) -> None:
-        """
-        Logs the verified baseline environment configuration upon initialization.
-        Uses formatted headers for visual consistency with the main pipeline.
-        """
-        header = (
-            f"\n{'━' * 80}\n"
-            f"{' ENVIRONMENT INITIALIZATION ':^80}\n"
-            f"{'━' * 80}"
-        )
-        self.run_logger.info(header)
-        
-        self._log_hardware_section()
-        self.run_logger.info("")
-        
-        self._log_dataset_section()
-        self.run_logger.info("")
-        
-        self._log_strategy_section()
-        
-        self.run_logger.info(f"[FILESYSTEM]")
-        self.run_logger.info(f"  » Run Root:     {self.paths.root}")
-
-    def _log_hardware_section(self):
-        """Logs hardware-specific configuration and fallback warnings."""
-        device_obj = self.get_device()
-        req_dev = self.cfg.system.device
-        
-        self.run_logger.info(f"[HARDWARE]")
-        self.run_logger.info(f"  » Device:       {str(device_obj).upper()}")
-        
-        if req_dev != "cpu" and device_obj.type == "cpu":
-            self.run_logger.warning(f"  [!] FALLBACK: Requested {req_dev} is unavailable.")
-        
-        if device_obj.type == 'cuda':
-            gpu_name = get_cuda_name()
-            if gpu_name: 
-                self.run_logger.info(f"  » GPU:          {gpu_name}")
-        
-
-        elif device_obj.type == 'cpu':
-            opt_threads = apply_cpu_threads(self.cfg.num_workers)
-            self.run_logger.info(f"  » Workers:      {self.cfg.num_workers}")
-            self.run_logger.info(f"  » CPU Threads:  {opt_threads}")
-
-    def _log_dataset_section(self):
-        """Logs dataset metadata and channel processing modes."""
-        ds = self.cfg.dataset
-
-        self.run_logger.info(f"[DATASET]")
-        self.run_logger.info(f"  » Name:         {ds.dataset_name}")
-        self.run_logger.info(f"  » Resolution:   {ds.img_size}px")
-        self.run_logger.info(f"  » Mode:         {ds.processing_mode}")
-        self.run_logger.info(f"  » Anatomical:   {ds.is_anatomical}")
-        self.run_logger.info(f"  » Texture:      {ds.is_texture_based}")
-
-    def _log_strategy_section(self):
-        """Logs high-level training and augmentation strategies."""
-        train = self.cfg.training
-        tta_status = determine_tta_mode(train.use_tta, self.get_device().type)
-        
-        self.run_logger.info(f"[STRATEGY]")
-        self.run_logger.info(f"  » Model:        {self.cfg.model.name}")
-        self.run_logger.info(f"  » Pretrained:   {self.cfg.model.pretrained}")
-        self.run_logger.info(f"  » TTA Mode:     {tta_status}")
-        
-        self.run_logger.info(f"[HYPERPARAMETERS]")
-        self.run_logger.info(f"  » Epochs:       {train.epochs}")
-        self.run_logger.info(f"  » Batch Size:   {train.batch_size}")
-        self.run_logger.info(f"  » Learn Rate:   {train.learning_rate:.2e}")
