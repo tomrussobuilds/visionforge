@@ -10,6 +10,7 @@ and reports are never overwritten.
 # =========================================================================== #
 #                                Standard Imports                             #
 # =========================================================================== #
+import os
 import time
 import re
 from pathlib import Path
@@ -34,6 +35,10 @@ def get_project_root() -> Path:
     it finds a marker (e.g., '.git', 'requirements.txt'). Fallback to 
     fixed parents if no markers are found.
     """
+    # Environment override for Docker setups
+    if str(os.getenv("IN_DOCKER")).upper() in ("1", "TRUE"):
+        return Path("/app").resolve()
+    
     # Start from the directory of this file
     current_path = Path(__file__).resolve().parent
     
@@ -125,7 +130,8 @@ class RunPaths:
 
     def get_config_path(self) -> Path:
         """Returns the path for the configuration YAML file."""
-        return self.root / "config.yaml"
+        path = self.reports / "config.yaml"
+        return path
     
     def __repr__(self) -> str:
         return f"RunPaths(run_id={self.run_id}, root={self.root})"

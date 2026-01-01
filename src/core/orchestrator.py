@@ -160,8 +160,8 @@ class RootOrchestrator:
         
         # 7. Metadata Preservation
         save_config_as_yaml(
-            data=self.cfg.model_dump(mode='json'), 
-            yaml_path=self.paths.get_config_path()
+            self.cfg,
+            self.paths.get_config_path()
         )
         
         # 8. Environment Reporting

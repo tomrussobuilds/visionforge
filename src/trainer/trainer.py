@@ -143,7 +143,7 @@ class ModelTrainer:
             )
 
             # --- 4. Checkpoint & Early Stopping Logic ---
-            if self._handle_checkpointing(val_auc):
+            if self._handle_checkpointing(val_auc, val_acc):
                 logger.warning(f"Early stopping triggered at epoch {epoch}.")
                 break
             
@@ -171,7 +171,11 @@ class ModelTrainer:
         else:
             self.scheduler.step()
 
-    def _handle_checkpointing(self, val_auc: float) -> bool:
+    def _handle_checkpointing(
+            self,
+            val_auc: float,
+            val_acc: float
+        ) -> bool:
         """
         Manages model checkpointing and tracks early stopping progress.
         
@@ -186,6 +190,7 @@ class ModelTrainer:
         """
         if val_auc > self.best_auc:
             self.best_auc = val_auc
+            self.best_acc = val_acc
             self.epochs_no_improve = 0
             torch.save(self.model.state_dict(), self.best_path)
             logger.info(f"New best model! Val AUC: {val_auc:.4f} ↑ Checkpoint saved.")

@@ -10,6 +10,7 @@ integrity verification via MD5 checksums and schema validation.
 #                                Standard Imports                             #
 # =========================================================================== #
 import logging
+import os
 import yaml
 import hashlib
 from pathlib import Path
@@ -27,39 +28,66 @@ import torch
 
 logger = logging.getLogger("medmnist_pipeline")
 
-def save_config_as_yaml(data: Dict[str, Any], yaml_path: Path) -> Path:
+import os
+import yaml
+import logging
+from pathlib import Path
+from typing import Any, Dict
+
+logger = logging.getLogger(__name__)
+
+def save_config_as_yaml(data: Any, yaml_path: Path) -> Path:
     """
-    Serializes a configuration dictionary to a YAML file.
-    Converts complex types (like Path) to strings for YAML compatibility.
+    Saves a Pydantic configuration object or dictionary as a YAML file.
+
+    Args:
+        data (Any): The configuration data (Pydantic model or dict).
+        yaml_path (Path): The target path for the YAML file.
+    
+    Returns:
+        Path: The path where the YAML file was saved.
     """
     try:
-        yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        if hasattr(data, "model_dump"):
+            try:
+                clean_dict = data.model_dump(mode='json')
+            except Exception as e:
+                logger.warning(f"JSON dump failed, using fallback serialization: {e}")
+                clean_dict = data.model_dump()
+        else:
+            clean_dict = data
 
-        def stringify_paths(obj: Any) -> Any:
+
+        def finalize_obj(obj: Any) -> Any:
             if isinstance(obj, dict):
-                return {k: stringify_paths(v) for k, v in obj.items()}
+                return {k: finalize_obj(v) for k, v in obj.items()}
             if isinstance(obj, list):
-                return [stringify_paths(i) for i in obj]
+                return [finalize_obj(i) for i in obj]
             if isinstance(obj, Path):
                 return str(obj)
             return obj
 
-        cleaned_data = stringify_paths(data)
+        final_data = finalize_obj(clean_dict)
 
+        yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        
         with open(yaml_path, 'w', encoding='utf-8') as f:
             yaml.dump(
-                cleaned_data,
+                final_data,
                 f, 
                 default_flow_style=False, 
                 sort_keys=False,
                 indent=4,
                 allow_unicode=True
             )
+            f.flush()
+            os.fsync(f.fileno())
 
         logger.info(f"Configuration frozen successfully at → {yaml_path.name}")
         return yaml_path
+
     except Exception as e:
-        logger.error(f"Critical failure during YAML serialization: {e}")
+        logger.error(f"Failed to save configuration YAML: {e}")
         raise
 
 

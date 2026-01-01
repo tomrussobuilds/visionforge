@@ -56,7 +56,11 @@ class SystemConfig(BaseModel):
     """
     model_config = ConfigDict(
         frozen=True,
-        extra="forbid"
+        extra="forbid",
+        arbitrary_types_allowed=True,
+        json_encoders={
+            Path: lambda v: str(v)
+        }
     )
 
     # Hardware Configuration

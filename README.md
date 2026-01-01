@@ -291,8 +291,14 @@ Run in Strict Reproducibility Mode (Recommended for testing):
 
 ```bash
 sudo docker run -it --rm \
-  -e DOCKER_REPRODUCIBILITY_MODE=TRUE \
+  -u $(id -u):$(id -g) \
+  -e IN_DOCKER=TRUE \
+  -e TORCH_HOME=/tmp/torch_cache \
+  -e MPLCONFIGDIR=/tmp/matplotlib_cache \
+  -e PYTHONHASHSEED=0 \
+  -e CUBLAS_WORKSPACE_CONFIG=:4096:8 \
   -v $(pwd)/dataset:/app/dataset \
+  -v $(pwd)/outputs:/app/outputs \
   bloodmnist_image
 ```
 

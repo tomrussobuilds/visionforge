@@ -79,12 +79,15 @@ def show_predictions(
                 fontsize=9
             )
         
-        ax.axis("off") # Always turn off axis, even for empty slots
+        ax.axis("off")
 
     tta_info = f" [TTA: {'ON' if cfg.training.use_tta else 'OFF'}]" if cfg else ""
     
-    domain_info = f" | Mode: {'Texture' if cfg.dataset.is_texture_based else 
-                              'Anatomical' if cfg.dataset.is_anatomical else 'Standard'}" if cfg else ""
+    domain_info = f""" | Mode: {
+        'Texture' if cfg.dataset.is_texture_based else 
+        'Anatomical' if cfg.dataset.is_anatomical else 'Standard'
+    }""" if cfg else ""
+
     plt.suptitle(
         f"Sample Predictions — "
         f"{cfg.model.name if cfg else 'Inference'}{tta_info}{domain_info}",

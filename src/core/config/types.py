@@ -45,7 +45,9 @@ from typing import Annotated, Literal
 # =========================================================================== #
 #                                Third-Party Imports                          #
 # =========================================================================== #
-from pydantic import Field, AfterValidator
+from pydantic import (
+    Field, AfterValidator, PlainSerializer
+)
 
 # =========================================================================== #
 #                                VALIDATORS                                   #
@@ -53,7 +55,8 @@ from pydantic import Field, AfterValidator
 
 def _ensure_dir(v: Path) -> Path:
     """Ensure paths are absolute and create folders if missing."""
-    v.mkdir(parents=True, exist_ok=True)
+    if not v.exists():
+        v.mkdir(parents=True, exist_ok=True)
     return v.resolve()
 
 # =========================================================================== #
@@ -71,7 +74,11 @@ Probability      = Annotated[float, Field(ge=0.0, le=1.0)]
 #                                2. FILESYSTEM                                #
 # =========================================================================== #
 
-ValidatedPath = Annotated[Path, AfterValidator(_ensure_dir)]
+ValidatedPath = Annotated[
+    Path,
+    AfterValidator(_ensure_dir),
+    PlainSerializer(lambda v: str(v), when_used="json", return_type=str)
+]
 
 # =========================================================================== #
 #                                3. HARDWARE & PERFORMANCE                    #
@@ -111,6 +118,9 @@ BlurSigma       = Annotated[float, Field(ge=0.0, le=5.0)]
 #                                7. SYSTEM & METADATA                         #
 # =========================================================================== #
 
-ProjectSlug  = Annotated[str, Field(pattern=r"^[a-z0-9_-]+$", min_length=3, max_length=50)]
+ProjectSlug  = Annotated[
+    str,
+    Field(pattern=r"^[a-z0-9_-]+$", min_length=3, max_length=50)
+]
 LogFrequency = Annotated[int, Field(ge=1, le=1000)]
 LogLevel     = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
