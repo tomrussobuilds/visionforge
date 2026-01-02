@@ -50,11 +50,11 @@ Every run is fully documented through a suite of automatically generated artifac
 
 <table style="width: 100%; border: none;">
   <tr>
-    <td style="width: 35%; text-align: center; border: none; vertical-align: top;">
+    <td style="width: 50%; text-align: center; border: none; vertical-align: top;">
       <b>Confusion Matrix</b><br>
       <img src="docs/media/confusion_matrix.png" style="width: 100%; max-width: 300px;">
     </td>
-    <td style="width: 65%; text-align: center; border: none; vertical-align: top;">
+    <td style="width: 40%; text-align: center; border: none; vertical-align: top;">
       <b>Training Dynamics</b><br>
       <img src="docs/media/training_curves.png" style="width: 100%;">
     </td>
@@ -86,27 +86,27 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 This pipeline is engineered for unattended, robust execution in research environments and containerized clusters. It moves beyond simple classification by implementing low-level system safeguards:
 
-**Kernel-Level Singleton** (ensure_single_instance): Utilizes the fcntl.flock Unix syscall to acquire an Exclusive Lock (LOCK_EX | LOCK_NB) on a physical lock-file. This prevents race conditions on GPU VRAM or checkpoint corruption by ensuring only one training instance is active at a time.
+**Kernel-Level Singleton** (`ensure_single_instance`): Utilizes the `fcntl.flock` Unix syscall to acquire an Exclusive Lock (`LOCK_EX | LOCK_NB`) on a physical lock-file. This prevents race conditions on GPU VRAM or checkpoint corruption by ensuring only one training instance is active at a time.
 
-**Atomic Run Isolation**: Managed via the RunPaths utility, every execution generates a unique workspace (outputs/YYYYMMDD_HHMMSS/). Logs, high-resolution plots, and Excel reports are isolated to prevent historical data overwrites.
+**Atomic Run Isolation**: Managed via the `RunPaths` utility, every execution generates a unique workspace (`outputs/YYYYMMDD_HHMMSS/`). Logs, high-resolution plots, and Excel reports are isolated to prevent historical data overwrites.
 
-**Proactive Process Guard**: Integrates psutil to identify and terminate ghost Python processes sharing the same entry-point, optimizing resource allocation in shared HPC or Docker environments.
+**Proactive Process Guard**: Integrates `psutil` to identify and terminate ghost Python processes sharing the same entry-point. Controlled by the `allow_process_kill` flag, it includes a safety check that automatically disables sanitization in shared environments (detecting `SLURM_JOB_ID` or `PBS_JOBID`) to prevent accidental termination of other users' tasks.
 
-**Data Integrity & Validation**: Implements MD5 Checksum verification for dataset downloads and a strict validate_npz_keys check to ensure the structural integrity of the MedMNIST .npz files before memory allocation.
+**Data Integrity & Validation**: Implements `MD5` Checksum verification for dataset downloads and a strict `validate_npz_keys` check to ensure the structural integrity of the MedMNIST `.npz` files before memory allocation.
 
-**Deterministic Pipeline**: Implements a dual-layer reproducibility strategy. Beyond global seeding (Seed 42), it features a Strict Mode that enforces bit-per-bit reproducibility by activating deterministic GPU kernels (`torch.use_deterministic_algorithms`) and synchronizing multi-process RNG via `worker_init_fn`, automatically scaling to zero workers when total determinism is required.
+**Deterministic Pipeline**: Implements a dual-layer reproducibility strategy. Beyond global seeding (`Seed 42`), it features a Strict Mode that enforces bit-per-bit reproducibility by activating deterministic GPU kernels (`torch.use_deterministic_algorithms`) and synchronizing multi-process RNG via `worker_init_fn`, automatically scaling to zero workers when total determinism is required.
 
-**System Utilities**: The system.py module serves as a low-level abstraction layer that manages hardware device selection, ensures process-level atomicity through kernel-level file locking, and enforces strict environment-wide reproducibility.
+**System Utilities**: The `environment` module serves as a low-level abstraction layer that manages hardware device selection, ensures process-level atomicity through kernel-level file locking, and enforces strict environment-wide reproducibility.
 
-**Continuous Stability Guard** (smoke_test.py): A dedicated diagnostic script that executes a "micro-pipeline" (1 epoch, minimal data subset). It validates the entire execution chain—from weight interpolation to Excel reporting—in less than 30 seconds, ensuring no regressions after architectural changes.
+**Continuous Stability Guard** (`smoke_test.py`): A dedicated diagnostic script that executes a "micro-pipeline" (1 epoch, minimal data subset). It validates the entire execution chain—from weight interpolation to Excel reporting—in less than 30 seconds, ensuring no regressions after architectural changes.
 
-**Metadata-Driven SSOT** (Dataset Registry): The pipeline eliminates hardcoded constants. A centralized registry automatically configures normalization parameters (mean/std), class mappings, and channel counts (RGB vs Grayscale) based on the selected MedMNIST subset.
+**Metadata-Driven SSOT** (Dataset Registry): The pipeline eliminates hardcoded constants. A centralized registry automatically configures normalization parameters (`mean`/`std`), class mappings, and channel counts (`RGB` vs `Grayscale`) based on the selected MedMNIST subset.
 
-**Hybrid RAM Management**: Optimized for varying hardware constraints. The system automatically performs full RAM caching for smaller datasets to maximize throughput, while utilizing indexed slicing for massive datasets (like TissueMNIST) to prevent OOM (Out-of-Memory) errors.
+**Hybrid RAM Management**: Optimized for varying hardware constraints. The system automatically performs full RAM caching for smaller datasets to maximize throughput, while utilizing indexed slicing for massive datasets (like `TissueMNIST`) to prevent OOM (Out-of-Memory) errors.
 
 **Dynamic Path Anchoring**: Leveraging a "Search-up" logic, the system dynamically locates the project root by searching for markers (`.git` or `README.md`). This ensures absolute path stability regardless of whether the script is launched from the root, `src/`, or a subfolder.
 
-**Graceful Logger Reconfiguration**: Implements a two-stage logging lifecycle. Initial logs are routed to `STDOUT` for immediate feedback; once the Orchestrator initializes the run directory, the logger seamlessly hot-swaps to include a timestamped file handler without losing previous trace data.
+**Graceful Logger Reconfiguration**: Implements a two-stage logging lifecycle. Initial logs are routed to `STDOUT` for immediate feedback; once the `Orchestrator` initializes the run directory, the logger seamlessly hot-swaps to include a timestamped file handler without losing previous trace data.
 
 ---
 
@@ -303,7 +303,9 @@ sudo docker run -it --rm \
   bloodmnist_image --dataset pathmnist --batch_size 256
 ```
 
-[!IMPORTANT] The flags `-e TORCH_HOME=/tmp/torch_cache` and `-e MPLCONFIGDIR=/tmp/matplotlib_cache` are mandatory when running with a specific user ID (`-u`) to avoid `Permission Denied` errors in the container's root filesystem.
+> [!IMPORTANT]
+> The flags `-e TORCH_HOME=/tmp/torch_cache` and `-e MPLCONFIGDIR=/tmp/matplotlib_cache` are mandatory when running with a specific user ID (`-u`) to avoid `Permission Denied` errors in the container's root filesystem.
+> The `CUBLAS_WORKSPACE_CONFIG` is also required for bit-perfect `CUDA` determinism.
 
 ---
 
@@ -328,8 +330,11 @@ You can fully configure training from the command line (via `main.py`).
 | --dataset | str | "bloodmnist" | MedMNIST dataset identifier (e.g., bloodmnist, dermamnist). |
 | --model_name | str | "ResNet-18 Adapted" | Identifier for logging and folder naming. |
 | --reproducible | bool | False | Enables strict deterministic algorithms and forces num_workers=0. |
+--allow_process_kill | bool | True | Enables/disables termination of duplicate processes (auto-disabled on Clusters). |
 
-Examples:
+---
+
+**Examples**:
 
 Run without TTA
 
