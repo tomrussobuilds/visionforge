@@ -23,7 +23,7 @@ from pydantic import BaseModel, ConfigDict
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from ..processes import (
+from ..environment import (
     ensure_single_instance, 
     release_single_instance, 
     kill_duplicate_processes

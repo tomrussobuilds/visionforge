@@ -48,7 +48,10 @@ from .orchestrator import RootOrchestrator
 # =========================================================================== #
 #                                Logging                                      #
 # =========================================================================== #
-from .logger import Logger
+from .logger import (
+    Logger,
+    Reporter
+)
 
 # =========================================================================== #
 #                                Environment & Hardware                       #
@@ -62,13 +65,7 @@ from .environment import (
     configure_system_libraries,
     apply_cpu_threads,
     determine_tta_mode,
-    worker_init_fn
-)
-
-# =========================================================================== #
-#                                Process Management                           #
-# =========================================================================== #
-from .processes import (
+    worker_init_fn,
     ensure_single_instance,
     release_single_instance,
     kill_duplicate_processes

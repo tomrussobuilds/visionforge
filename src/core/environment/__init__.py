@@ -10,7 +10,7 @@ to ensure consistent execution across Local, HPC, and Docker environments.
 #                                Exposed Interface                            #
 # =========================================================================== #
 
-# 1. Hardware & Device Management (from .device)
+# 1. Hardware & Device Management (from .hardware)
 from .hardware import (
     configure_system_libraries,
     detect_best_device,
@@ -26,6 +26,13 @@ from .reproducibility import (
     set_seed,
     worker_init_fn,
     is_repro_mode_requested
+)
+
+# 3. Process & Resource Guards (from .guards)
+from .guards import (
+    ensure_single_instance,
+    release_single_instance,
+    kill_duplicate_processes
 )
 
 # =========================================================================== #
@@ -45,5 +52,10 @@ __all__ = [
     # Reproducibility
     "set_seed",
     "worker_init_fn",
-    "is_repro_mode_requested"
+    "is_repro_mode_requested",
+    
+    # Guards
+    "ensure_single_instance",
+    "release_single_instance",
+    "kill_duplicate_processes"
 ]

@@ -23,7 +23,7 @@ Key Responsibilities:
 # =========================================================================== #
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 # =========================================================================== #
 #                             Third-Party Imports                             #
@@ -47,6 +47,8 @@ from .logger import (
 from .paths import (
     RunPaths, setup_static_directories, LOGGER_NAME
 )
+if TYPE_CHECKING:
+    from .config.engine import Config
 
 # =========================================================================== #
 #                              Root Orchestrator                              #
@@ -57,32 +59,33 @@ class RootOrchestrator:
     High-level lifecycle controller for the experiment environment.
     
     The RootOrchestrator acts as the central state machine for the pipeline. It
-    manages the transition from static configuration (Pydantic models) to a 
-    live execution environment, ensuring atomicity in directory creation, 
-    hardware synchronization, and telemetry initialization.
+    coordinates the transition from a static configuration (Pydantic-validated) 
+    to a live execution state, synchronizing hardware discovery, filesystem 
+    provisioning, and telemetry initialization.
 
     By leveraging the Context Manager pattern, it guarantees that system-level 
-    resources (like file locks) are acquired before execution and safely 
-    released upon termination, even in the event of unhandled exceptions.
+    resources—such as kernel-level file locks and telemetry handlers—are 
+    safely acquired before execution and released upon termination, ensuring 
+    environment atomicity even during runtime failures.
 
     Attributes:
-        cfg (Config): The immutable global configuration manifest.
+        cfg (Config): The validated global configuration manifest (SSOT).
         infra (InfrastructureManager): Handler for OS-level resource guarding.
-        reporter (Reporter): Specialized utility for environment telemetry.
+        reporter (Reporter): Specialized engine for environment telemetry.
         paths (Optional[RunPaths]): Orchestrator for session-specific directories.
-        run_logger (Optional[logging.Logger]): Active logger instance for the run.
-        repro_mode (bool): Whether strict reproducibility is enforced.
-        num_workers (int): Resolved number of DataLoader workers based on repro_mode.
-        _device_cache (Optional[torch.device]): Memoized compute device.
+        run_logger (Optional[logging.Logger]): Active logger instance for the session.
+        repro_mode (bool): Flag indicating if strict bit-perfect determinism is active.
+        num_workers (int): Resolved number of DataLoader workers based on policy.
+        _device_cache (Optional[torch.device]): Memoized compute device object.
     """
-    
-    def __init__(self, cfg, log_initializer=Logger.setup):
+    def __init__(self, cfg : "Config", log_initializer=Logger.setup) -> None:
         """
         Initializes the orchestrator with the experiment configuration.
 
         Args:
             cfg (Config): The validated global configuration manifest.
-            log_initializer (callable): Function to initialize the logging system.
+            log_initializer (callable): A strategy function to initialize
+            the logging subsystem. Defaults to Logger.setup.
         """
         self.cfg = cfg
         self.infra = InfrastructureManager()
@@ -100,7 +103,7 @@ class RootOrchestrator:
         Automatically triggers the core service initialization sequence.
 
         Returns:
-            RootOrchestrator: The initialized instance ready for pipeline execution.
+            RootOrchestrator: The initialized instance, ready for pipeline execution.
         """
         self.initialize_core_services()
         return self
@@ -123,74 +126,63 @@ class RootOrchestrator:
 
     def initialize_core_services(self) -> RunPaths:
         """
-        Triggers the deterministic sequence of core service initializations.
+        Executes the linear initialization sequence for the experiment environment.
 
-        This method synchronizes the environment following a strict order of 
-        operations to ensure reproducibility, resource optimization, and 
-        system safety.
+        This method synchronizes the system state following a strict protocol:
+        1. Policy & Determinism: Sets global RNG seeds and reproducibility flags.
+        2. Hardware & Threading: Optimizes CPU/GPU resources and library configs.
+        3. Filesystem & Workspace: Provisions static and dynamic run directories.
+        4. Telemetry & Persistence: Activates logging, guards, and config mirroring.
 
         Returns:
-            RunPaths: The verified path orchestrator for the current session.
+            RunPaths: The verified and provisioned path orchestrator for the session.
         """
-        # 1. Resolve Reproducibility Policy
+        # --- PHASE 1: DETERMINISM & REPRODUCIBILITY ---
         self.repro_mode = is_repro_mode_requested(
             cli_flag=getattr(self.cfg.training, "reproducible", False)
         )
-
-        # 2. Reproducibility & Global Seeding Setup
         set_seed(self.cfg.training.seed, strict=self.repro_mode)
 
-        # 3. Resource & Threading Optimization
+        # --- PHASE 2: HARDWARE & SYSTEM OPTIMIZATION ---
         self.num_workers = 0 if self.repro_mode else get_num_workers()
         applied_threads = apply_cpu_threads(self.num_workers)
-
-        # 4. Configure System Libraries
         configure_system_libraries()
 
-        # 5. Static Environment Setup
+        # --- PHASE 3: FILESYSTEM PROVISIONING ---
         setup_static_directories()
-
-        # 6. Dynamic Path Initialization
         self.paths = RunPaths(
             dataset_slug=self.cfg.dataset.dataset_name,
             model_name=self.cfg.model.name,
             base_dir=self.cfg.system.output_dir
         )
 
-        # 7. Logger Initialization
+        # --- PHASE 4: TELEMETRY, SAFETY & REPORTING ---
+        # Initialize logging first to capture subsequent setup events
         self.run_logger = self._log_initializer(
             name=LOGGER_NAME,
             log_dir=self.paths.logs,
             level=self.cfg.system.log_level
         )
 
-        # 8. Environment Initialization & Safety
+        # Secure hardware/process locks
         self.infra.prepare_environment(
             self.cfg,
             logger=self.run_logger
         )
         
-        # 9. Metadata Preservation
+        # Mirror the active configuration to the run directory
         save_config_as_yaml(
             self.cfg,
             self.paths.get_config_path()
         )
-        
-        # 10. Environment Reporting
-        if self.repro_mode:
-            self.run_logger.info(
-                " [!] STRICT DETERMINISM ENABLED: DataLoader workers set to 0."
-            )
-        
-        self.run_logger.debug(
-            f"Compute threads synchronized: {applied_threads}"
-        )
 
+        # Emit the final environment baseline report
         self.reporter.log_initial_status(
             logger=self.run_logger,
             cfg=self.cfg,
             paths=self.paths,
-            device=self.get_device()
+            device=self.get_device(),
+            applied_threads=applied_threads
         )
         
         return self.paths
