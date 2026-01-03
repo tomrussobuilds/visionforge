@@ -112,7 +112,7 @@ def main() -> None:
             )
             
             # Start training and capture history for final plotting
-            best_path, train_losses, val_accuracies = trainer.train()
+            _, train_losses, val_accuracies = trainer.train()
 
             # --- 4. Model Recovery & Evaluation ---
             run_logger.info(
