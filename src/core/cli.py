@@ -234,7 +234,7 @@ def parse_args() -> argparse.Namespace:
     dataset_group.add_argument(
         '--max_samples',
         type=int,
-        default=0,
+        default=None,
         help="Max training samples (Use 0 or -1 for full dataset)."
     )
     dataset_group.add_argument(

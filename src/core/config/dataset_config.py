@@ -120,30 +120,41 @@ class DatasetConfig(BaseModel):
         return "NATIVE-GRAY"
 
     # --- Factory Methods ---
-
     @classmethod
     def from_args(cls, args: argparse.Namespace, metadata: DatasetMetadata) -> "DatasetConfig":
         """
-        Map dataset-specific metadata and resolve conditional RGB/sampling logic.
+        Factory method to resolve dataset configuration from CLI arguments and registry metadata.
         
         Args:
-            args: The parsed command-line arguments.
-            metadata: The resolved DatasetMetadata instance from the registry.
+            args: Parsed command-line arguments.
+            metadata: Static dataset properties from the registry.
         """
-        # Determine RGB logic: User override or automatic for pretrained grayscale
-        is_pretrained = getattr(args, 'pretrained', False)
-        force_rgb_arg = getattr(args, 'force_rgb', None)
-
-        should_force_rgb = force_rgb_arg if force_rgb_arg is not None else \
-                            (metadata.in_channels == 1 and is_pretrained)
+        # 1. Resolve RGB logic
+        is_pretrained = getattr(args, "pretrained", True)
+        force_rgb_arg = getattr(args, "force_rgb", None)
+        should_force_rgb = (
+            force_rgb_arg if force_rgb_arg is not None 
+            else (metadata.in_channels == 1 and is_pretrained)
+        )
             
-        # Determine final max_samples value
-        final_max_samples = args.max_samples if (getattr(args, 'max_samples', 0) > 0) else None
+        # 2. Resolve sampling constraints
+        # Get value from CLI; if missing or 0, we decide the fallback
+        cli_max = getattr(args, "max_samples", None)
+        
+        # If user explicitly passed 0 or -1, they want the FULL dataset
+        if cli_max is not None and cli_max <= 0:
+            final_max_samples = None
+        # If user passed a specific value (e.g. 5000), use it
+        elif cli_max is not None and cli_max > 0:
+            final_max_samples = cli_max
+        # Otherwise (if None or not provided), use the Class Default (20000)
+        else:
+            final_max_samples = cls.model_fields['max_samples'].default
 
         return cls(
             metadata=metadata,
             max_samples=final_max_samples,
-            use_weighted_sampler=getattr(args, 'use_weighted_sampler', True),
+            use_weighted_sampler=getattr(args, "use_weighted_sampler", True),
             force_rgb=should_force_rgb,
-            img_size=getattr(args, 'img_size', 28)
+            img_size=getattr(args, "img_size", 28)
         )
