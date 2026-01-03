@@ -30,9 +30,9 @@ from pydantic import BaseModel, Field, ConfigDict
 #                               Internal Imports                              #
 # =========================================================================== #
 from .types import (
-    ImageSize, Channels, ValidatedPath, PositiveInt
+    ImageSize, ValidatedPath, PositiveInt
 )
-from ..metadata import DATASET_REGISTRY
+from ..metadata import DatasetMetadata
 from ..paths import DATASET_DIR
 
 # =========================================================================== #
@@ -49,17 +49,16 @@ class DatasetConfig(BaseModel):
     """
     model_config = ConfigDict(
         frozen=True,
-        extra="forbid"
+        extra="forbid",
+        arbitrary_types_allowed=True
     )
+
+    # --- Core Metadata (Injected) ---
+    metadata: DatasetMetadata
     
+    # --- User-Defined Parameters (Runtime) ---
     data_root: ValidatedPath = DATASET_DIR
-    dataset_name: str = "BloodMNIST"
     use_weighted_sampler: bool = True
-    in_channels: Channels = 3
-    num_classes: PositiveInt = Field(
-        default=8,
-        description="Number of target classes in the dataset"
-    )
     max_samples: Optional[PositiveInt] = Field(default=20000)
     img_size: ImageSize = Field(
         default=28,
@@ -69,44 +68,50 @@ class DatasetConfig(BaseModel):
         default=True,
         description="Convert grayscale to 3-channel to enable ImageNet weights"
     )
-    mean: tuple[float, ...] = Field(
-        default=(0.5, 0.5, 0.5),
-        description="Channel-wise mean for normalization",
-        min_length=1,
-        max_length=3
-    )
-    std: tuple[float, ...] = Field(
-        default=(0.5, 0.5, 0.5),
-        description="Channel-wise std for normalization",
-        min_length=1,
-        max_length=3
-    )
-    normalization_info: str = "N/A"
-    is_anatomical: bool = True
-    is_texture_based: bool = True
-    
-    @property
-    def is_grayscale(self) -> bool:
-        """Indicates if the original dataset images are single-channel."""
-        return self.in_channels == 1
+
+    # --- Computed Properties (Derived from Metadata) ---
 
     @property
+    def dataset_name(self) -> str:
+        """The short identifier of the dataset (e.g., 'bloodmnist')."""
+        return self.metadata.name
+    
+    @property
+    def num_classes(self) -> int:
+        """The total number of unique target classes in the dataset."""
+        return len(self.metadata.classes)
+
+    @property
+    def in_channels(self) -> int:
+        """The native number of channels in the source dataset images (1 or 3)."""
+        return self.metadata.in_channels
+    
+    @property
     def effective_in_channels(self) -> int:
-        """Returns the actual number of channels the model will see"""
+        """The actual number of channels the model will receive after 'force_rgb' logic."""
         return 3 if self.force_rgb else self.in_channels
     
-    @staticmethod
-    def _resolve_dataset_metadata(dataset_raw: str):
-        """Retrieve static metadata for the dataset from the central registry."""
-        key = dataset_raw.lower()
-        if key not in DATASET_REGISTRY:
-            raise ValueError(f"Dataset '{dataset_raw}' not supported in DATASET_REGISTRY.")
-        return DATASET_REGISTRY[key]
+    @property
+    def mean(self) -> tuple[float, ...]:
+        """Channel-wise mean for normalization, expanded if force_rgb is active."""
+        if self.force_rgb and self.in_channels == 1:
+            return (self.metadata.mean[0],) * 3
+        return self.metadata.mean
+    
+    @property
+    def std(self) -> tuple[float, ...]:
+        """Channel-wise std for normalization, expanded if force_rgb is active."""
+        if self.force_rgb and self.in_channels == 1:
+            return (self.metadata.std[0],) * 3
+        return self.metadata.std
     
     @property
     def processing_mode(self) -> str:
         """
-        Determina la modalità di elaborazione canali in base al dataset e alla config.
+        Human-readable description of the channel processing strategy:
+        - NATIVE-RGB: Dataset is already RGB.
+        - RGB-PROMOTED: Grayscale dataset expanded to 3 channels.
+        - NATIVE-GRAY: Dataset kept as single-channel.
         """
         if self.in_channels == 3:
             return "NATIVE-RGB"
@@ -114,32 +119,31 @@ class DatasetConfig(BaseModel):
             return "RGB-PROMOTED"
         return "NATIVE-GRAY"
 
+    # --- Factory Methods ---
+
     @classmethod
-    def from_args(cls, args: argparse.Namespace) -> "DatasetConfig":
-        """Map dataset-specific metadata and resolve conditional RGB/sampling logic."""
+    def from_args(cls, args: argparse.Namespace, metadata: DatasetMetadata) -> "DatasetConfig":
+        """
+        Map dataset-specific metadata and resolve conditional RGB/sampling logic.
         
-        ds_name = getattr(args, 'dataset', "BloodMNIST")
-        ds_meta = cls._resolve_dataset_metadata(ds_name)
-            
+        Args:
+            args: The parsed command-line arguments.
+            metadata: The resolved DatasetMetadata instance from the registry.
+        """
         # Determine RGB logic: User override or automatic for pretrained grayscale
+        is_pretrained = getattr(args, 'pretrained', False)
         force_rgb_arg = getattr(args, 'force_rgb', None)
+
         should_force_rgb = force_rgb_arg if force_rgb_arg is not None else \
-                            (ds_meta.in_channels == 1 and getattr(args, 'pretrained', False))
+                            (metadata.in_channels == 1 and is_pretrained)
             
         # Determine final max_samples value
         final_max_samples = args.max_samples if (getattr(args, 'max_samples', 0) > 0) else None
 
         return cls(
-            dataset_name=ds_meta.name,
+            metadata=metadata,
             max_samples=final_max_samples,
             use_weighted_sampler=getattr(args, 'use_weighted_sampler', True),
-            in_channels=ds_meta.in_channels,
-            num_classes=len(ds_meta.classes),
-            mean=ds_meta.mean,
-            std=ds_meta.std,
-            normalization_info=f"Mean={ds_meta.mean}, Std={ds_meta.std}",
-            is_anatomical=ds_meta.is_anatomical,
-            is_texture_based=ds_meta.is_texture_based,
             force_rgb=should_force_rgb,
             img_size=getattr(args, 'img_size', 28)
         )

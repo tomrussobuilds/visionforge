@@ -58,5 +58,20 @@ class DatasetMetadata(BaseModel):
         description="True if the dataset classification relies on texture patterns (e.g., PathMNIST)"
     )
 
+    @property
+    def normalization_info(self) -> str:
+        """Returns a formatted string of mean/std for reporting purposes."""
+        return f"Mean: {self.mean} | Std: {self.std}"
+
+    @property
+    def resolution(self) -> str:
+        """MedMNIST default resolution (hardcoded as per spec or dynamic)."""
+        return "28x28"
+
+    @property
+    def num_classes(self) -> int:
+        """Returns the total number of labels."""
+        return len(self.classes)
+    
     def __repr__(self) -> str:
         return f"<DatasetMetadata: {self.display_name} ({len(self.classes)} classes)>"

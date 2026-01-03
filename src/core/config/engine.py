@@ -5,14 +5,6 @@ This module acts as the declarative core of the pipeline, defining the
 hierarchical schema and validation logic required to drive the Orchestrator. 
 It leverages Pydantic to transform raw inputs (CLI, YAML) into a structured, 
 type-safe manifest that synchronizes hardware state with experiment logic.
-
-Key Architectural Components:
-    * Configuration Aggregator: Centralizes specialized sub-configs (System, 
-      Training, etc.) into a single, immutable experiment manifest.
-    * Integrity Layer: Implements cross-field validation to ensure logical 
-      alignment between hardware, model, and dataset.
-    * Multi-Source Factory: Provides unified entry points for instantiation 
-      via YAML manifests or CLI argparse namespaces.
 """
 
 # =========================================================================== #
@@ -40,6 +32,7 @@ from .dataset_config import DatasetConfig
 from .evaluation_config import EvaluationConfig
 from .models_config import ModelConfig
 
+from ..metadata import DATASET_REGISTRY
 from ..environment import get_num_workers
 from ..io import load_config_from_yaml
 
@@ -51,19 +44,8 @@ class Config(BaseModel):
     """
     Main Experiment Manifest and Orchestration Schema.
     
-    This class serves as the central source of truth for the entire pipeline,
-    aggregating specialized sub-configurations into a single validated object.
-    It provides the descriptive blueprint that the RootOrchestrator and 
-    InfrastructureManager use to prepare and execute the experiment.
-
-    Key Responsibilities:
-        * State Validation: Enforces cross-module consistency (e.g., matching 
-          model input channels with dataset transformations).
-        * Resource Negotiation: Bridges system capabilities (CPU/GPU/AMP) 
-          with training requirements.
-        * Manifest Contract: Provides a structured, immutable contract 
-          that ensures all experiment parameters are validated before 
-          any infrastructure resources are allocated.
+    Aggregates specialized sub-configurations into a single validated object.
+    It provides the blueprint for the RootOrchestrator to execute experiments.
     """
     model_config = ConfigDict(
             extra="forbid",
@@ -71,7 +53,6 @@ class Config(BaseModel):
             frozen=True
     )
     
-    # Nested configurations - Explicit access required (e.g., cfg.system.seed)
     system: SystemConfig = Field(default_factory=SystemConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
     augmentation: AugmentationConfig = Field(default_factory=AugmentationConfig)
@@ -81,34 +62,35 @@ class Config(BaseModel):
 
     num_workers: NonNegativeInt = Field(default_factory=get_num_workers)
 
-
     @model_validator(mode="after")
     def validate_logic(self) -> "Config":
         """
         Cross-field logic validation after instantiation.
-        Ensures that the requested experiment strategy is physically 
-        and logically feasible given the system and model constraints.
+        Ensures hardware, model, and dataset parameters are logically aligned.
         """
+        # 1. Training Logic
         if self.training.mixup_epochs > self.training.epochs:
             raise ValueError(
                 f"mixup_epochs ({self.training.mixup_epochs}) cannot exceed "
-                f"epochs ({self.training.epochs})."
+                f"total epochs ({self.training.epochs})."
             )
             
-        is_cpu = self.system.device == "cpu"
-        if is_cpu and self.training.use_amp:
+        # 2. Hardware vs Feature alignment
+        if self.system.device == "cpu" and self.training.use_amp:
             raise ValueError("AMP cannot be enabled when using CPU device.")
             
+        # 3. Model vs Dataset consistency (Sfrutta le nuove properties)
         if self.model.pretrained and self.dataset.in_channels == 1 and not self.dataset.force_rgb:
             raise ValueError(
                 "Pretrained models require 3-channel input. "
-                "Set force_rgb=True in dataset config."
+                "Set force_rgb=True in dataset config to enable RGB promotion."
             )
             
+        # 4. Optimizer bounds
         if self.training.min_lr >= self.training.learning_rate:
             raise ValueError(
                 f"min_lr ({self.training.min_lr}) must be less than "
-                f"learning_rate ({self.training.learning_rate})."
+                f"initial learning_rate ({self.training.learning_rate})."
             )
         return self
 
@@ -128,21 +110,29 @@ class Config(BaseModel):
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "Config":
         """
-        Factory method to create a validated Config instance from a CLI namespace.
+        Factory method providing a unified entry point for CLI-based instantiation.
         
-        Transforms raw argparse parameters into the hierarchical Pydantic schema, 
-        triggering the full validation suite (field, validator, and model levels).
+        Centralizes the resolution of dataset metadata and injects it into 
+        downstream configurations to ensure architectural synchronization.
         """
         if hasattr(args, 'config') and args.config:
             return cls.from_yaml(Path(args.config))
+
+        # --- CENTRAL METADATA RESOLUTION ---
+        ds_name = getattr(args, 'dataset', "BloodMNIST")
+        if ds_name.lower() not in DATASET_REGISTRY:
+             raise ValueError(f"Dataset '{ds_name}' not found in DATASET_REGISTRY.")
         
+        ds_meta = DATASET_REGISTRY[ds_name.lower()]
+
+        # --- INJECTION-BASED SUB-CONFIGURATIONS ---
         config_data = {
             "system": SystemConfig.from_args(args),
             "training": TrainingConfig.from_args(args),
             "augmentation": AugmentationConfig.from_args(args),
-            "dataset": DatasetConfig.from_args(args),
-            "evaluation": EvaluationConfig.from_args(args),
-            "model": ModelConfig.from_args(args)
+            "dataset": DatasetConfig.from_args(args, metadata=ds_meta),
+            "model": ModelConfig.from_args(args, metadata=ds_meta),
+            "evaluation": EvaluationConfig.from_args(args)
         }
 
         if hasattr(args, 'num_workers') and args.num_workers is not None:

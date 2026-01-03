@@ -34,8 +34,7 @@ import torch
 #                                Internal Imports                             #
 # =========================================================================== #
 from .environment import (
-    set_seed, to_device_obj, configure_system_libraries, get_num_workers,
-    is_repro_mode_requested, apply_cpu_threads
+    set_seed, to_device_obj, configure_system_libraries, apply_cpu_threads
 )
 from .config.infrastructure_config import InfrastructureManager
 from .io import (
@@ -94,10 +93,8 @@ class RootOrchestrator:
         self.paths: Optional[RunPaths] = None
         self.run_logger: Optional[logging.Logger] = None
         self._device_cache: Optional[torch.device] = None
-        self.repro_mode = is_repro_mode_requested(
-            cli_flag=getattr(self.cfg.training, "reproducible", False)
-        )
-        self.num_workers: int = 0 if self.repro_mode else self.cfg.num_workers
+        self.repro_mode = self.cfg.system.use_deterministic_algorithms
+        self.num_workers = self.cfg.system.effective_num_workers
     
     def __enter__(self) -> "RootOrchestrator":
         """

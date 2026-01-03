@@ -2,9 +2,7 @@
 Argument Parsing Module
 
 This module handles the command-line interface (CLI) for the training pipeline.
-It bridges terminal inputs with the hierarchical Pydantic configuration, 
-enabling dynamic control over hardware allocation, directory structures, 
-and experimental hyperparameters.
+It bridges terminal inputs with the hierarchical Pydantic configuration.
 """
 
 # =========================================================================== #
@@ -15,7 +13,10 @@ import argparse
 # =========================================================================== #
 #                               Internal Imports                              #
 # =========================================================================== #
-from .config import Config
+from .config.system_config import SystemConfig
+from .config.training_config import TrainingConfig
+from .config.evaluation_config import EvaluationConfig
+from .config.augmentation_config import AugmentationConfig
 
 # =========================================================================== #
 #                                ARGUMENT PARSING                             #
@@ -24,12 +25,6 @@ from .config import Config
 def parse_args() -> argparse.Namespace:
     """
     Configure and analyze command line arguments for the training script.
-
-    Provides a comprehensive CLI to manage training schedules, hardware 
-    settings (device, workers), filesystem paths, and model configurations.
-
-    Returns:
-        argparse.Namespace: An object containing all parsed command line arguments.
     """
     from .metadata import DATASET_REGISTRY
 
@@ -38,8 +33,13 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
-    # We use a default Config instance to access the default values defined in sub-configs
-    default_cfg = Config()
+    # Instantiate specific configs that HAVE default values for all fields
+    sys_def   = SystemConfig()
+    train_def = TrainingConfig()
+    eval_def  = EvaluationConfig()
+    aug_def   = AugmentationConfig()
+    # ModelConfig and DatasetConfig are NOT instantiated here because they 
+    # require mandatory data-dependent fields (channels, classes, metadata).
 
     # Group: Global Strategy
     strat_group = parser.add_argument_group("Global Strategy")
@@ -53,14 +53,13 @@ def parse_args() -> argparse.Namespace:
     strat_group.add_argument(
         '--project_name',
         type=str,
-        default=default_cfg.system.project_name,
+        default=sys_def.project_name,
         help="Logical name for the experiment suite (used for logging and locks)."
     )
     strat_group.add_argument(
         '--reproducible',
         action='store_true',
         dest='reproducible',
-        default=default_cfg.training.reproducible,
         help="Enforces strict determinism: deterministic algorithms and num_workers=0."
     )
 
@@ -70,14 +69,14 @@ def parse_args() -> argparse.Namespace:
     sys_group.add_argument(
         '--device',
         type=str,
-        default=default_cfg.system.device,
+        default=sys_def.device,
         help="Computing device (cpu, cuda, mps)."
     )
     sys_group.add_argument(
         '--num_workers',
         type=int,
-        dest='reproducible',
-        default=default_cfg.num_workers,
+        dest='num_workers',
+        default=None,
         help="Number of subprocesses for data loading."
     )
 
@@ -87,26 +86,26 @@ def parse_args() -> argparse.Namespace:
     path_group.add_argument(
         '--data_dir',
         type=str,
-        default=str(default_cfg.system.data_dir),
+        default=str(sys_def.data_dir),
         help="Path to directory containing raw MedMNIST .npz files."
     )
     path_group.add_argument(
         '--output_dir',
         type=str,
-        default=str(default_cfg.system.output_dir),
+        default=str(sys_def.output_dir),
         help="Base directory for experiment outputs and runs."
     )
     path_group.add_argument(
         '--log_interval',
         type=int,
-        default=default_cfg.system.log_interval,
+        default=sys_def.log_interval,
         help="How many batches to wait before logging training status."
     )
     path_group.add_argument(
         '--no_save',
         action='store_false',
         dest='save_model',
-        default=default_cfg.system.save_model,
+        default=sys_def.save_model,
         help="Disable saving the best model checkpoint."
     )
     path_group.add_argument(
@@ -115,55 +114,54 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path to a .pth checkpoint to resume training or run evaluation."
     )
-
     # Group: Training Hyperparameters
     train_group = parser.add_argument_group("Training Hyperparameters")
     
     train_group.add_argument(
         '--epochs',
         type=int,
-        default=default_cfg.training.epochs
+        default=train_def.epochs
     )
     train_group.add_argument(
         '--batch_size',
         type=int,
-        default=default_cfg.training.batch_size
+        default=train_def.batch_size
     )
     train_group.add_argument(
         '--lr', '--learning_rate',
         type=float,
-        default=default_cfg.training.learning_rate
+        default=train_def.learning_rate
     )
     train_group.add_argument(
         '--seed',
         type=int,
-        default=default_cfg.training.seed
+        default=train_def.seed
     )
     train_group.add_argument(
         '--patience',
         type=int,
-        default=default_cfg.training.patience
+        default=train_def.patience
     )
     train_group.add_argument(
         '--momentum',
         type=float,
-        default=default_cfg.training.momentum
+        default=train_def.momentum
     )
     train_group.add_argument(
         '--weight_decay',
         type=float,
-        default=default_cfg.training.weight_decay
+        default=train_def.weight_decay
     )
     train_group.add_argument(
         '--cosine_fraction',
         type=float,
-        default=default_cfg.training.cosine_fraction,
+        default=train_def.cosine_fraction,
         help="Fraction of total epochs to apply cosine annealing before switching to ReduceLROnPlateau."
     )
     train_group.add_argument(
         '--use_amp',
         action='store_true',
-        default=default_cfg.training.use_amp,
+        default=train_def.use_amp,
         help="Enable Automatic Mixed Precision (FP16) during training."
     )
     train_group.add_argument(
@@ -175,7 +173,7 @@ def parse_args() -> argparse.Namespace:
     train_group.add_argument(
         '--grad_clip',
         type=float,
-        default=default_cfg.training.grad_clip,
+        default=train_def.grad_clip,
         help="Maximum norm for gradient clipping (set to 0 to disable)."
     )
     train_group.add_argument(
@@ -191,35 +189,36 @@ def parse_args() -> argparse.Namespace:
     aug_group.add_argument(
         '--mixup_alpha',
         type=float,
-        default=default_cfg.training.mixup_alpha
+        default=train_def.mixup_alpha
     )
     aug_group.add_argument(
         '--mixup_epochs',
         type=int,
-        default=default_cfg.training.mixup_epochs,
+        default=train_def.mixup_epochs,
         help="Number of epochs to apply MixUp augmentation."
     )
     aug_group.add_argument(
         '--no_tta',
         action='store_false',
         dest='use_tta',
-        default=default_cfg.training.use_tta,
+        default=train_def.use_tta,
         help="Disable TTA during final evaluation."
     )
+    # Collegamento corretto ai default di AugmentationConfig
     aug_group.add_argument(
         '--hflip',
         type=float,
-        default=default_cfg.augmentation.hflip
+        default=aug_def.hflip
     )
     aug_group.add_argument(
         '--rotation_angle',
         type=int,
-        default=default_cfg.augmentation.rotation_angle
+        default=aug_def.rotation_angle
     )
     aug_group.add_argument(
         '--jitter_val',
         type=float,
-        default=default_cfg.augmentation.jitter_val
+        default=aug_def.jitter_val
     )
 
     # Group: Dataset Selection and Configuration
@@ -235,14 +234,14 @@ def parse_args() -> argparse.Namespace:
     dataset_group.add_argument(
         '--max_samples',
         type=int,
-        default=default_cfg.dataset.max_samples or 0,
+        default=0,
         help="Max training samples (Use 0 or -1 for full dataset)."
     )
     dataset_group.add_argument(
         '--balanced',
         action='store_true',
         dest='use_weighted_sampler',
-        default=default_cfg.dataset.use_weighted_sampler,
+        default=False,
         help="Use WeightedRandomSampler to handle class imbalance."
     )
     dataset_group.add_argument(
@@ -277,13 +276,13 @@ def parse_args() -> argparse.Namespace:
     model_group.add_argument(
         '--model_name',
         type=str,
-        default=default_cfg.model.name,
+        default="resnet_18_adapted",
         help="Architecture identifier."
     )
     model_group.add_argument(
         '--pretrained',
         action='store_true',
-        default=default_cfg.model.pretrained,
+        default=True,
         help="Load ImageNet weights for the backbone (default: True)."
     )
     model_group.add_argument(
@@ -299,26 +298,26 @@ def parse_args() -> argparse.Namespace:
     eval_group.add_argument(
         '--n_samples',
         type=int,
-        default=default_cfg.evaluation.n_samples,
+        default=eval_def.n_samples,
         help="Number of images to display in the prediction grid."
     )
     eval_group.add_argument(
         '--fig_dpi',
         type=int,
-        default=default_cfg.evaluation.fig_dpi,
+        default=eval_def.fig_dpi,
         help="Resolution (DPI) for saved plots."
     )
     eval_group.add_argument(
         '--report_format',
         type=str,
-        default=default_cfg.evaluation.report_format,
+        default=eval_def.report_format,
         choices=["xlsx", "csv", "json"],
         help="Format for the final experiment summary."
     )
     eval_group.add_argument(
         '--plot_style',
         type=str,
-        default=default_cfg.evaluation.plot_style,
+        default=eval_def.plot_style,
         help="Matplotlib style for visualizations (e. g., 'ggplot', 'bmh')."
     )
 

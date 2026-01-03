@@ -48,7 +48,7 @@ class MedMNISTDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
             split: str = "train",
             transform: transforms.Compose | None = None,
             max_samples: int | None = None,
-            cfg: Config = Config()
+            cfg: Config = None
             ):
         """
         Initializes the dataset by loading the specified .npz split into RAM.
@@ -60,6 +60,8 @@ class MedMNISTDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
             max_samples (int | None): If set, limits the number of samples (subsampling).
             cfg (Config): Global configuration used to extract the random seed.
         """
+        if cfg is None:
+            raise ValueError("A valid Config instance is required.")
         if not path.exists():
             raise FileNotFoundError(f"Dataset file not found at: {path}")
         

@@ -66,8 +66,8 @@ def run_final_evaluation(
         test_loader,
         device=device,
         use_tta=cfg.training.use_tta,
-        is_anatomical=cfg.dataset.is_anatomical,
-        is_texture_based=cfg.dataset.is_texture_based,
+        is_anatomical=cfg.dataset.metadata.is_anatomical,
+        is_texture_based=cfg.dataset.metadata.is_texture_based,
         cfg=cfg
     )
 

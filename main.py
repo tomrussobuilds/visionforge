@@ -16,7 +16,7 @@ Key Pipeline Features:
    checkpointing of the best model based on validation performance.
 6. Comprehensive Evaluation: Performs final testing with Test-Time Augmentation (TTA), 
    generates diagnostic visualizations (Confusion Matrices, Loss Curves), and 
-   exports structured performance reports in Excel format.
+   exports structured performance reports.
 """
 
 # =========================================================================== #
@@ -41,22 +41,29 @@ from src.evaluation import run_final_evaluation
 def main() -> None:
     """
     Main orchestrator that controls the end-to-end training and evaluation flow.
+    
+    This function initializes the environment through the RootOrchestrator,
+    coordinates the data loading phase, executes the training loop via ModelTrainer,
+    and concludes with a rigorous evaluation and reporting phase.
     """
     
     # 1. Configuration & Root Orchestration
+    # We parse the CLI arguments and build the SSOT (Single Source of Truth)
     args         = parse_args()
     cfg          = Config.from_args(args)
     
-    # Using RootOrchestrator as a Context Manager to handle lifecycle and cleanup
+    # Using RootOrchestrator as a Context Manager to handle lifecycle, 
+    # resource guarding (locks), and automatic cleanup.
     with RootOrchestrator(cfg) as orchestrator:
         
-        # Initialize Core Services (Seed, Paths, Logs, Locks)
+        # Access the synchronized services provided by the orchestrator
         paths        = orchestrator.paths
         run_logger   = orchestrator.run_logger
         device       = orchestrator.get_device()
         
-        # Retrieve dataset metadata from registry
-        ds_meta      = DATASET_REGISTRY[cfg.dataset.dataset_name.lower()]
+        # Retrieve dataset metadata from registry using the validated slug
+        # Note: cfg.dataset.dataset_name is now a property resolved via metadata
+        ds_meta      = DATASET_REGISTRY[cfg.dataset.metadata.name.lower()]
 
         try:
             # --- 2. Data Preparation ---
@@ -64,10 +71,12 @@ def main() -> None:
                 f"\n{'━' * 80}\n{' DATA PREPARATION ':^80}\n{'━' * 80}"
             )
             
+            # Loading data based on metadata and creating DataLoader instances
             data    = load_medmnist(ds_meta)
             loaders = get_dataloaders(data, cfg)
             train_loader, val_loader, test_loader = loaders
             
+            # Visual diagnostic: save sample images to verify augmentations/normalization
             show_sample_images(
                 loader    = train_loader,
                 classes   = ds_meta.classes,
@@ -81,12 +90,15 @@ def main() -> None:
                 f"\n{'#' * 80}\n{pipeline_title:^80}\n{'#' * 80}"
             )
 
+            # Factory-based model initialization
             model   = get_model(device=device, cfg=cfg)
 
+            # Optimization components
             criterion = get_criterion(cfg)
             optimizer = get_optimizer(model, cfg)
             scheduler = get_scheduler(optimizer, cfg)
 
+            # The Trainer encapsulates the training loop logic and validation
             trainer = ModelTrainer(
                 model        = model,
                 train_loader = train_loader,
@@ -99,7 +111,7 @@ def main() -> None:
                 output_path  = paths.models / "best_model.pth"
             )
             
-            # Start training and return explicit history lists
+            # Start training and capture history for final plotting
             best_path, train_losses, val_accuracies = trainer.train()
 
             # --- 4. Model Recovery & Evaluation ---
@@ -107,10 +119,10 @@ def main() -> None:
                 f"\n{'━' * 80}\n{' FINAL EVALUATION PHASE ':^80}\n{'━' * 80}"
             )
             
-            # Recover best weights found during validation
+            # Recover the best weights (determined by validation) for final testing
             orchestrator.load_weights(model, best_path)
             
-            # Final test and reporting with explicit parameters
+            # Execute comprehensive testing (including TTA if enabled)
             macro_f1, test_acc = run_final_evaluation(
                 model          = model,
                 test_loader    = test_loader,
@@ -132,6 +144,7 @@ def main() -> None:
                 f"  » Architecture: {cfg.model.name}\n"
                 f"  » Test Acc:     {test_acc:>8.2%}\n"
                 f"  » Macro F1:     {macro_f1:>8.4f}\n"
+                f"  » Device:       {orchestrator.get_device()}\n"
                 f"  » Artifacts:    {paths.root}\n"
                 f"{'#'*80}"
             )
@@ -144,8 +157,8 @@ def main() -> None:
             raise e
             
         finally:
-            # The context manager (__exit__) handles orchestrator.cleanup() automatically.
-            # We only keep the final run directory log for user visibility.
+            # The Context Manager (__exit__) handles orchestrator.cleanup() automatically.
+            # This releases the infrastructure lock and closes logging handlers.
             if 'paths' in locals() and paths:
                 run_logger.info(f"Pipeline Shutdown completed. Run directory: {paths.root}")
 

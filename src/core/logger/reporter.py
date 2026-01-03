@@ -147,8 +147,8 @@ class Reporter(BaseModel):
         logger.info(f"  » Name:         {ds.dataset_name}")
         logger.info(f"  » Resolution:   {ds.img_size}px")
         logger.info(f"  » Mode:         {ds.processing_mode}")
-        logger.info(f"  » Anatomical:   {ds.is_anatomical}")
-        logger.info(f"  » Texture:      {ds.is_texture_based}")
+        logger.info(f"  » Anatomical:   {ds.metadata.is_anatomical}")
+        logger.info(f"  » Texture:      {ds.metadata.is_texture_based}")
 
     def _log_strategy_section(
         self,

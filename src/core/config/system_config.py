@@ -39,11 +39,14 @@ from pydantic import (
 from .types import (
     ValidatedPath, ProjectSlug, LogFrequency, LogLevel
 )
-from ..environment import detect_best_device
+from ..environment import (
+    detect_best_device, get_num_workers
+)
 from ..paths import DATASET_DIR, OUTPUTS_ROOT
 
 # =========================================================================== #
 #                             SYSTEM CONFIGURATION                            #
+# =================================================================指標
 # =========================================================================== #
 
 class SystemConfig(BaseModel):
@@ -83,21 +86,40 @@ class SystemConfig(BaseModel):
         description="Permission flag for InfrastructureManager to terminate duplicate processes."
     )
 
+    # Internal state for policy resolution
+    _reproducible_mode: bool = False
+
     @property
     def lock_file_path(self) -> Path:
         """
         Dynamically generates the cross-platform lock file location.
-        Used by InfrastructureManager to ensure mutual exclusion.
+        Used by InfrastructureManager to ensure mutual exclusion during execution.
         """
         safe_name = self.project_name.replace("/", "_") 
         return Path(tempfile.gettempdir()) / f"{safe_name}.lock"
     
     @property
     def support_amp(self) -> bool:
-        """Checks if the validated device supports Automatic Mixed Precision (AMP)."""
+        """Determines if the current validated device supports Automatic Mixed Precision (AMP)."""
         return self.device.lower().startswith("cuda") or \
                 self.device.lower().startswith("mps")
     
+    @property
+    def effective_num_workers(self) -> int:
+        """
+        Calculates the optimal number of DataLoader workers. 
+        Returns 0 if reproducibility is required to avoid non-deterministic 
+        multiprocessing behavior, otherwise returns the system-detected maximum.
+        """
+        if self._reproducible_mode:
+            return 0
+        return get_num_workers()
+    
+    @property
+    def use_deterministic_algorithms(self) -> bool:
+        """Flag indicating whether PyTorch should enforce bit-perfect deterministic algorithms."""
+        return self._reproducible_mode
+        
     @field_validator("device")
     @classmethod
     def resolve_device(cls, v: str) -> str:
@@ -120,13 +142,10 @@ class SystemConfig(BaseModel):
         """
         Factory method to map CLI arguments to the SystemConfig schema.
         
-        Args:
-            args (argparse.Namespace): Parsed command line arguments.
-            
-        Returns:
-            SystemConfig: A validated instance of the system configuration.
+        Initializes environmental policies such as reproducibility based on 
+        the provided namespace.
         """
-        return cls(
+        instance = cls(
             device=getattr(args, 'device', "auto"),
             data_dir=Path(getattr(args, 'data_dir', DATASET_DIR)),
             output_dir=Path(getattr(args, 'output_dir', OUTPUTS_ROOT)),
@@ -134,3 +153,8 @@ class SystemConfig(BaseModel):
             log_interval=getattr(args, 'log_interval', 10),
             project_name=getattr(args, 'project_name', "vision_experiment")
         )
+        
+        # Set the internal policy flag based on CLI 'reproducible' argument
+        object.__setattr__(instance, '_reproducible_mode', getattr(args, 'reproducible', False))
+        
+        return instance

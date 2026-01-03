@@ -84,8 +84,8 @@ def show_predictions(
     tta_info = f" [TTA: {'ON' if cfg.training.use_tta else 'OFF'}]" if cfg else ""
     
     domain_info = f""" | Mode: {
-        'Texture' if cfg.dataset.is_texture_based else 
-        'Anatomical' if cfg.dataset.is_anatomical else 'Standard'
+        'Texture' if cfg.dataset.metadata.is_texture_based else 
+        'Anatomical' if cfg.dataset.metadata.is_anatomical else 'Standard'
     }""" if cfg else ""
 
     plt.suptitle(
