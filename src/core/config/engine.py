@@ -124,13 +124,14 @@ class Config(BaseModel):
              raise ValueError(f"Dataset '{ds_name}' not found in DATASET_REGISTRY.")
         
         ds_meta = DATASET_REGISTRY[ds_name.lower()]
+        ds_config = DatasetConfig.from_args(args, metadata=ds_meta)
 
         # --- INJECTION-BASED SUB-CONFIGURATIONS ---
         config_data = {
             "system": SystemConfig.from_args(args),
             "training": TrainingConfig.from_args(args),
             "augmentation": AugmentationConfig.from_args(args),
-            "dataset": DatasetConfig.from_args(args, metadata=ds_meta),
+            "dataset": ds_config,
             "model": ModelConfig.from_args(args, metadata=ds_meta),
             "evaluation": EvaluationConfig.from_args(args)
         }
