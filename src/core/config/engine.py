@@ -24,7 +24,6 @@ from pydantic import (
 # =========================================================================== #
 #                               Internal Imports                              #
 # =========================================================================== #
-from .types import NonNegativeInt
 from .system_config import SystemConfig
 from .training_config import TrainingConfig
 from .augmentation_config import AugmentationConfig
@@ -33,7 +32,6 @@ from .evaluation_config import EvaluationConfig
 from .models_config import ModelConfig
 
 from ..metadata import DATASET_REGISTRY
-from ..environment import get_num_workers
 from ..io import load_config_from_yaml
 
 # =========================================================================== #
@@ -59,8 +57,6 @@ class Config(BaseModel):
     dataset: DatasetConfig = Field(default_factory=DatasetConfig)
     evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
-
-    num_workers: NonNegativeInt = Field(default_factory=get_num_workers)
 
     @model_validator(mode="after")
     def validate_logic(self) -> "Config":
@@ -93,13 +89,10 @@ class Config(BaseModel):
                 f"initial learning_rate ({self.training.learning_rate})."
             )
         return self
-
-    @field_validator("num_workers")
-    @classmethod
-    def check_cpu_count(cls, v: int) -> int:
-        """Limits worker count to the physical capabilities of the host."""
-        cpu_count = os.cpu_count() or 1
-        return min(v, cpu_count)
+    
+    @property
+    def num_workers(self) -> int:
+        return self.system.effective_num_workers
     
     @classmethod
     def from_yaml(cls, yaml_path: Path) -> "Config":
@@ -135,8 +128,5 @@ class Config(BaseModel):
             "model": ModelConfig.from_args(args, metadata=ds_meta),
             "evaluation": EvaluationConfig.from_args(args)
         }
-
-        if hasattr(args, 'num_workers') and args.num_workers is not None:
-            config_data["num_workers"] = args.num_workers
 
         return cls(**config_data)

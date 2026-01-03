@@ -145,9 +145,10 @@ class RootOrchestrator:
 
         # --- PHASE 3: FILESYSTEM PROVISIONING ---
         setup_static_directories()
-        self.paths = RunPaths(
+        self.paths = RunPaths.create(
             dataset_slug=self.cfg.dataset.dataset_name,
             model_name=self.cfg.model.name,
+            cfg_dict=self.cfg.model_dump(),
             base_dir=self.cfg.system.output_dir
         )
 

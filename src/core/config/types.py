@@ -53,11 +53,9 @@ from pydantic import (
 #                                VALIDATORS                                   #
 # =========================================================================== #
 
-def _ensure_dir(v: Path) -> Path:
-    """Ensure paths are absolute and create folders if missing."""
-    if not v.exists():
-        v.mkdir(parents=True, exist_ok=True)
-    return v.resolve()
+def _sanitize_path(v: Path) -> Path:
+    """Resolve path to absolute form without disk side-effects."""
+    return v.expanduser().resolve()
 
 # =========================================================================== #
 #                                1. GENERIC PRIMITIVES                        #
@@ -76,7 +74,7 @@ Probability      = Annotated[float, Field(ge=0.0, le=1.0)]
 
 ValidatedPath = Annotated[
     Path,
-    AfterValidator(_ensure_dir),
+    AfterValidator(_sanitize_path),
     PlainSerializer(lambda v: str(v), when_used="json", return_type=str)
 ]
 
@@ -84,7 +82,7 @@ ValidatedPath = Annotated[
 #                                3. HARDWARE & PERFORMANCE                    #
 # =========================================================================== #
 
-WorkerCount = Annotated[int, Field(ge=0, le=os.cpu_count() or 1)]
+WorkerCount = Annotated[int, Field(ge=0)]
 BatchSize   = Annotated[int, Field(ge=1, le=2048)]
 
 # =========================================================================== #
