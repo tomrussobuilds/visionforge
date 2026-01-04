@@ -50,8 +50,12 @@ def get_project_root() -> Path:
         if any((parent / marker).exists() for marker in root_markers):
             return parent
             
-    # Fallback if no markers are found (assumes standard nested structure)
-    return current_path.parent.parent
+    # Fallback if no markers are found
+    try:
+        if len(current_path.parents) >= 3:
+            return current_path.parents[2]
+    except IndexError:
+        return current_path.parent.parent
 
 # Central Filesystem Authority
 PROJECT_ROOT: Final[Path] = get_project_root().resolve()
