@@ -1,10 +1,24 @@
 """
 Model Architecture Configuration Module.
 
-This module defines the schema and validation logic for the deep learning 
-architectures used in the pipeline. It handles parameters related to 
-model identification, weight initialization (pre-training), and 
-structural adaptations like dropout for regularization.
+This module defines the declarative schema for deep learning architectures, 
+managing the structural lifecycle from identification to structural adaptation. 
+It acts as the geometric bridge between dataset properties and neural 
+connectivity, ensuring input/output layer alignment.
+
+Key Architectural Features:
+    * Structural Identity: Manages model selection and weight initialization 
+      policies (e.g., ImageNet pre-training vs. random initialization).
+    * Geometric Alignment: Automatically calculates required 'in_channels' and 
+      'num_classes' by reconciling dataset metadata with the 'force_rgb' 
+      promotion logic.
+    * Regularization Policy: Controls structural regularization parameters like 
+      Dropout, ensuring they are validated against domain-specific ranges.
+    * Metadata Injection: Leverages factory methods to perform 'Late Binding' 
+      of architectural constraints at runtime.
+
+By centralizing architectural definitions, the module prevents common mismatch 
+errors (e.g., Logit-Class mismatch) before the model is instantiated in memory.
 """
 
 # =========================================================================== #
@@ -76,13 +90,12 @@ class ModelConfig(BaseModel):
         
         Logic:
             - num_classes is derived directly from the dataset metadata.
-            - in_channels is determined by the dataset's native channels, 
-              accounting for automatic RGB promotion if using pretrained weights 
-              on grayscale images.
+            - in_channels resolves the 'force_rgb' logic to promote grayscale 
+              images to 3 channels if using pretrained ImageNet weights.
         """
         is_pretrained = getattr(args, 'pretrained', True)
         
-        # Centralized channel logic
+        # Centralized channel promotion logic
         force_rgb_arg = getattr(args, 'force_rgb', None)
         should_force_rgb = force_rgb_arg if force_rgb_arg is not None else \
                            (metadata.in_channels == 1 and is_pretrained)

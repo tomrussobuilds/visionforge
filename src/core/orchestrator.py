@@ -104,8 +104,12 @@ class RootOrchestrator:
         Returns:
             RootOrchestrator: The initialized instance, ready for pipeline execution.
         """
-        self.initialize_core_services()
-        return self
+        try:
+            self.initialize_core_services()
+            return self
+        except Exception as e:
+            self.cleanup()
+            raise e
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         """
@@ -148,7 +152,7 @@ class RootOrchestrator:
         self.paths = RunPaths.create(
             dataset_slug=self.cfg.dataset.dataset_name,
             model_name=self.cfg.model.name,
-            cfg_dict=self.cfg.model_dump(),
+            cfg_dict=self.cfg.dump_serialized(),
             base_dir=self.cfg.system.output_dir
         )
 

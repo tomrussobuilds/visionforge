@@ -85,13 +85,17 @@ class InfrastructureManager(BaseModel):
             logger (Optional[logging.Logger]): Active logger for status reporting.
         """
         # 1. Release Filesystem Lock
-        release_single_instance(cfg.system.lock_file_path)
+        try:
+            release_single_instance(cfg.system.lock_file_path)
         
-        msg = "System resource lock released successfully."
-        if logger:
-            logger.info(f" » {msg}")
-        else:
-            logging.debug(msg)
+            msg = "System resource lock released successfully."
+            if logger:
+                logger.info(f" » {msg}")
+            else:
+                logging.debug(msg)
+        except Exception as e:
+            if logger:
+                logger.warning(f"Failed to release lock file: {e}")
 
         # 2. Hardware Memory Cleanup
         self._flush_compute_cache()

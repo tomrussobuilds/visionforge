@@ -1,14 +1,23 @@
 """
 Optimization & Regularization Configuration Schema.
 
-This module defines the hyperparameters and strategy settings for model 
-training. It encapsulates the optimization landscape, learning rate 
-scheduling (Cosine Annealing), and advanced regularization techniques 
-like Mixup and Label Smoothing.
+This module defines the declarative schema for the training lifecycle, 
+orchestrating the optimization landscape and regularization boundaries. 
+It synchronizes learning rate dynamics (Cosine Annealing) with advanced 
+data augmentation strategies (Mixup) and precision policies (AMP).
 
-The schema ensures that all training-related parameters are validated 
-against domain-specific constraints (e.g., probability ranges and 
-positive definite learning rates) before the training loop starts.
+Key Architectural Features:
+    * Optimization Dynamics: Manages learning rate schedules and momentum 
+      parameters to navigate the loss landscape effectively.
+    * Regularization Suite: Controls Label Smoothing and Mixup coefficients, 
+      facilitating model generalization on medical imaging datasets.
+    * Precision & Stability: Configures Automatic Mixed Precision (AMP) and 
+      Gradient Clipping to optimize hardware throughput and training stability.
+    * Reproducibility Guard: Integrates global seeding and strict 
+      determinism flags to ensure bit-perfect experimental replication.
+
+By enforcing strict boundary validation (e.g., probability ranges), the 
+schema prevents unstable training states before the first batch is processed.
 """
 
 # =========================================================================== #
@@ -37,6 +46,9 @@ from .types import (
 class TrainingConfig(BaseModel):
     """
     Defines the optimization landscape and regularization strategies.
+    
+    This class ensures that all training-related hyperparameters are 
+    validated against physical and domain-specific constraints.
     """
     model_config = ConfigDict(
         frozen=True,
@@ -80,22 +92,27 @@ class TrainingConfig(BaseModel):
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "TrainingConfig":
-        """Map training parameters ensuring defaults are present."""
-        return cls(
-            seed=getattr(args, 'seed', 42),
-            reproducible=getattr(args, 'reproducible', False),
-            batch_size=getattr(args, 'batch_size', 128),
-            learning_rate=getattr(args, 'lr', 0.008),
-            momentum=getattr(args, 'momentum', 0.9),
-            weight_decay=getattr(args, 'weight_decay', 5e-4),
-            epochs=getattr(args, 'epochs', 60),
-            patience=getattr(args, 'patience', 15),
-            mixup_alpha=getattr(args, 'mixup_alpha', 0.2),
-            mixup_epochs=getattr(args, 'mixup_epochs', 20),
-            use_tta=getattr(args, 'use_tta', True),
-            cosine_fraction=getattr(args, 'cosine_fraction', 0.5),
-            use_amp=getattr(args, 'use_amp', False),
-            grad_clip=getattr(args, 'grad_clip', 1.0),
-            label_smoothing=getattr(args, 'label_smoothing', 0.0),
-            min_lr=getattr(args, 'min_lr', 1e-6)
-        )
+        """
+        Factory method to map CLI arguments to the TrainingConfig schema.
+        Ensures defaults are maintained if specific flags are omitted.
+        """
+        params = {
+            "seed": getattr(args, 'seed', 42),
+            "reproducible": getattr(args, 'reproducible', False),
+            "batch_size": getattr(args, 'batch_size', 128),
+            "learning_rate": getattr(args, 'lr', 0.008),
+            "momentum": getattr(args, 'momentum', 0.9),
+            "weight_decay": getattr(args, 'weight_decay', 5e-4),
+            "epochs": getattr(args, 'epochs', 60),
+            "patience": getattr(args, 'patience', 15),
+            "mixup_alpha": getattr(args, 'mixup_alpha', 0.2),
+            "mixup_epochs": getattr(args, 'mixup_epochs', 20),
+            "use_tta": getattr(args, 'use_tta', True),
+            "cosine_fraction": getattr(args, 'cosine_fraction', 0.5),
+            "use_amp": getattr(args, 'use_amp', False),
+            "grad_clip": getattr(args, 'grad_clip', 1.0),
+            "label_smoothing": getattr(args, 'label_smoothing', 0.0),
+            "min_lr": getattr(args, 'min_lr', 1e-6)
+        }
+        
+        return cls(**params)

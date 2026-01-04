@@ -3,16 +3,23 @@ Dataset Registry Resolver & Metadata Schema.
 
 This module acts as the interface between the MedMNIST Metadata Registry 
 and the training pipeline. It handles the dynamic resolution of dataset-specific 
-constraints, such as channel counts, normalization constants (mean/std), 
-and automated 3-channel expansion (RGB) for grayscale datasets when 
-using pretrained models.
+constraints, ensuring that domain-specific medical data aligns with deep 
+learning architecture requirements.
 
 Key Architectural Features:
-    * Metadata Binding: Resolves dataset names to official MedMNIST properties.
-    * Channel Orchestration: Manages 'force_rgb' logic to ensure compatibility 
-      between grayscale medical images and ImageNet-pretrained architectures.
-    * Class Balance Logic: Configures Weighted Sampler settings based on 
-      registry-provided class distributions.
+    * Metadata Binding: Injects static MedMNIST properties (classes, distribution) 
+      into a validated Pydantic manifest.
+    * Channel Orchestration: Implements 'force_rgb' promotion logic, allowing 
+      single-channel medical datasets (e.g., PneumoniaMNIST) to utilize 
+      architectures pretrained on 3-channel natural images (ImageNet).
+    * Statistical Expansion: Dynamically adapts normalization constants (mean/std) 
+      based on the resolved channel strategy, preventing statistical mismatch 
+      during the 'promotion' of grayscale images.
+    * Sample Budgeting: Manages dataset truncation and weighted sampling 
+      policies to handle class imbalance and computational constraints.
+
+By centralizing these transformations, the resolver ensures that the data 
+loading pipeline remains agnostic to the specific MedMNIST variant being processed.
 """
 
 # =========================================================================== #
@@ -20,6 +27,7 @@ Key Architectural Features:
 # =========================================================================== #
 import argparse
 from typing import Optional
+from pathlib import Path
 
 # =========================================================================== #
 #                                Third-Party Imports                          #
@@ -94,24 +102,19 @@ class DatasetConfig(BaseModel):
     @property
     def mean(self) -> tuple[float, ...]:
         """Channel-wise mean for normalization, expanded if force_rgb is active."""
-        if self.force_rgb and self.in_channels == 1:
-            return (self.metadata.mean[0],) * 3
-        return self.metadata.mean
+        m = self.metadata.mean
+        return (m[0],) * 3 if (self.force_rgb and self.in_channels == 1) else m
     
     @property
     def std(self) -> tuple[float, ...]:
         """Channel-wise std for normalization, expanded if force_rgb is active."""
-        if self.force_rgb and self.in_channels == 1:
-            return (self.metadata.std[0],) * 3
-        return self.metadata.std
+        s = self.metadata.std
+        return (s[0],) * 3 if (self.force_rgb and self.in_channels == 1) else s
     
     @property
     def processing_mode(self) -> str:
         """
-        Human-readable description of the channel processing strategy:
-        - NATIVE-RGB: Dataset is already RGB.
-        - RGB-PROMOTED: Grayscale dataset expanded to 3 channels.
-        - NATIVE-GRAY: Dataset kept as single-channel.
+        Human-readable description of the channel processing strategy.
         """
         if self.in_channels == 3:
             return "NATIVE-RGB"
@@ -124,10 +127,6 @@ class DatasetConfig(BaseModel):
     def from_args(cls, args: argparse.Namespace, metadata: DatasetMetadata) -> "DatasetConfig":
         """
         Factory method to resolve dataset configuration from CLI arguments and registry metadata.
-        
-        Args:
-            args: Parsed command-line arguments.
-            metadata: Static dataset properties from the registry.
         """
         # 1. Resolve RGB logic
         is_pretrained = getattr(args, "pretrained", True)
@@ -138,21 +137,17 @@ class DatasetConfig(BaseModel):
         )
             
         # 2. Resolve sampling constraints
-        # Get value from CLI; if missing or 0, we decide the fallback
         cli_max = getattr(args, "max_samples", None)
-        
-        # If user explicitly passed 0 or -1, they want the FULL dataset
         if cli_max is not None and cli_max <= 0:
             final_max_samples = None
-        # If user passed a specific value (e.g. 5000), use it
         elif cli_max is not None and cli_max > 0:
             final_max_samples = cli_max
-        # Otherwise (if None or not provided), use the Class Default (20000)
         else:
             final_max_samples = cls.model_fields['max_samples'].default
 
         return cls(
             metadata=metadata,
+            data_root=Path(getattr(args, "data_dir", DATASET_DIR)),
             max_samples=final_max_samples,
             use_weighted_sampler=getattr(args, "use_weighted_sampler", True),
             force_rgb=should_force_rgb,

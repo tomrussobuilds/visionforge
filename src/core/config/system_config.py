@@ -8,14 +8,20 @@ Single Source of Truth (SSOT) for device selection and path integrity.
 
 Key Functionalities:
     * Hardware Negotiation: Resolves 'auto' device requests into concrete 
-      accelerators (CUDA/MPS) based on runtime availability.
-    * Path Validation: Enforces structured directory resolution for datasets 
-      and experiment outputs via Pydantic-driven validation.
-    * Metadata Blueprint: Provides the necessary parameters for the 
-      InfrastructureManager to perform environment sanitization and locking.
+      accelerators (CUDA/MPS) based on runtime availability and self-corrects 
+      if requested resources are missing.
+    * Path Sanitization: Enforces absolute path resolution for datasets and 
+      experiment roots, delegating physical directory creation to the 
+      RootOrchestrator to ensure side-effect-free validation.
+    * Execution Policy: Calculates dynamic parameters like 'effective_num_workers' 
+      and 'deterministic_mode' by reconciling hardware capabilities with 
+      reproducibility constraints.
+    * Metadata Blueprint: Provides the necessary parameters (lock files, slugs) 
+      for the InfrastructureManager to perform environment sanitization and 
+      mutual exclusion guarding.
 
-The SystemConfig class ensures that the experiment state is defined in a 
-predictable and hardware-aligned manifest.
+By centralizing these definitions, the engine ensures that the experiment 
+state is defined in a predictable, hardware-aligned, and immutable manifest.
 """
 
 # =========================================================================== #

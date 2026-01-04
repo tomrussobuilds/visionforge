@@ -7,18 +7,22 @@ domain-specific constraints (e.g., physical probability ranges, learning rate
 boundaries, and path integrity) before they reach the orchestration logic.
 
 Core Responsibilities:
-    * Path Sanitization: Automatic expansion and creation of experiment 
-      directories via `_ensure_dir`.
+    * Path Sanitization: Resolves paths to absolute forms and handles home 
+      directory expansion (~), ensuring path consistency without performing 
+      disk I/O operations.
     * Boundary Enforcement: Strict validation of hyperparameters (Learning Rates, 
-      Probabilities, Smoothing Values) using LaTeX-style interval logic.
-    * Reusability: Provides a centralized registry of Type Aliases used across 
-      all sub-configuration modules (System, Training, Dataset).
+      Probabilities, Smoothing Values) using field-level constraints to prevent 
+      unstable training states.
+    * Type Aliasing: Provides a centralized registry of domain-specific types 
+      (e.g., WorkerCount, ProjectSlug, LearningRate) to ensure semantic 
+      consistency across the entire configuration suite.
+    * Serialization Policy: Defines custom serialization logic for complex 
+      objects (like Path) to guarantee JSON/YAML compatibility.
 
-By centralizing these definitions, the engine ensures that invalid states are 
-caught at the 'edge' of the application (CLI/YAML parsing) rather than 
-during active training execution.
+By centralizing these definitions, the engine catches invalid states at the 
+'edge' of the application during schema initialization, preventing runtime 
+failures in the deeper orchestration layers.
 """
-
 # =========================================================================== #
 #                                Standard Imports                             #
 # =========================================================================== #
