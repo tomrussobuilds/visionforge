@@ -23,18 +23,16 @@ import numpy as np
 import torch
 
 # =========================================================================== #
+#                                Internal Imports                             #
+# =========================================================================== #
+from .paths import LOGGER_NAME
+
+# =========================================================================== #
 #                                  I/O Utilities                              #
 # =========================================================================== #
 
-logger = logging.getLogger("medmnist_pipeline")
+logger = logging.getLogger(LOGGER_NAME)
 
-import os
-import yaml
-import logging
-from pathlib import Path
-from typing import Any, Dict
-
-logger = logging.getLogger(__name__)
 
 def save_config_as_yaml(data: Any, yaml_path: Path) -> Path:
     """
