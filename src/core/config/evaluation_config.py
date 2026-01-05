@@ -82,9 +82,9 @@ class EvaluationConfig(BaseModel):
     @classmethod
     def validate_format(cls, v: str) -> str:
         """Ensure the output format is compatible with downstream consumers."""
-        supported = ["xlsx", "csv", "json"]
+        supported = ["xlsx"]
         if v.lower() not in supported:
-            raise ValueError(f"Format {v} not supported. Use {supported}")
+            return "xlsx"
         return v.lower()
 
     @classmethod
