@@ -49,32 +49,44 @@ Every run is fully documented through a suite of automatically generated artifac
 ### Visual Diagnostics
 
 <table style="width: 100%; table-layout: fixed; border: none;">
-  <tr>
-    <td style="text-align: center; vertical-align: middle; border: none;">
-      <b>Confusion Matrix</b><br>
-      <img src="docs/artifacts/confusion_matrix.png" style="width: 100%; max-height: 350px; object-fit: contain;">
-    </td>
-    <td style="text-align: center; vertical-align: middle; border: none;">
-      <b>Training Dynamics</b><br>
-      <img src="docs/artifacts/training_curves.png" style="width: 100%; max-height: 350px; object-fit: contain;">
-    </td>
-  </tr>
+  <thead>
+    <tr>
+      <th style="width: 50%; text-align: center; border: none;"><b>Confusion Matrix</b></th>
+      <th style="width: 50%; text-align: center; border: none;"><b>Training Dynamics</b></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center" valign="middle" style="border: none;">
+        <img src="docs/artifacts/confusion_matrix.png" width="100%">
+      </td>
+      <td align="center" valign="middle" style="border: none;">
+        <img src="docs/artifacts/training_curves.png" width="100%">
+      </td>
+    </tr>
+  </tbody>
 </table>
 
 
 ### Sample Predictions & Reporting
 
 <table style="width: 100%; table-layout: fixed;">
-  <tr>
-    <td style="text-align: center; vertical-align: middle;">
-      <b>Sample Predictions</b><br>
-      <img src="docs/artifacts/sample_predictions.png" style="width: 100%; max-height: 400px; object-fit: contain; border-radius: 5px;">
-    </td>
-    <td style="text-align: center; vertical-align: middle;">
-      <b>Quantitative Report (Excel)</b><br>
-      <img src="docs/artifacts/excel_report_preview.png" style="width: 100%; max-height: 400px; object-fit: contain; border-radius: 5px;">
-    </td>
-  </tr>
+  <thead>
+    <tr>
+      <th style="width: 50%; text-align: center;"><b>Sample Predictions</b></th>
+      <th style="width: 50%; text-align: center;"><b>Quantitative Report (Excel)</b></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center" valign="middle">
+        <img src="docs/artifacts/sample_predictions.png" width="100%">
+      </td>
+      <td align="center" valign="middle">
+        <img src="docs/artifacts/excel_report_preview.png" width="100%">
+      </td>
+    </tr>
+  </tbody>
 </table>
 
 ## 🚀 Getting Started
