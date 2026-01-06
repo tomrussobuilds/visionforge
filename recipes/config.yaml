@@ -1,8 +1,8 @@
 system:
     device: cpu
     log_level: INFO
-    data_dir: /home/tommaso-russo/med_mnist/dataset
-    output_dir: /home/tommaso-russo/med_mnist/outputs
+    data_dir: ./dataset
+    output_dir: ./outputs
     save_model: true
     log_interval: 10
     project_name: vision_experiment
@@ -38,7 +38,7 @@ dataset:
         display_name: BloodMNIST
         md5_checksum: 7053d0359d879ad8a5505303e11de1dc
         url: https://zenodo.org/records/5208230/files/bloodmnist.npz
-        path: /home/tommaso-russo/med_mnist/dataset/bloodmnist.npz
+        path: ./dataset/bloodmnist.npz
         classes:
         - basophil
         - eosinophil
@@ -59,7 +59,7 @@ dataset:
         - 0.201
         is_anatomical: false
         is_texture_based: false
-    data_root: /home/tommaso-russo/med_mnist/dataset
+    data_root: ./dataset
     use_weighted_sampler: false
     max_samples: 20000
     img_size: 28
