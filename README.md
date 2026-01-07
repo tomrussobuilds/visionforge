@@ -77,11 +77,17 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 This pipeline is engineered for unattended, robust execution in research environments and containerized clusters. It moves beyond simple classification by implementing low-level system safeguards:
 
-**Kernel-Level Singleton** (`ensure_single_instance`): Utilizes the `fcntl.flock` Unix syscall to acquire an Exclusive Lock (`LOCK_EX | LOCK_NB`) on a physical lock-file. This prevents race conditions on GPU VRAM or checkpoint corruption by ensuring only one training instance is active at a time.
+**Tiered Configuration Engine (SSOT)**: The pipeline core is a declarative, hierarchical manifest built on **Pydantic V2**. It acts as the **Single Source of Truth (SSOT)**, transforming raw inputs into an immutable, type-safe execution blueprint. This engine provides:
+* **Metadata Hydration**: Late-binding injection of dataset-specific specs (normalization constants, class mappings, channel counts) directly from a centralized registry.
+* **Cross-Domain Validation**: Post-instantiation logic guards that prevent unstable states, such as enforcing 3-channel input for pretrained backbones or validating **AMP** (Automatic Mixed Precision) compatibility against hardware backends.
+* **Path Portability**: Automated serialization of absolute filesystem paths into environment-agnostic anchors, ensuring experiment recipes are shareable across diverse clusters.
+
+**Decentralized Infrastructure Guard**: Moving beyond simple automation, the system implements an independent `InfrastructureManager` that bridges the declarative config with physical hardware. This layer ensures:
+* **Environment Mutual Exclusion**: Utilizes `fcntl` kernel-level advisory locking (via `flock`) to guarantee that only one training instance is active per workspace, preventing VRAM race conditions and checkpoint corruption.
+* **Proactive Process Sanitization**: An intelligent `psutil` wrapper identifies and terminates ghost Python processes sharing the same entry point.
+* **Cluster-Aware Safety**: Features a "Shared-Environment Detection" logic that automatically suspends process-killing routines when a scheduler (e.g., `SLURM`, `PBS`, `LSB`) is detected, preserving multi-user stability in HPC environments.
 
 **Atomic Run Isolation**: Managed via the `RunPaths` utility, every execution generates a unique workspace (`outputs/YYYYMMDD_DS_MODEL_HASH/`). The system computes a deterministic **BLAKE2b** cryptographic hash (using a 3-byte digest for 6-hex characters) from the training configuration. This ensures that even slight hyperparameter variations result in isolated directories, preventing resource overlap and guaranteeing auditability.
-
-**Proactive Process Guard**: Integrates `psutil` to identify and terminate ghost Python processes sharing the same entry-point. Controlled by the `allow_process_kill` flag, it includes a safety check that automatically disables sanitization in shared environments (detecting `SLURM_JOB_ID` or `PBS_JOBID`) to prevent accidental termination of other users' tasks.
 
 **Data Integrity & Validation**: Implements `MD5` Checksum verification for dataset downloads and a strict `validate_npz_keys` check to ensure the structural integrity of the MedMNIST `.npz` files before memory allocation.
 
@@ -90,8 +96,6 @@ This pipeline is engineered for unattended, robust execution in research environ
 **System Utilities**: The `environment` module serves as a low-level abstraction layer that manages hardware device selection, ensures process-level atomicity through kernel-level file locking, and enforces strict environment-wide reproducibility.
 
 **Continuous Stability Guard** (`smoke_test.py`): A dedicated diagnostic script that executes a "micro-pipeline" (1 epoch, minimal data subset). It validates the entire execution chain—from weight interpolation to Excel reporting—in less than 30 seconds, ensuring no regressions after architectural changes.
-
-**Metadata-Driven SSOT** (Dataset Registry): The pipeline eliminates hardcoded constants. A centralized registry automatically configures normalization parameters (`mean`/`std`), class mappings, and channel counts (`RGB` vs `Grayscale`) based on the selected MedMNIST subset.
 
 **Hybrid RAM Management**: Optimized for varying hardware constraints. The system automatically performs full RAM caching for smaller datasets to maximize throughput, while utilizing indexed slicing for massive datasets (like `TissueMNIST`) to prevent OOM (Out-of-Memory) errors.
 
@@ -199,6 +203,8 @@ med_mnist/
 │   │   └── pipeline.py          # Evaluation Master: Orchestrates plots, metrics, & Excel reporting.
 │   └── __init__.py              # Root package initialization.
 └── outputs/                     # Results: Isolated workspaces named YYYYMMDD_DS_MODEL_HASH.
+```
+
 ---
 
 ### ⚙️ Requirements & Installation
@@ -319,7 +325,7 @@ You can fully configure training from the command line (via `main.py`).
 | --dataset | str | "bloodmnist" | MedMNIST dataset identifier (e.g., bloodmnist, dermamnist). |
 | --model_name | str | "ResNet-18 Adapted" | Identifier for logging and folder naming. |
 | --reproducible | bool | False | Enables strict deterministic algorithms and forces num_workers=0. |
---allow_process_kill | bool | True | Enables/disables termination of duplicate processes (auto-disabled on Clusters). |
+| --allow_process_kill | bool | True | Enables/disables termination of duplicate processes (auto-disabled on Clusters). |
 
 ---
 
