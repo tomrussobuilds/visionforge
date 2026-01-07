@@ -18,6 +18,11 @@ from typing import Dict, Optional, Final
 from logging.handlers import RotatingFileHandler
 
 # =========================================================================== #
+#                                Internal Imports                             #
+# =========================================================================== #
+from ..paths import LOGGER_NAME
+
+# =========================================================================== #
 #                                LOGGER CLASS                                  #
 # =========================================================================== #
 
@@ -30,7 +35,7 @@ class Logger:
 
     def __init__(
         self,
-        name: str = "medmnist_pipeline",
+        name: str = LOGGER_NAME,
         log_dir: Optional[Path] = None,
         log_to_file: bool = True,
         level: int = logging.INFO,

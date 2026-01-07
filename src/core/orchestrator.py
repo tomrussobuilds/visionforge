@@ -77,22 +77,27 @@ class RootOrchestrator:
         num_workers (int): Resolved number of DataLoader workers based on policy.
         _device_cache (Optional[torch.device]): Memoized compute device object.
     """
-    def __init__(self, cfg : "Config", log_initializer=Logger.setup) -> None:
+    def __init__(self, cfg: "Config", log_initializer=Logger.setup) -> None:
         """
-        Initializes the orchestrator with the experiment configuration.
+        Initializes the orchestrator and binds the execution policy.
 
         Args:
-            cfg (Config): The validated global configuration manifest.
-            log_initializer (callable): A strategy function to initialize
-            the logging subsystem. Defaults to Logger.setup.
+            cfg (Config): The validated global configuration manifest. 
+                Acts as the Single Source of Truth (SSOT) for all sub-systems.
+            log_initializer (callable, optional): A strategy function responsible 
+                for configuring the logging handlers. Must accept 'name', 
+                'log_dir', and 'level'. Defaults to Logger.setup.
         """
         self.cfg = cfg
         self.infra = InfrastructureManager()
         self.reporter = Reporter()
         self._log_initializer = log_initializer
+        
         self.paths: Optional[RunPaths] = None
         self.run_logger: Optional[logging.Logger] = None
         self._device_cache: Optional[torch.device] = None
+        
+        # Policy extraction from the SSOT
         self.repro_mode = self.cfg.system.use_deterministic_algorithms
         self.num_workers = self.cfg.system.effective_num_workers
     
@@ -127,27 +132,23 @@ class RootOrchestrator:
         self.cleanup()
         return False
 
-    def initialize_core_services(self) -> RunPaths:
-        """
-        Executes the linear initialization sequence for the experiment environment.
+    # --- PRIVATE LIFECYCLE PHASES ---
 
-        This method synchronizes the system state following a strict protocol:
-        1. Policy & Determinism: Sets global RNG seeds and reproducibility flags.
-        2. Hardware & Threading: Optimizes CPU/GPU resources and library configs.
-        3. Filesystem & Workspace: Provisions static and dynamic run directories.
-        4. Telemetry & Persistence: Activates logging, guards, and config mirroring.
-
-        Returns:
-            RunPaths: The verified and provisioned path orchestrator for the session.
-        """
-        # --- PHASE 1: DETERMINISM & REPRODUCIBILITY ---
+    def _phase_1_determinism(self) -> None:
+        """Enforces global RNG seeding and algorithmic determinism policies."""
         set_seed(self.cfg.training.seed, strict=self.repro_mode)
 
-        # --- PHASE 2: HARDWARE & SYSTEM OPTIMIZATION ---
+    def _phase_2_hardware_optimization(self) -> int:
+        """Configures compute thread affinity and accelerator libraries."""
         applied_threads = apply_cpu_threads(self.num_workers)
         configure_system_libraries()
-
-        # --- PHASE 3: FILESYSTEM PROVISIONING ---
+        return applied_threads
+    
+    def _phase_3_filesystem_provisioning(self) -> None:
+        """
+        Constructs the experiment workspace and persists the execution manifest.
+        Anchors all relative paths to the validated PROJECT_ROOT.
+        """
         setup_static_directories()
         self.paths = RunPaths.create(
             dataset_slug=self.cfg.dataset.dataset_name,
@@ -156,27 +157,28 @@ class RootOrchestrator:
             base_dir=self.cfg.system.output_dir
         )
 
-        # --- PHASE 4: TELEMETRY, SAFETY & REPORTING ---
-        # Initialize logging first to capture subsequent setup events
+    def _phase_4_telemetry_activation(self, applied_threads: int) -> None:
+        """Activates logging, secures process locks, and emits the baseline report."""
+        # Initialize logging first to capture hardware lock events
         self.run_logger = self._log_initializer(
             name=LOGGER_NAME,
             log_dir=self.paths.logs,
             level=self.cfg.system.log_level
         )
 
-        # Secure hardware/process locks
-        self.infra.prepare_environment(
-            self.cfg,
-            logger=self.run_logger
-        )
-        
-        # Mirror the active configuration to the run directory
+        # Persistence: Mirror the configuration for auditability
         save_config_as_yaml(
             self.cfg.dump_portable(),
             self.paths.get_config_path()
         )
 
-        # Emit the final environment baseline report
+        # Secure system-level guards
+        self.infra.prepare_environment(
+            self.cfg,
+            logger=self.run_logger
+        )
+
+        # Log initial environment state
         self.reporter.log_initial_status(
             logger=self.run_logger,
             cfg=self.cfg,
@@ -185,8 +187,27 @@ class RootOrchestrator:
             applied_threads=applied_threads,
             num_workers=self.num_workers
         )
+
+    # --- PUBLIC INTERFACE ---
+
+    def initialize_core_services(self) -> RunPaths:
+        """
+        Executes the linear sequence of environment initialization phases.
+
+        This method synchronizes the global state, moving from determinism 
+        seeding to telemetry activation.
+
+        Returns:
+            RunPaths: The verified and provisioned directory structure.
+        """
+        self._phase_1_determinism()
+        applied_threads = self._phase_2_hardware_optimization()
+        self._phase_3_filesystem_provisioning()
+        self._phase_4_telemetry_activation(applied_threads)
         
         return self.paths
+
+    # ... (rest of the methods: cleanup, get_device, load_weights)
 
     def cleanup(self) -> None:
         """
@@ -198,7 +219,9 @@ class RootOrchestrator:
         except Exception as e:
             err_msg = f"Failed to release system lock: {e}"
             if self.run_logger:
-                self.run_logger.error(f" [!] {err_msg}")
+                for handler in self.run_logger.handlers[:]:
+                    handler.close()
+                    self.run_logger.removeHandler(handler)
             else:
                 logging.error(err_msg)
 

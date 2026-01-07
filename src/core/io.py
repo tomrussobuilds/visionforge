@@ -31,55 +31,30 @@ from .paths import LOGGER_NAME
 #                                  I/O Utilities                              #
 # =========================================================================== #
 
-logger = logging.getLogger(LOGGER_NAME)
-
-
 def save_config_as_yaml(data: Any, yaml_path: Path) -> Path:
     """
-    Saves a Pydantic configuration object or dictionary as a YAML file.
-
-    Args:
-        data (Any): The configuration data (Pydantic model or dict).
-        yaml_path (Path): The target path for the YAML file.
+    Saves a configuration object as a YAML file.
     
-    Returns:
-        Path: The path where the YAML file was saved.
+    Orchestrates the conversion from Pydantic/Dict to a sanitized format
+    and ensures safe persistence to the filesystem.
     """
+    logger = logging.getLogger(LOGGER_NAME)
     try:
+        # 1. Extraction (Pydantic to Dict)
         if hasattr(data, "model_dump"):
             try:
-                clean_dict = data.model_dump(mode='json')
+                raw_dict = data.model_dump(mode='json')
             except Exception as e:
                 logger.warning(f"JSON dump failed, using fallback serialization: {e}")
-                clean_dict = data.model_dump()
+                raw_dict = data.model_dump()
         else:
-            clean_dict = data
+            raw_dict = data
 
+        # 2. Sanitization (Recursive cleanup)
+        final_data = _sanitize_for_yaml(raw_dict)
 
-        def finalize_obj(obj: Any) -> Any:
-            if isinstance(obj, dict):
-                return {k: finalize_obj(v) for k, v in obj.items()}
-            if isinstance(obj, (list, tuple)):
-                return [finalize_obj(i) for i in obj]
-            if isinstance(obj, Path):
-                return str(obj)
-            return obj
-
-        final_data = finalize_obj(clean_dict)
-
-        yaml_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(yaml_path, 'w', encoding='utf-8') as f:
-            yaml.dump(
-                final_data,
-                f, 
-                default_flow_style=False, 
-                sort_keys=False,
-                indent=4,
-                allow_unicode=True
-            )
-            f.flush()
-            os.fsync(f.fileno())
+        # 3. Persistence (Physical write)
+        _persist_yaml_atomic(final_data, yaml_path)
 
         logger.info(f"Configuration frozen successfully at → {yaml_path.name}")
         return yaml_path
@@ -88,6 +63,33 @@ def save_config_as_yaml(data: Any, yaml_path: Path) -> Path:
         logger.error(f"Failed to save configuration YAML: {e}")
         raise
 
+def _sanitize_for_yaml(obj: Any) -> Any:
+    """
+    Recursively converts non-serializable types (Path, etc.) into YAML-friendly formats.
+    """
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_yaml(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_yaml(i) for i in obj]
+    if isinstance(obj, Path):
+        return str(obj)
+    return obj
+
+def _persist_yaml_atomic(data: Any, path: Path) -> None:
+    """
+    Handles the physical writing to disk with directory creation and OS buffer flushing.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        yaml.dump(
+            data, f, 
+            default_flow_style=False, 
+            sort_keys=False, 
+            indent=4, 
+            allow_unicode=True
+        )
+        f.flush()
+        os.fsync(f.fileno())
 
 def load_config_from_yaml(yaml_path: Path) -> Dict[str, Any]:
     """
