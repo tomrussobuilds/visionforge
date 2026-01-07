@@ -1,5 +1,5 @@
 """
-System & Infrastructure Configuration Schema.
+Hardware & Filesystem Manifest.
 
 This module defines the declarative schema for hardware abstraction and 
 filesystem orchestration. It acts as the bridge between raw environment 
@@ -8,17 +8,13 @@ Single Source of Truth (SSOT) for device selection and path integrity.
 
 Key Functionalities:
     * Hardware Negotiation: Resolves 'auto' device requests into concrete 
-      accelerators (CUDA/MPS) based on runtime availability and self-corrects 
-      if requested resources are missing.
+      accelerators (CUDA/MPS) based on runtime availability.
     * Path Sanitization: Enforces absolute path resolution for datasets and 
-      experiment roots, delegating physical directory creation to the 
-      RootOrchestrator to ensure side-effect-free validation.
+      experiment roots, ensuring side-effect-free validation.
     * Execution Policy: Calculates dynamic parameters like 'effective_num_workers' 
-      and 'deterministic_mode' by reconciling hardware capabilities with 
-      reproducibility constraints.
-    * Metadata Blueprint: Provides the necessary parameters (lock files, slugs) 
-      for the InfrastructureManager to perform environment sanitization and 
-      mutual exclusion guarding.
+      and 'deterministic_mode' by reconciling hardware capabilities.
+    * Resource Identity: Provides the necessary parameters (lock files, slugs) 
+      for process synchronization and environment mutual exclusion.
 
 By centralizing these definitions, the engine ensures that the experiment 
 state is defined in a predictable, hardware-aligned, and immutable manifest.
@@ -48,7 +44,7 @@ from .types import (
 from ..environment import (
     detect_best_device, get_num_workers
 )
-from ..paths import DATASET_DIR, OUTPUTS_ROOT, PROJECT_ROOT
+from ..paths import PROJECT_ROOT
 
 # =========================================================================== #
 #                             SYSTEM CONFIGURATION                            #
@@ -89,7 +85,7 @@ class SystemConfig(BaseModel):
     project_name: ProjectSlug = "vision_experiment"
     allow_process_kill: bool = Field(
         default=True,
-        description="Permission flag for InfrastructureManager to terminate duplicate processes."
+        description="Permission flag to terminate duplicate processes for environment cleanup."
     )
 
     # Internal state for policy resolution
@@ -118,14 +114,16 @@ class SystemConfig(BaseModel):
                 data[field] = f"./{relative_path}"
             else:
                 data[field] = str(full_path)
-                       
+
         return data
     
     @property
     def lock_file_path(self) -> Path:
         """
-        Dynamically generates the cross-platform lock file location.
-        Used by InfrastructureManager to ensure mutual exclusion during execution.
+        Dynamically generates a cross-platform lock file location.
+        
+        This path is used for environment sanitization and to prevent 
+        resource contention during concurrent experiment execution.
         """
         safe_name = self.project_name.replace("/", "_") 
         return Path(tempfile.gettempdir()) / f"{safe_name}.lock"
@@ -155,10 +153,14 @@ class SystemConfig(BaseModel):
     @field_validator("data_dir", "output_dir", mode="before")
     @classmethod
     def resolve_relative_paths(cls, v):
+        """
+        Ensures paths are always anchored to the PROJECT_ROOT.
+        If 'v' is already absolute, it's kept as is (allowing external mounts).
+        """
         path = Path(v)
         if not path.is_absolute():
             return (PROJECT_ROOT / path).resolve()
-        return path
+        return path.resolve()
         
     @field_validator("device")
     @classmethod
@@ -176,28 +178,30 @@ class SystemConfig(BaseModel):
         if "mps" in requested and not torch.backends.mps.is_available():
             return "cpu"
         return requested
-
+    
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "SystemConfig":
         """
         Factory method to map CLI arguments to the SystemConfig schema.
         
-        Initializes environmental policies such as reproducibility based on 
-        the provided namespace.
+        Dynamically extracts parameters from the command-line interface by 
+        inspecting available schema fields, ensuring CLI inputs override 
+        defaults without manual key mapping.
         """
-        data_dir_arg = getattr(args, 'data_dir', None)
-        output_dir_arg = getattr(args, 'output_dir', None)
-
-        instance = cls(
-            device=getattr(args, 'device', "auto"),
-            data_dir=data_dir_arg if data_dir_arg else "./dataset",
-            output_dir=output_dir_arg if output_dir_arg else "./outputs",
-            save_model=getattr(args, 'save_model', True),
-            log_interval=getattr(args, 'log_interval', 10),
-            project_name=getattr(args, 'project_name', "vision_experiment")
-        )
+        # Get all field names defined in the Pydantic model
+        schema_fields = cls.model_fields.keys()
         
-        # Set the internal policy flag based on CLI 'reproducible' argument
-        object.__setattr__(instance, '_reproducible_mode', getattr(args, 'reproducible', False))
+        # Filter namespace for existing fields that are not None
+        params = {
+            k: getattr(args, k) 
+            for k in schema_fields 
+            if hasattr(args, k) and getattr(args, k) is not None
+        }
+
+        instance = cls(**params)
+        
+        # Internal state injection for private policies
+        repro_flag = getattr(args, 'reproducible', False)
+        object.__setattr__(instance, '_reproducible_mode', repro_flag)
         
         return instance

@@ -1,10 +1,18 @@
 """
 Infrastructure & Resource Lifecycle Management.
 
-This module defines the `InfrastructureManager`, an operational handler responsible 
-for enforcing environment stability. It mediates between the high-level 
-orchestrator and low-level OS utilities, handling process sanitization, 
-concurrency guarding (file locking), and hardware resource cleanup.
+This module provides the operational bridge between the declarative configuration 
+and the physical execution environment. It manages the 'clean-start' and 
+'graceful-stop' sequences, ensuring that hardware resources are optimized 
+and that concurrent experimental runs do not collide via filesystem-level locks.
+
+Key Operational Tasks:
+    * Process Sanitization: Guards against ghost processes and accidental 
+      multi-process collisions in local environments.
+    * Environment Locking: Implements a mutual exclusion (Mutex) strategy 
+      to synchronize access to experimental outputs.
+    * Resource De-allocation: Ensures GPU/MPS caches are flushed and temporary 
+      system artifacts are purged upon exit.
 """
 
 # =========================================================================== #
@@ -12,7 +20,7 @@ concurrency guarding (file locking), and hardware resource cleanup.
 # =========================================================================== #
 import os
 import logging
-from typing import Optional
+from typing import Optional, Any
 
 # =========================================================================== #
 #                                Third-Party Imports                          #
@@ -39,14 +47,15 @@ class InfrastructureManager(BaseModel):
     
     The InfrastructureManager offloads system-level tasks from the configuration 
     schemas and the central orchestrator. It ensures that the execution 
-    environment is "clean" before a run starts and "released" after it ends.
+    environment is "clean" before a run starts and "released" after it ends,
+    preventing resource leakage.
     """
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         frozen=True
     )
 
-    def prepare_environment(self, cfg, logger: Optional[logging.Logger] = None) -> None:
+    def prepare_environment(self, cfg: Any, logger: Optional[logging.Logger] = None) -> None:
         """
         Coordinates the pre-execution sequence to ensure environment integrity.
 
@@ -55,17 +64,17 @@ class InfrastructureManager(BaseModel):
             2. Acquiring an advisory lock to prevent race conditions.
 
         Args:
-            cfg (Config): The global configuration manifest.
+            cfg: The global configuration manifest.
             logger (Optional[logging.Logger]): Active logger for status reporting.
         """
         # 1. Process Sanitization
         if cfg.system.allow_process_kill:
             # Prevent accidental termination in shared HPC/Cluster environments
-            is_shared = any(env in os.environ for env in ["SLURM_JOB_ID", "PBS_JOBID"])
+            is_shared = any(env in os.environ for env in ["SLURM_JOB_ID", "PBS_JOBID", "LSB_JOBID"])
             if not is_shared:
                 kill_duplicate_processes(logger=logger)
             elif logger:
-                logger.debug("Skipping process kill: Shared cluster environment detected.")
+                logger.debug(" » [SYS] Shared environment detected: skipping process kill.")
 
         # 2. Concurrency Guarding
         ensure_single_instance(
@@ -73,7 +82,7 @@ class InfrastructureManager(BaseModel):
             logger=logger or logging.getLogger("Infrastructure")
         )
 
-    def release_resources(self, cfg, logger: Optional[logging.Logger] = None) -> None:
+    def release_resources(self, cfg: Any, logger: Optional[logging.Logger] = None) -> None:
         """
         Handles the graceful release of system and hardware resources.
 
@@ -81,7 +90,7 @@ class InfrastructureManager(BaseModel):
         that lock files are unlinked and compute caches are cleared.
 
         Args:
-            cfg (Config): The global configuration manifest.
+            cfg: The global configuration manifest.
             logger (Optional[logging.Logger]): Active logger for status reporting.
         """
         # 1. Release Filesystem Lock
@@ -108,4 +117,7 @@ class InfrastructureManager(BaseModel):
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         if hasattr(torch, "mps") and torch.backends.mps.is_available():
-            torch.mps.empty_cache()
+            try:
+                torch.mps.empty_cache()
+            except Exception as e:
+                pass
