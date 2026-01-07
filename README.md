@@ -79,7 +79,7 @@ This pipeline is engineered for unattended, robust execution in research environ
 
 **Kernel-Level Singleton** (`ensure_single_instance`): Utilizes the `fcntl.flock` Unix syscall to acquire an Exclusive Lock (`LOCK_EX | LOCK_NB`) on a physical lock-file. This prevents race conditions on GPU VRAM or checkpoint corruption by ensuring only one training instance is active at a time.
 
-**Atomic Run Isolation**: Managed via the `RunPaths` utility, every execution generates a unique workspace (`outputs/YYYYMMDD_HHMMSS/`). Logs, high-resolution plots, and Excel reports are isolated to prevent historical data overwrites.
+**Atomic Run Isolation**: Managed via the `RunPaths` utility, every execution generates a unique workspace (`outputs/YYYYMMDD_DS_MODEL_HASH/`). The system computes a deterministic **BLAKE2b** cryptographic hash (using a 3-byte digest for 6-hex characters) from the training configuration. This ensures that even slight hyperparameter variations result in isolated directories, preventing resource overlap and guaranteeing auditability.
 
 **Proactive Process Guard**: Integrates `psutil` to identify and terminate ghost Python processes sharing the same entry-point. Controlled by the `allow_process_kill` flag, it includes a safety check that automatically disables sanitization in shared environments (detecting `SLURM_JOB_ID` or `PBS_JOBID`) to prevent accidental termination of other users' tasks.
 
@@ -177,28 +177,28 @@ med_mnist/
 │   ├── smoke_test.py            # Rapid E2E verification: 1-epoch diagnostic.
 │   └── unit_test.py             # Initial unit testing suite (WIP).
 ├── src/                         # Modular package: Core framework logic.
-│   ├── core/                    # System Hub: Centralized SSOT.
-│   │   ├── config/              # Configuration & Schema Hub:
-│   │   │   ├── engine.py        # Logic for YAML parsing & validation.
-│   │   │   └── types.py         # Custom Pydantic types & annotations.
-│   │   ├── logger/              # Telemetry & Artifact Tracking:
-│   │   │   ├── logger.py        # Console & File logging setup.
-│   │   │   └── reporter.py      # Experiment reporting engine.
-│   │   ├── metadata/            # Dataset Registry & Class mappings.
-│   │   ├── environment/         # Infrastructure Layer:
-│   │   │   ├── hardware.py      # Hardware discovery (CUDA/MPS) & threading.
-│   │   │   └── reproducibility.py # Determinism & Seeding protocols.
-│   │   ├── orchestrator.py      # Lifecycle Master & Coordination.
-│   │   └── processes.py         # Resource Guard: Kernel-level locking (fcntl).
+│   ├── core/                    # System Hub: Centralized SSOT & lifecycle management.
+│   │   ├── config/              # Configuration & Schema Hub (Pydantic validation).
+│   │   ├── environment/         # Infrastructure Layer: Hardware discovery & reproducibility.
+│   │   ├── io/                  # Persistence Layer: YAML serialization & Weight I/O.
+│   │   ├── logger/              # Telemetry & Artifact Tracking: Console, File.
+│   │   ├── metadata/            # Dataset Registry: Class mappings & normalization constants.
+│   │   ├── paths/               # Path anchoring & BLAKE2b (6-char) run-folder generation.
+│   │   ├── cli.py               # Command-line interface definition and parsing logic.
+│   │   ├── orchestrator.py      # Lifecycle Master: Coordinates the 4-phase initialization.
+│   │   └── __init__.py          # Package initialization for the core hub.
 │   ├── data_handler/            # Loading & Augmentation:
 │   │   ├── dataset.py           # MedMNIST logic: RAM caching & indexing.
-│   │   └── transforms.py        # V2 Augmentations: Optimized pipelines.
-│   ├── models/                  # Model Factory:
-│   │   └── resnet_18_adapted.py # Adapted ResNet-18 with Weight Interpolation.
-│   ├── trainer/                 # Training Loop & MixUp logic.
-│   └── evaluation/              # Analytics, Scoring & Reporting.
-└── outputs/                     # Results: Isolated workspace for each run.
-```
+│   │   └── transforms.py        # V2 Augmentations: Optimized computer vision pipelines.
+│   ├── models/                  # Architecture Silo:
+│   │   ├── factory.py           # Model Factory: Handles instantiation and weight interpolation.
+│   │   └── resnet_18_adapted.py # Adapted ResNet-18 with spatial stem resizing.
+│   ├── trainer/                 # Training Engine:
+│   │   └── trainer.py           # Main Training Loop: Implements MixUp and state management.
+│   ├── evaluation/              # Analytics Silo:
+│   │   └── pipeline.py          # Evaluation Master: Orchestrates plots, metrics, & Excel reporting.
+│   └── __init__.py              # Root package initialization.
+└── outputs/                     # Results: Isolated workspaces named YYYYMMDD_DS_MODEL_HASH.
 ---
 
 ### ⚙️ Requirements & Installation
