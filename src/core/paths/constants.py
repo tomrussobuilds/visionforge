@@ -18,7 +18,7 @@ from typing import Final, List
 # =========================================================================== #
 
 # Global logger identity used by all modules to ensure log synchronization
-LOGGER_NAME: Final[str] = "medmnist_pipeline"
+LOGGER_NAME: Final[str] = "vision_experiment"
 
 # =========================================================================== #
 #                                PATH CALCULATIONS                            #

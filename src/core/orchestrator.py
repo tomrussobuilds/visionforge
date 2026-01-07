@@ -152,7 +152,7 @@ class RootOrchestrator:
         self.paths = RunPaths.create(
             dataset_slug=self.cfg.dataset.dataset_name,
             model_name=self.cfg.model.name,
-            cfg_dict=self.cfg.dump_serialized(),
+            training_cfg=self.cfg.dump_serialized(),
             base_dir=self.cfg.system.output_dir
         )
 

@@ -59,7 +59,7 @@ def save_config_as_yaml(data: Any, yaml_path: Path) -> Path:
         def finalize_obj(obj: Any) -> Any:
             if isinstance(obj, dict):
                 return {k: finalize_obj(v) for k, v in obj.items()}
-            if isinstance(obj, list):
+            if isinstance(obj, (list, tuple)):
                 return [finalize_obj(i) for i in obj]
             if isinstance(obj, Path):
                 return str(obj)
