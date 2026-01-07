@@ -1,5 +1,5 @@
 """
-MedMNIST Configuration & Orchestration Engine.
+Vision Pipeline Configuration & Orchestration Engine.
 
 This module acts as the declarative core of the pipeline, defining the 
 hierarchical schema and validation logic required to drive the Orchestrator. 
@@ -11,8 +11,8 @@ Key Architectural Features:
       Model, Training, Evaluation, Augmentation) into a single immutable object.
     * Cross-Domain Validation: Implements complex logic checks (e.g., AMP vs. 
       Device, LR bounds, Mixup scheduling) that span multiple sub-modules.
-    * Metadata-Driven Injection: Centralizes the resolution of MedMNIST registry 
-      properties, ensuring architectural synchronization across the entire stack.
+    * Metadata-Driven Injection: Centralizes the resolution of registered dataset 
+      specifications, ensuring architectural synchronization across the entire stack.
     * Factory Polymorphism: Provides dual entry points for instantiation via 
       structured YAML files or dynamic CLI arguments.
 
@@ -26,6 +26,7 @@ and reproducible execution context.
 # =========================================================================== #
 import argparse
 from pathlib import Path
+from typing import Any, Dict
 
 # =========================================================================== #
 #                                Third-Party Imports                          #
@@ -44,6 +45,7 @@ from .dataset_config import DatasetConfig
 from .evaluation_config import EvaluationConfig
 from .models_config import ModelConfig
 
+# TODO: Rename 'metadata' to 'registry' in the future to complete de-branding
 from ..metadata import DATASET_REGISTRY
 from ..io import load_config_from_yaml
 from ..paths import PROJECT_ROOT
@@ -72,24 +74,40 @@ class Config(BaseModel):
     evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
 
-    def dump_portable(self) -> dict:
+    def dump_portable(self) -> Dict[str, Any]:
         """
-        Serializes the entire configuration while ensuring all filesystem 
-        paths (system and dataset) are anchored to PROJECT_ROOT.
+        Serializes the entire configuration with environment-agnostic paths.
+        
+        Converts absolute filesystem paths (system and dataset) into relative 
+        anchors relative to the PROJECT_ROOT.
+        
+        Returns:
+            Dict[str, Any]: A sanitized dictionary safe for cross-platform sharing.
         """
         full_data = self.model_dump()
 
+        # Sanitize system paths
         full_data["system"] = self.system.to_portable_dict()    
 
-        if "dataset" in full_data and "data_root" in full_data["dataset"]:
-            dr_path = Path(full_data["dataset"]["data_root"])
+        # Sanitize dataset root if applicable
+        dataset_section = full_data.get("dataset", {})
+        data_root = dataset_section.get("data_root")
+        
+        if data_root:
+            dr_path = Path(data_root)
             if dr_path.is_relative_to(PROJECT_ROOT):
                 relative_dr = dr_path.relative_to(PROJECT_ROOT)
                 full_data["dataset"]["data_root"] = f"./{relative_dr}"
             
         return full_data    
-    
 
+    def dump_serialized(self) -> Dict[str, Any]:
+        """
+        Converts the config into a JSON-compatible dictionary.
+        Essential for saving 'config.yaml' without serialization errors.
+        """
+        return self.model_dump(mode="json")
+    
     @model_validator(mode="after")
     def validate_logic(self) -> "Config":
         """
@@ -107,11 +125,11 @@ class Config(BaseModel):
         if self.system.device == "cpu" and self.training.use_amp:
             raise ValueError("AMP cannot be enabled when using CPU device.")
             
-        # 3. Model vs Dataset consistency (Sfrutta le nuove properties)
+        # 3. Model vs Dataset consistency
         if self.model.pretrained and self.dataset.in_channels != 3:
             raise ValueError(
-                f"Pretrained {self.model.name} require 3-channel input. "
-                f"Current configuration provides {self.model.in_channels}."
+                f"Pretrained {self.model.name} requires 3-channel input. "
+                f"Current dataset provides {self.dataset.in_channels}."
             )
             
         # 4. Optimizer bounds
@@ -121,21 +139,15 @@ class Config(BaseModel):
                 f"initial learning_rate ({self.training.learning_rate})."
             )
         return self
-    
-    def dump_serialized(self) -> dict:
-        """
-        Converts the config into a JSON-compatible dictionary.
-        Essential for saving 'config.yaml' without Path-type errors.
-        """
-        return self.model_dump(mode="json")
 
     @property
     def run_slug(self) -> str:
-        """Unique identifier for the experiment folder."""
+        """Unique identifier for the experiment folder based on setup."""
         return f"{self.dataset.dataset_name}_{self.model.name}"
     
     @property
     def num_workers(self) -> int:
+        """Proxies the effective number of workers from system policy."""
         return self.system.effective_num_workers
     
     @classmethod
@@ -145,17 +157,16 @@ class Config(BaseModel):
         return cls(**raw_data)        
     
     @classmethod
-    def from_args(cls, args: argparse.Namespace) -> "Config":
+    def _resolve_dataset_metadata(cls, args: argparse.Namespace) -> Dict[str, Any]:
         """
-        Unified entry point for CLI-based instantiation.
+        Internal helper to identify and fetch dataset specs from the registry.
         
-        Orchestrates the resolution of dataset metadata and ensures that 
-        channel promotion logic is synchronized between Dataset and Model.
+        Args:
+            args (argparse.Namespace): Parsed command line arguments.
+            
+        Returns:
+            Dict[str, Any]: Metadata dictionary for the requested dataset.
         """
-        if getattr(args, 'config', None):
-            return cls.from_yaml(Path(args.config))
-
-        # 1. Resolve Dataset Identity without hardcoding
         ds_name_raw = getattr(args, 'dataset', None)
         if not ds_name_raw:
             raise ValueError(
@@ -166,20 +177,27 @@ class Config(BaseModel):
         if ds_name not in DATASET_REGISTRY:
              raise ValueError(f"Dataset '{ds_name_raw}' not found in registry.")
         
-        ds_meta = DATASET_REGISTRY[ds_name]
+        return DATASET_REGISTRY[ds_name]
 
-        # 2. Sequential Injection 
-        ds_config = DatasetConfig.from_args(args, metadata=ds_meta)
+    @classmethod
+    def from_args(cls, args: argparse.Namespace) -> "Config":
+        """
+        Unified entry point for CLI-based instantiation.
         
-        # We ensure ModelConfig is aware of the final channel decision
-        model_config = ModelConfig.from_args(args, metadata=ds_meta)
+        Maps raw CLI arguments to the hierarchical Pydantic schema, 
+        injecting dataset metadata where required.
+        """
+        if getattr(args, 'config', None):
+            return cls.from_yaml(Path(args.config))
+        
+        # Resolve dataset-specific metadata first
+        ds_meta = cls._resolve_dataset_metadata(args)
 
-        # 3. Final Aggregation
         return cls(
             system=SystemConfig.from_args(args),
             training=TrainingConfig.from_args(args),
             augmentation=AugmentationConfig.from_args(args),
-            dataset=ds_config,
-            model=model_config,
+            dataset=DatasetConfig.from_args(args, metadata=ds_meta),
+            model=ModelConfig.from_args(args, metadata=ds_meta),
             evaluation=EvaluationConfig.from_args(args)
         )
