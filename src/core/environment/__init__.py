@@ -10,14 +10,16 @@ to ensure consistent execution across Local, HPC, and Docker environments.
 #                                Exposed Interface                            #
 # =========================================================================== #
 
-# 1. Hardware & Device Management (from .hardware)
+# 1. Hardware, Device & Policy Management (from .hardware, .policy)
 from .hardware import (
     configure_system_libraries,
     detect_best_device,
     to_device_obj,
     get_num_workers,
     apply_cpu_threads,
-    get_cuda_name,
+    get_cuda_name
+)
+from .policy import (
     determine_tta_mode
 )
 
@@ -40,7 +42,7 @@ from .guards import (
 # =========================================================================== #
 
 __all__ = [
-    # Hardware
+    # Hardware & Policy
     "configure_system_libraries",
     "detect_best_device",
     "to_device_obj",

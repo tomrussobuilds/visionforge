@@ -207,8 +207,6 @@ class RootOrchestrator:
         
         return self.paths
 
-    # ... (rest of the methods: cleanup, get_device, load_weights)
-
     def cleanup(self) -> None:
         """
         Releases system resources and removes the execution lock file via InfrastructureManager.
