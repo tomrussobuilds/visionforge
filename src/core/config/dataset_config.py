@@ -1,25 +1,15 @@
 """
-Dataset Registry Resolver & Metadata Schema.
+Dataset Registry Orchestration & Metadata Resolution.
 
-This module acts as the interface between the MedMNIST Metadata Registry 
-and the training pipeline. It handles the dynamic resolution of dataset-specific 
-constraints, ensuring that domain-specific medical data aligns with deep 
-learning architecture requirements.
+This module centralizes the logic for bridging static dataset metadata with
+runtime execution requirements. It ensures that any vision dataset, regardless 
+of its native format (Grayscale/RGB), is normalized and shaped to meet the 
+input specifications of the selected model architecture.
 
-Key Architectural Features:
-    * Metadata Binding: Injects static MedMNIST properties (classes, distribution) 
-      into a validated Pydantic manifest.
-    * Channel Orchestration: Implements 'force_rgb' promotion logic, allowing 
-      single-channel medical datasets (e.g., PneumoniaMNIST) to utilize 
-      architectures pretrained on 3-channel natural images (ImageNet).
-    * Statistical Expansion: Dynamically adapts normalization constants (mean/std) 
-      based on the resolved channel strategy, preventing statistical mismatch 
-      during the 'promotion' of grayscale images.
-    * Sample Budgeting: Manages dataset truncation and weighted sampling 
-      policies to handle class imbalance and computational constraints.
-
-By centralizing these transformations, the resolver ensures that the data 
-loading pipeline remains agnostic to the specific MedMNIST variant being processed.
+Key Responsibilities:
+    * Adaptive Normalization: Adjusts mean/std statistics based on channel logic.
+    * Feature Promotion: Automates Grayscale-to-RGB conversion for ImageNet weights.
+    * Resource Budgeting: Enforces sampling limits and class balancing.
 """
 
 # =========================================================================== #
@@ -49,11 +39,11 @@ from ..paths import DATASET_DIR
 
 class DatasetConfig(BaseModel):
     """
-    Resolves dataset-specific constraints and normalization metadata.
+    Validated manifest for a specific dataset execution context.
     
-    Acts as the interface between the MedMNIST Metadata Registry and the 
-    training pipeline, handling automated 3-channel expansion for 
-    pretrained models and class-balance sampling logic.
+    This class acts as the bridge between static registry metadata and 
+    runtime preferences. It resolves channel promotion and sampling 
+    policies required for the training pipeline.
     """
     model_config = ConfigDict(
         frozen=True,
@@ -62,14 +52,16 @@ class DatasetConfig(BaseModel):
     )
 
     # --- Core Metadata (Injected) ---
-    metadata: DatasetMetadata
+    metadata: Optional[DatasetMetadata] = Field(
+        default=None,
+        exclude=True,
+    )
     
     # --- User-Defined Parameters (Runtime) ---
     data_root: ValidatedPath = DATASET_DIR
     use_weighted_sampler: bool = True
     max_samples: Optional[PositiveInt] = Field(default=20000)
     img_size: ImageSize = Field(
-        default=28,
         description="Target square resolution for the model input"
     )
     force_rgb: bool = Field(
@@ -77,7 +69,7 @@ class DatasetConfig(BaseModel):
         description="Convert grayscale to 3-channel to enable ImageNet weights"
     )
 
-    # --- Computed Properties (Derived from Metadata) ---
+    # --- Computed Properties (Read-Only) ---
 
     @property
     def dataset_name(self) -> str:
@@ -86,70 +78,71 @@ class DatasetConfig(BaseModel):
     
     @property
     def num_classes(self) -> int:
-        """The total number of unique target classes in the dataset."""
-        return len(self.metadata.classes)
+        """The total number of unique target classes defined in metadata."""
+        return self.metadata.num_classes
 
     @property
     def in_channels(self) -> int:
-        """The native number of channels in the source dataset images (1 or 3)."""
+        """The native number of channels in the source dataset (1 or 3)."""
         return self.metadata.in_channels
     
     @property
     def effective_in_channels(self) -> int:
-        """The actual number of channels the model will receive after 'force_rgb' logic."""
+        """The actual depth the model will receive (3 if forced/native RGB)."""
         return 3 if self.force_rgb else self.in_channels
     
     @property
     def mean(self) -> tuple[float, ...]:
-        """Channel-wise mean for normalization, expanded if force_rgb is active."""
+        """Channel-wise mean, expanded if force_rgb is active on grayscale."""
         m = self.metadata.mean
         return (m[0],) * 3 if (self.force_rgb and self.in_channels == 1) else m
     
     @property
     def std(self) -> tuple[float, ...]:
-        """Channel-wise std for normalization, expanded if force_rgb is active."""
+        """Channel-wise std, expanded if force_rgb is active on grayscale."""
         s = self.metadata.std
         return (s[0],) * 3 if (self.force_rgb and self.in_channels == 1) else s
-    
+
     @property
     def processing_mode(self) -> str:
-        """
-        Human-readable description of the channel processing strategy.
-        """
+        """Technical description of the channel resolution strategy."""
         if self.in_channels == 3:
             return "NATIVE-RGB"
-        if self.effective_in_channels == 3:
-            return "RGB-PROMOTED"
-        return "NATIVE-GRAY"
+        return "RGB-PROMOTED" if self.effective_in_channels == 3 else "NATIVE-GRAY"
 
     # --- Factory Methods ---
+
     @classmethod
     def from_args(cls, args: argparse.Namespace, metadata: DatasetMetadata) -> "DatasetConfig":
         """
-        Factory method to resolve dataset configuration from CLI arguments and registry metadata.
+        Encapsulates decision logic to build a DatasetConfig from CLI inputs.
+        
+        Resolves conflicts between CLI arguments (args) and dataset constraints 
+        (metadata), specifically handling RGB promotion and sampling limits.
         """
-        # 1. Resolve RGB logic
+        # 1. Resolve RGB logic: prioritizes CLI, fallbacks to auto-promotion if pretrained
         is_pretrained = getattr(args, "pretrained", True)
-        force_rgb_arg = getattr(args, "force_rgb", None)
-        should_force_rgb = (
-            force_rgb_arg if force_rgb_arg is not None 
+        force_rgb_cli = getattr(args, "force_rgb", None)
+        
+        resolved_force_rgb = (
+            force_rgb_cli if force_rgb_cli is not None 
             else (metadata.in_channels == 1 and is_pretrained)
         )
             
-        # 2. Resolve sampling constraints
+        # 2. Resolve sampling constraints: handles 0/negative as None (no limit)
         cli_max = getattr(args, "max_samples", None)
         if cli_max is not None and cli_max <= 0:
-            final_max_samples = None
-        elif cli_max is not None and cli_max > 0:
-            final_max_samples = cli_max
+            resolved_max = None
         else:
-            final_max_samples = cls.model_fields['max_samples'].default
+            resolved_max = cli_max or cls.model_fields['max_samples'].default
+
+        resolved_img_size = getattr(args, "img_size", None) or metadata.native_resolution
 
         return cls(
             metadata=metadata,
             data_root=Path(getattr(args, "data_dir", DATASET_DIR)),
-            max_samples=final_max_samples,
+            max_samples=resolved_max,
             use_weighted_sampler=getattr(args, "use_weighted_sampler", True),
-            force_rgb=should_force_rgb,
-            img_size=getattr(args, "img_size", 28)
+            force_rgb=resolved_force_rgb,
+            img_size=resolved_img_size
         )

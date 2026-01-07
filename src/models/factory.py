@@ -1,9 +1,9 @@
 """
-Models Factory Module
+Models Factory Module.
 
 This module implements the Factory Pattern to decouple model instantiation 
-from the main execution logic. It routes requests to specific architecture 
-definitions based on the configuration provided.
+from the main execution logic. It synchronizes architectural intent with 
+geometric constraints derived from dataset metadata at runtime.
 """
 
 # =========================================================================== #
@@ -20,12 +20,13 @@ import torch.nn as nn
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from src.core import Config, DATASET_REGISTRY, LOGGER_NAME
+from src.core import Config, LOGGER_NAME
 from .resnet_18_adapted import build_resnet18_adapted
 
 # =========================================================================== #
 #                                MODEL FACTORY LOGIC                          #
 # =========================================================================== #
+
 # Global logger instance
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -36,13 +37,15 @@ def get_model(
     """
     Factory function to instantiate and prepare the model.
 
-    Based on the 'model_name' defined in the Config object, this function 
-    calls the appropriate builder and moves the resulting model to the 
-    specified hardware device.
+    Resolves structural parameters (input channels and output classes) 
+    by accessing the computed properties of DatasetConfig. This ensures 
+    the architecture is perfectly adapted to the 'effective' geometry 
+    of the data (e.g., handling RGB promotion) before deployment.
 
     Args:
         device (torch.device): The hardware device (CPU/CUDA) to host the model.
-        cfg (Config): The global configuration object containing model metadata.
+        cfg (Config): The global configuration object, already hydrated with 
+            metadata and resolved channel logic.
 
     Returns:
         nn.Module: The instantiated and hardware-assigned PyTorch model.
@@ -51,34 +54,41 @@ def get_model(
         ValueError: If the requested model_name is not registered in the factory.
     """
     
-    # Normalize model name for robust matching
-    model_name_lower = cfg.model.name.lower()
-    
-    num_classes = cfg.dataset.num_classes
+    # 1. Resolve architectural geometry from the SSOT (Single Source of Truth)
+    # We no longer call cfg.model.get_structural_params() because the 
+    # DatasetConfig already knows the final 'effective' channels.
     in_channels = cfg.dataset.effective_in_channels
+    num_classes = cfg.dataset.num_classes
+    
+    model_name_lower = cfg.model.name.lower()
 
-    logger.info(f"Instantiating model '{cfg.model.name}' | "
-                f"Num Classes: {num_classes}, | In Channels: {in_channels}"
-)
-    # Routing logic (Factory Pattern)
+    logger.info(
+        f"Initializing Architecture: {cfg.model.name} | "
+        f"Input: {cfg.dataset.img_size}x{cfg.dataset.img_size}x{in_channels} | "
+        f"Output: {num_classes} classes"
+    )
+
+    # 2. Routing logic (Factory Pattern)
     if "resnet_18_adapted" in model_name_lower:
-        # Currently routes to the adapted ResNet-18 implementation
+        # We pass the resolved geometry directly to the builder
         model = build_resnet18_adapted(
             device=device, 
-            num_classes=num_classes, 
+            cfg=cfg,
             in_channels=in_channels,
-            cfg=cfg
+            num_classes=num_classes
         )
     else:
         error_msg = f"Model architecture '{cfg.model.name}' is not recognized by the Factory."
-        logger.error(error_msg)
+        logger.error(f" [!] {error_msg}")
         raise ValueError(error_msg)
     
+    # 3. Finalize placement and telemetry
     model = model.to(device)
-
     total_params = sum(p.numel() for p in model.parameters())
-    logger.info(f"Model initialized on {str(device).upper()} | "
-                f"Total Parameters: {total_params:,}"
-                )
+    
+    logger.info(
+        f"Model deployed to {str(device).upper()} | "
+        f"Total Parameters: {total_params:,}"
+    )
     
     return model

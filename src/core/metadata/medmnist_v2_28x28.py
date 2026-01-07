@@ -41,6 +41,7 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
         mean=(0.485, 0.456, 0.406),
         std=(0.229, 0.224, 0.225),
         in_channels=3,
+        native_resolution=28,
         is_anatomical=False,
         is_texture_based=True
     ),
@@ -63,6 +64,7 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
         mean=(0.4914, 0.4822, 0.4465),
         std=(0.2023, 0.1994, 0.2010),
         in_channels=3,
+        native_resolution=28,
         is_anatomical=False,
         is_texture_based=False
     ),
@@ -84,6 +86,7 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
         mean=(0.485, 0.456, 0.406),
         std=(0.229, 0.224, 0.225),
         in_channels=3,
+        native_resolution=28,
         is_anatomical=False,
         is_texture_based=True
     ),
@@ -99,9 +102,10 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
             "drusen",
             "normal"
         ],
-        mean=(0.5, 0.5, 0.5),
-        std=(0.5, 0.5, 0.5),
+        mean=(0.5,),
+        std=(0.5,),
         in_channels=1,
+        native_resolution=28,
         is_anatomical=True,
         is_texture_based=True
     ),
@@ -115,9 +119,10 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
             "normal",
             "pneumonia"
         ],
-        mean=(0.5, 0.5, 0.5),
-        std=(0.5, 0.5, 0.5),
+        mean=(0.5,),
+        std=(0.5,),
         in_channels=1,
+        native_resolution=28,
         is_anatomical=True,
         is_texture_based=False
     ),
@@ -137,6 +142,7 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
         mean=(0.485, 0.456, 0.406),
         std=(0.229, 0.224, 0.225),
         in_channels=3,
+        native_resolution=28,
         is_anatomical=False,
         is_texture_based=True
     ),
@@ -150,9 +156,10 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
             "malignant",
             "benign"
         ],
-        mean=(0.5, 0.5, 0.5),
-        std=(0.5, 0.5, 0.5),
+        mean=(0.5,),
+        std=(0.5,),
         in_channels=1,
+        native_resolution=28,
         is_anatomical=True,
         is_texture_based=False
     ),
@@ -175,9 +182,10 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
             "pancreas",
             "spleen"
         ],
-        mean=(0.5, 0.5, 0.5),
-        std=(0.5, 0.5, 0.5),
+        mean=(0.5,),
+        std=(0.5,),
         in_channels=1,
+        native_resolution=28,
         is_anatomical=True,
         is_texture_based=False
     ),
@@ -197,9 +205,10 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
             "Large Vessel",
             "Small Vessel"
         ],
-        mean=(0.5, 0.5, 0.5),
-        std=(0.5, 0.5, 0.5),
+        mean=(0.5,),
+        std=(0.5,),
         in_channels=1,
+        native_resolution=28,
         is_anatomical=False,
         is_texture_based=True
     ),
@@ -222,9 +231,10 @@ DATASET_REGISTRY: Final[Dict[str, DatasetMetadata]] = {
             "pancreas",
             "spleen"
         ],
-        mean=(0.5, 0.5, 0.5),
-        std=(0.5, 0.5, 0.5),
+        mean=(0.5,),
+        std=(0.5,),
         in_channels=1,
+        native_resolution=28,
         is_anatomical=True,
         is_texture_based=False
     ),

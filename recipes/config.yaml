@@ -33,32 +33,6 @@ augmentation:
     tta_scale: 1.1
     tta_blur_sigma: 0.4
 dataset:
-    metadata:
-        name: bloodmnist
-        display_name: BloodMNIST
-        md5_checksum: 7053d0359d879ad8a5505303e11de1dc
-        url: https://zenodo.org/records/5208230/files/bloodmnist.npz
-        path: ./dataset/bloodmnist.npz
-        classes:
-        - basophil
-        - eosinophil
-        - erythroblast
-        - immature granulocyte
-        - lymphocyte
-        - monocyte
-        - neutrophil
-        - platelet
-        in_channels: 3
-        mean:
-        - 0.4914
-        - 0.4822
-        - 0.4465
-        std:
-        - 0.2023
-        - 0.1994
-        - 0.201
-        is_anatomical: false
-        is_texture_based: false
     data_root: ./dataset
     use_weighted_sampler: false
     max_samples: 20000
@@ -81,5 +55,3 @@ model:
     name: resnet_18_adapted
     pretrained: true
     dropout: 0.2
-    in_channels: 3
-    num_classes: 8
