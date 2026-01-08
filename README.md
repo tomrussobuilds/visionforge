@@ -118,9 +118,11 @@ The framework is designed with strict **Separation of Concerns (SoC)**. Below is
 <summary>🛠️ How to update the map</summary>
 
 To regenerate the dependency graph, run the following command from the project root:
+
 ```bash
 PYTHONPATH=src pydeps src --cluster --max-bacon=0 --max-module-depth=4 --only src --noshow -T svg -o docs/framework_map.svg
 ```
+</details>
 
 ---
 
