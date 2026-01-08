@@ -109,10 +109,18 @@ This pipeline is engineered for unattended, robust execution in research environ
 The framework is designed with strict **Separation of Concerns (SoC)**. Below is the architectural graph showing the decoupling between the core engine, the data handlers, and the reporting silos.
 
 <p align="center">
-  <img src="docs/main.svg" width="850" alt="Framework Map">
+  <img src="docs/framework_map.svg" width="850" alt="Framework Map">
 </p>
 
 > *Generated via pydeps. Highlighting the centralized Config hub and the linear flow from Orchestrator to Trainer.*
+
+<details>
+<summary>🛠️ How to update the map</summary>
+
+To regenerate the dependency graph, run the following command from the project root:
+```bash
+PYTHONPATH=src pydeps src --cluster --max-bacon=0 --max-module-depth=4 --only src --noshow -T svg -o docs/framework_map.svg
+```
 
 ---
 
