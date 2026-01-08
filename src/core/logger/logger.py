@@ -23,7 +23,7 @@ from logging.handlers import RotatingFileHandler
 from ..paths import LOGGER_NAME
 
 # =========================================================================== #
-#                                LOGGER CLASS                                  #
+#                                LOGGER CLASS                                 #
 # =========================================================================== #
 
 class Logger:
