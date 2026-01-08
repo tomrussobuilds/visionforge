@@ -17,7 +17,8 @@ from .hardware import (
     to_device_obj,
     get_num_workers,
     apply_cpu_threads,
-    get_cuda_name
+    get_cuda_name,
+    get_vram_info
 )
 from .policy import (
     determine_tta_mode
@@ -50,6 +51,7 @@ __all__ = [
     "apply_cpu_threads",
     "get_cuda_name",
     "determine_tta_mode",
+    "get_vram_info",
     
     # Reproducibility
     "set_seed",

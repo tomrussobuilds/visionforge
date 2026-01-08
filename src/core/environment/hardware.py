@@ -102,6 +102,29 @@ def get_cuda_name() -> str:
     """
     return torch.cuda.get_device_name(0) if torch.cuda.is_available() else ""
 
+def get_vram_info(device_idx: int = 0) -> str:
+    """
+    Safely retrieves and formats VRAM availability for a specific CUDA device.
+    
+    Args:
+        device_idx (int): The index of the GPU to query.
+        
+    Returns:
+        str: Formatted string 'Free / Total GB' or error/status message.
+    """
+    if not torch.cuda.is_available():
+        return "N/A"
+    
+    try:
+        if device_idx >= torch.cuda.device_count():
+            return "Invalid Device Index"
+            
+        free, total = torch.cuda.mem_get_info(device_idx)
+        return f"{free / 1024**3:.2f} GB / {total / 1024**3:.2f} GB"
+    except Exception as e:
+        logging.debug(f"VRAM query failed: {e}")
+        return "Unknown (Query failed)"
+
 def to_device_obj(device_str: str) -> torch.device:
     """
     Converts a device string into a live torch.device object.
@@ -113,19 +136,3 @@ def to_device_obj(device_str: str) -> torch.device:
         torch.device: The active computing device object.
     """
     return torch.device(device_str)
-
-def determine_tta_mode(use_tta: bool, device_type: str) -> str:
-    """
-    Defines TTA complexity based on hardware acceleration availability.
-    
-    Args:
-        use_tta (bool): Whether Test-Time Augmentation is enabled.
-        device_type (str): The type of active device ('cpu', 'cuda', 'mps').
-
-    Returns:
-        str: Descriptive string of the TTA operation mode.
-    """
-    if not use_tta:
-        return "DISABLED"
-
-    return f"FULL ({device_type.upper()})" if device_type != "cpu" else "LIGHT (CPU Optimized)"
