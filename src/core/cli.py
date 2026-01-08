@@ -181,6 +181,50 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.0,
         help="Label smoothing factor (0.0 to 1.0)."
+    )   
+    train_group.add_argument(
+        '--scheduler_type',
+        type=str,
+        default=train_def.scheduler_type,
+        choices=['cosine', 'plateau', 'step', 'none'],
+        help="Strategy for learning rate decay."
+    )
+    train_group.add_argument(
+        '--min_lr',
+        type=float,
+        default=train_def.min_lr,
+        help="Minimum learning rate floor for schedulers."
+    )
+    train_group.add_argument(
+        '--scheduler_patience',
+        type=int,
+        default=train_def.scheduler_patience,
+        help="Epochs to wait before decaying LR (only for 'plateau')."
+    )
+    train_group.add_argument(
+        '--scheduler_factor',
+        type=float,
+        default=train_def.scheduler_factor,
+        help="Multiplicative factor of learning rate decay."
+    )
+    train_group.add_argument(
+        '--step_size',
+        type=int,
+        default=train_def.step_size,
+        help="Period of learning rate decay in epochs (only for 'step')."
+    )
+    train_group.add_argument(
+        '--criterion_type',
+        type=str,
+        default=train_def.criterion_type,
+        choices=['cross_entropy', 'bce_logit', 'focal'],
+        help="Loss function target. Use 'bce_logit' for multi-label tasks."
+    )
+    train_group.add_argument(
+        '--focal_gamma',
+        type=float,
+        default=train_def.focal_gamma,
+        help="Focusing parameter for Focal Loss (higher gamma = more focus on hard samples)."
     )
 
     # Group: Regularization & Augmentation
@@ -204,7 +248,6 @@ def parse_args() -> argparse.Namespace:
         default=train_def.use_tta,
         help="Disable TTA during final evaluation."
     )
-    # Collegamento corretto ai default di AugmentationConfig
     aug_group.add_argument(
         '--hflip',
         type=float,

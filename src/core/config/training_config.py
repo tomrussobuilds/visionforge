@@ -90,29 +90,72 @@ class TrainingConfig(BaseModel):
         description="Max norm for gradient clipping; None to disable"
     )
 
+    scheduler_type: str = Field(
+        default="cosine",
+        description="Type of LR scheduler: 'cosine', 'plateau', 'step', or 'none'"
+    )
+    
+    scheduler_patience: NonNegativeInt = Field(
+        default=5, 
+        description="Patience for ReduceLROnPlateau"
+    )
+    scheduler_factor: Probability = Field(
+        default=0.1, 
+        description="Reduction factor for Plateau/StepLR"
+    )
+    step_size: PositiveInt = Field(
+        default=20, 
+        description="Period of learning rate decay for StepLR"
+    )
+    criterion_type: str = Field(
+        default="cross_entropy",
+        description="Loss function: 'cross_entropy', 'focal', or 'bce_logit'"
+    )
+    weighted_loss: bool = Field(
+        default=False,
+        description="Whether to apply class-frequency weighting"
+    )
+    focal_gamma: NonNegativeFloat = Field(
+        default=2.0,
+        description="Focusing parameter for Focal Loss"
+    )
+
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "TrainingConfig":
         """
         Factory method to map CLI arguments to the TrainingConfig schema.
-        Ensures defaults are maintained if specific flags are omitted.
+        Only overrides fields that are present in the args Namespace.
         """
-        params = {
-            "seed": getattr(args, 'seed', 42),
-            "reproducible": getattr(args, 'reproducible', False),
-            "batch_size": getattr(args, 'batch_size', 128),
-            "learning_rate": getattr(args, 'lr', 0.008),
-            "momentum": getattr(args, 'momentum', 0.9),
-            "weight_decay": getattr(args, 'weight_decay', 5e-4),
-            "epochs": getattr(args, 'epochs', 60),
-            "patience": getattr(args, 'patience', 15),
-            "mixup_alpha": getattr(args, 'mixup_alpha', 0.2),
-            "mixup_epochs": getattr(args, 'mixup_epochs', 20),
-            "use_tta": getattr(args, 'use_tta', True),
-            "cosine_fraction": getattr(args, 'cosine_fraction', 0.5),
-            "use_amp": getattr(args, 'use_amp', False),
-            "grad_clip": getattr(args, 'grad_clip', 1.0),
-            "label_smoothing": getattr(args, 'label_smoothing', 0.0),
-            "min_lr": getattr(args, 'min_lr', 1e-6)
+        arg_map = {
+            "seed": "seed",
+            "reproducible": "reproducible",
+            "batch_size": "batch_size",
+            "learning_rate": "lr",
+            "momentum": "momentum",
+            "weight_decay": "weight_decay",
+            "epochs": "epochs",
+            "patience": "patience",
+            "mixup_alpha": "mixup_alpha",
+            "mixup_epochs": "mixup_epochs",
+            "use_tta": "use_tta",
+            "cosine_fraction": "cosine_fraction",
+            "use_amp": "use_amp",
+            "grad_clip": "grad_clip",
+            "label_smoothing": "label_smoothing",
+            "min_lr": "min_lr",
+            "scheduler_type": "scheduler_type",
+            "scheduler_patience": "scheduler_patience",
+            "scheduler_factor": "scheduler_factor",
+            "step_size": "step_size",
+            "criterion_type": "criterion_type",
+            "weighted_loss": "weighted_loss",
+            "focal_gamma": "focal_gamma"
         }
+        
+        params = {}
+        for config_key, arg_key in arg_map.items():
+            val = getattr(args, arg_key, None)
+            if val is not None:
+                params[config_key] = val
         
         return cls(**params)
