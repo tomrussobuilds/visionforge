@@ -25,7 +25,9 @@ from .setup import (
 )
 
 # 3. Main Orchestrator (Lifecycle logic)
-from .trainer import ModelTrainer
+from .trainer import (
+    ModelTrainer
+)
 
 # =========================================================================== #
 #                                   Exports                                   #

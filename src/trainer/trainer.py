@@ -1,9 +1,20 @@
 """
-Model Trainer Module
+Model Training & Lifecycle Orchestration.
 
-This module defines the central ModelTrainer class which orchestrates the 
-training lifecycle, bridging the gap between high-level configuration 
-and low-level execution engines.
+This module encapsulates the `ModelTrainer` engine, responsible for executing 
+the training loop, validation phases, and learning rate scheduling. It bridges 
+validated configurations with execution kernels, ensuring atomic state management 
+through specialized checkpointing and weight restoration logic.
+
+Key Features:
+    - Automated Checkpointing: Tracks performance metrics (AUC/Accuracy) and 
+      persists the optimal model state.
+    - Deterministic Restoration: Guarantees that the model instance in memory 
+      reflects the 'best' found parameters upon completion.
+    - Modern Training Utilities: Native support for Mixed Precision (AMP), 
+      Gradient Clipping, and Mixup augmentation.
+    - Lifecycle Telemetry: Unified logging of loss trajectories, metric 
+      evolution, and resource utilization.
 """
 
 # =========================================================================== #
@@ -24,8 +35,12 @@ from torch.utils.data import DataLoader
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from src.core import Config, LOGGER_NAME
-from .engine import train_one_epoch, validate_epoch, mixup_data
+from src.core import (
+    Config, LOGGER_NAME, load_model_weights
+)
+from .engine import (
+    train_one_epoch, validate_epoch, mixup_data
+)
 
 # =========================================================================== #
 #                                TRAINING LOGIC                               #
@@ -84,9 +99,6 @@ class ModelTrainer:
         # History tracking
         self.train_losses: List[float] = []
         self.val_metrics_history: List[dict] = []
-
-        # Metrics
-        self.best_acc = -1.0
         self.val_aucs: List[float] = []
 
         logger.info(f"Trainer initialized. Best model checkpoint: {self.best_path.name}")
@@ -151,10 +163,14 @@ class ModelTrainer:
                 f"AUC: {val_auc:.4f} (Best AUC: {self.best_auc:.4f}) | "
                 f"LR: {current_lr:.2e} | Patience: {self.patience - self.epochs_no_improve}"
             )
-            
-        logger.info(f"Training finished. Peak Validation Accuracy: {self.best_acc:.4f}")
 
-        if not self.best_path.exists():
+        logger.info(
+            f"Training finished. Peak Performance -> AUC: {self.best_auc:.4f} | Acc: {self.best_acc:.4f}"
+        )
+
+        if self.best_path.exists():
+            self.finalize_best_weights() 
+        else:
             logger.warning("Forcing checkpoint save for smoke test integrity.")
             torch.save(self.model.state_dict(), self.best_path)
 
@@ -208,3 +224,28 @@ class ModelTrainer:
         
         return self.epochs_no_improve >= self.patience
     
+    def load_best_weights(self) -> None:
+        """
+        Restores the optimal parameters into the model from the best checkpoint.
+
+        After the training loop completes or is interrupted by early stopping, 
+        the model instance in memory retains the weights from the final epoch. 
+        This method reloads the 'best' state-dict saved during the execution 
+        to ensure subsequent evaluations or inference tasks use the top-performing 
+        model iteration.
+
+        The restoration process is device-aware, ensuring weights are mapped 
+        correctly to the active compute device (CUDA/MPS/CPU).
+        """
+        try:
+            load_model_weights(
+                model=self.model, 
+                path=self.best_path, 
+                device=self.device
+            )
+            logger.info(
+                f" » [LIFECYCLE] Success: Model state restored to best checkpoint ({self.best_path.name})"
+            )
+        except Exception as e:
+            logger.error(f" » [LIFECYCLE] Critical failure during weight restoration: {e}")
+            raise e

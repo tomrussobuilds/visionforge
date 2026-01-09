@@ -102,7 +102,7 @@ def run_smoke_test(args: argparse.Namespace) -> None:
             if not paths.best_model_path.exists():
                 raise FileNotFoundError(f"Checkpoint not found at: {paths.best_model_path}")
             
-            orchestrator.load_weights(model, paths.best_model_path)
+            trainer.load_best_weights()
             
             # --- Stage 5: Reporting & Summary ---
             run_logger.info("Stage 5: Verifying Reporting & Visualization utilities...")

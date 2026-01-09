@@ -118,7 +118,7 @@ def main() -> None:
             )
             
             # Recover the best weights (determined by validation) for final testing
-            orchestrator.load_weights(model, paths.best_model_path)
+            trainer.load_best_weights()
             
             # Execute comprehensive testing (including TTA if enabled)
             macro_f1, test_acc      = run_final_evaluation(

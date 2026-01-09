@@ -22,7 +22,6 @@ Key Responsibilities:
 #                                Standard Imports                             #
 # =========================================================================== #
 import logging
-from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 
 # =========================================================================== #
@@ -36,9 +35,11 @@ import torch
 from .environment import (
     set_seed, to_device_obj, configure_system_libraries, apply_cpu_threads
 )
-from .config.infrastructure_config import InfrastructureManager
+from .config.infrastructure_config import (
+    InfrastructureManager
+)
 from .io import (
-    save_config_as_yaml, load_model_weights
+    save_config_as_yaml
 )
 from .logger import (
     Logger, Reporter
@@ -227,8 +228,6 @@ class RootOrchestrator:
         self._phase_1_determinism()
         applied_threads = self._phase_2_hardware_optimization()
         self._phase_3_filesystem_provisioning()
-        
-        # New segmented Telemetry & Guarding sequence
         self._phase_4_logging_initialization()
         self._phase_5_config_persistence()
         self._phase_6_infrastructure_guarding()
@@ -264,17 +263,3 @@ class RootOrchestrator:
         if self._device_cache is None:
             self._device_cache = to_device_obj(device_str=self.cfg.system.device)
         return self._device_cache
-
-    def load_weights(self, model: torch.nn.Module, path: Path) -> None:
-        """
-        Coordinates weight restoration by bridging the model with system utilities.
-
-        Args:
-            model (torch.nn.Module): The model instance to populate.
-            path (Path): Filesystem `Path` to the checkpoint file.
-        """
-        device = self.get_device()
-        load_model_weights(model, path, device)
-        
-        if self.run_logger:
-            self.run_logger.info(f" » Checkpoint weights restored from: {path.name}")
