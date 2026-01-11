@@ -92,19 +92,6 @@ Every run is fully documented through a suite of automatically generated artifac
 > ### 📂 [Explore All Experiment Artifacts & Samples](./docs/artifacts)
 > Click the link above to view sample Excel reports, YAML configs, and full-resolution diagnostic plots.
 
----
-
-### Visual Diagnostics & Reporting
-
-<p align="center">
-  <img src="docs/artifacts/confusion_matrix.png" width="400" />
-  <img src="docs/artifacts/training_curves.png" width="400" />
-</p>
-
-<p align="center">
-  <img src="docs/artifacts/sample_predictions.png" width="400" />
-  <img src="docs/artifacts/excel_report_preview.png" width="400" />
-</p>
 
 ---
 
