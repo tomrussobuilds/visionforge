@@ -28,35 +28,10 @@
 * [📊 Command Line Arguments](#-command-line-arguments)
 * [🗺 Research Goals](#-research-goals--roadmap)
 
-This repository provides a highly reproducible, robust training framework for the **MedMNIST v2** suite (supporting BloodMNIST, DermaMNIST, etc.) using an adapted pretrained ResNet-18 architecture. The goal is to demonstrate solid performance using a minimal configuration that adheres to modern PyTorch best practices.
+This repository provides a highly reproducible training framework for the MedMNIST v2 suite using an adapted ResNet-18.
+Originally developed on CPU with small datasets (~11k samples for BloodMNIST, ~2.5h training), it now runs in minutes on modern GPUs (e.g., RTX 5070), automatically adapting device and execution policies—paving the way for larger datasets and higher-resolution experiments.
 
 ---
-
-### 📊 Experiment Artifacts & Reporting
-
-Every run is fully documented through a suite of automatically generated artifacts. This ensures total traceability and rapid qualitative assessment.
-
-* **Qualitative Results**: High-resolution grids with correct/incorrect label highlighting.
-* **Quantitative Performance**: Comprehensive `.xlsx` reports (Single Source of Truth) containing epoch logs and class-wise metrics.
-* **Traceability**: Every run mirrors its exact Pydantic configuration state.
-
-> [!IMPORTANT]
-> ### 📂 [Explore All Experiment Artifacts & Samples](./docs/artifacts)
-> Click the link above to view sample Excel reports, YAML configs, and full-resolution diagnostic plots.
-
----
-
-### Visual Diagnostics & Reporting
-
-<p align="center">
-  <img src="docs/artifacts/confusion_matrix.png" width="400" />
-  <img src="docs/artifacts/training_curves.png" width="400" />
-</p>
-
-<p align="center">
-  <img src="docs/artifacts/sample_predictions.png" width="400" />
-  <img src="docs/artifacts/excel_report_preview.png" width="400" />
-</p>
 
 ## 🚀 Getting Started
 
@@ -102,6 +77,34 @@ This pipeline is engineered for unattended, robust execution in research environ
 **Dynamic Path Anchoring**: Leveraging a "Search-up" logic, the system dynamically locates the project root by searching for markers (`.git` or `README.md`). This ensures absolute path stability regardless of whether the script is launched from the root, `src/`, or a subfolder.
 
 **Graceful Logger Reconfiguration**: Implements a two-stage logging lifecycle. Initial logs are routed to `STDOUT` for immediate feedback; once the `Orchestrator` initializes the run directory, the logger seamlessly hot-swaps to include a timestamped file handler without losing previous trace data.
+
+---
+
+### 📊 Experiment Artifacts & Reporting
+
+Every run is fully documented through a suite of automatically generated artifacts. This ensures total traceability and rapid qualitative assessment.
+
+* **Qualitative Results**: High-resolution grids with correct/incorrect label highlighting.
+* **Quantitative Performance**: Comprehensive `.xlsx` reports (Single Source of Truth) containing epoch logs and class-wise metrics.
+* **Traceability**: Every run mirrors its exact Pydantic configuration state.
+
+> [!IMPORTANT]
+> ### 📂 [Explore All Experiment Artifacts & Samples](./docs/artifacts)
+> Click the link above to view sample Excel reports, YAML configs, and full-resolution diagnostic plots.
+
+---
+
+### Visual Diagnostics & Reporting
+
+<p align="center">
+  <img src="docs/artifacts/confusion_matrix.png" width="400" />
+  <img src="docs/artifacts/training_curves.png" width="400" />
+</p>
+
+<p align="center">
+  <img src="docs/artifacts/sample_predictions.png" width="400" />
+  <img src="docs/artifacts/excel_report_preview.png" width="400" />
+</p>
 
 ---
 
