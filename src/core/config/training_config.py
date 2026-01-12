@@ -35,8 +35,8 @@ from pydantic import BaseModel, Field, ConfigDict
 #                               Internal Imports                              #
 # =========================================================================== #
 from .types import (
-    PositiveInt, NonNegativeInt, NonNegativeFloat,
-    Probability, SmoothingValue, LearningRate, GradNorm
+    PositiveInt, NonNegativeInt, NonNegativeFloat, WeightDecay,
+    Probability, SmoothingValue, LearningRate, GradNorm, Momentum
 )
 
 # =========================================================================== #
@@ -47,115 +47,140 @@ class TrainingConfig(BaseModel):
     """
     Defines the optimization landscape and regularization strategies.
     
-    This class ensures that all training-related hyperparameters are 
-    validated against physical and domain-specific constraints.
+    This class ensures all training hyperparameters are validated and provides
+    clear structure for reproducibility, optimization, regularization, and
+    scheduler configuration.
     """
+
     model_config = ConfigDict(
         frozen=True,
         extra="forbid"
     )
-    
+
+    # ==================== Reproducibility ====================
     seed: int = Field(
         default=42,
         description="Random seed for reproducibility"
     )
     reproducible: bool = Field(
         default=False,
-        description="If True, enables strict reproducibility mode"
+        description="Enable strict reproducibility mode"
     )
-    batch_size: PositiveInt = Field(default=128)
-    epochs: PositiveInt = Field(default=60)
-    patience: NonNegativeInt = Field(default=15)
-    learning_rate: LearningRate = Field(default=0.008)
-    min_lr: LearningRate = Field(default=1e-6)
-    momentum: Probability = Field(default=0.9)
-    weight_decay: NonNegativeFloat = Field(default=5e-4)
-    label_smoothing: SmoothingValue = 0.0
-    
+
+    # ==================== Training Loop ====================
+    batch_size: PositiveInt = Field(
+        default=128,
+        description="Number of samples per batch"
+    )
+    epochs: PositiveInt = Field(
+        default=60,
+        description="Maximum number of training epochs"
+    )
+    patience: NonNegativeInt = Field(
+        default=15,
+        description="Early stopping patience in epochs"
+    )
+
+    # ==================== Optimization ====================
+    learning_rate: LearningRate = Field(
+        default=0.008,
+        description="Initial learning rate"
+    )
+    min_lr: LearningRate = Field(
+        default=1e-6,
+        description="Minimum learning rate"
+    )
+    momentum: Momentum = Field(
+        default=0.9,
+        description="SGD momentum factor"
+    )
+    weight_decay: WeightDecay = Field(
+        default=5e-4,
+        description="Weight decay (L2 regularization)"
+    )
+    grad_clip: Optional[GradNorm] = Field(
+        default=1.0,
+        description="Maximum gradient norm; None to disable"
+    )
+
+    # ==================== Regularization ====================
+    label_smoothing: SmoothingValue = Field(
+        default=0.0,
+        description="Label smoothing factor for classification"
+    )
     mixup_alpha: NonNegativeFloat = Field(
-        default=0.2,
+        default=0.2, 
         description="Mixup interpolation coefficient"
     )
     mixup_epochs: NonNegativeInt = Field(
         default=20,
-        description="Number of epochs to apply mixup"
+        description="Number of epochs to apply Mixup"
     )
-    
-    use_tta: bool = True
-    cosine_fraction: Probability = Field(default=0.5)
-    use_amp: bool = False
-    
-    grad_clip: Optional[GradNorm] = Field(
-        default=1.0,
-        description="Max norm for gradient clipping; None to disable"
+    use_tta: bool = Field(
+        default=True,
+        description="Enable Test Time Augmentation (TTA)"
     )
 
+    # ==================== Scheduler ====================
     scheduler_type: str = Field(
         default="cosine",
-        description="Type of LR scheduler: 'cosine', 'plateau', 'step', or 'none'"
+        description="LR scheduler type: 'cosine', 'plateau', 'step', or 'none'"
     )
-    
+    cosine_fraction: Probability = Field(
+        default=0.5,
+        description="Fraction of total epochs for cosine annealing"
+    )
     scheduler_patience: NonNegativeInt = Field(
-        default=5, 
+        default=5,
         description="Patience for ReduceLROnPlateau"
     )
     scheduler_factor: Probability = Field(
-        default=0.1, 
-        description="Reduction factor for Plateau/StepLR"
+        default=0.1,
+        description="LR reduction factor for Plateau/StepLR"
     )
     step_size: PositiveInt = Field(
-        default=20, 
-        description="Period of learning rate decay for StepLR"
+        default=20,
+        description="Period of LR decay for StepLR"
     )
+    use_amp: bool = Field(
+        default=False,
+        description="Enable Automatic Mixed Precision (AMP)"
+    )
+
+    # ==================== Loss ====================
     criterion_type: str = Field(
         default="cross_entropy",
         description="Loss function: 'cross_entropy', 'focal', or 'bce_logit'"
     )
     weighted_loss: bool = Field(
         default=False,
-        description="Whether to apply class-frequency weighting"
+        description="Apply class-frequency weighting"
     )
     focal_gamma: NonNegativeFloat = Field(
         default=2.0,
         description="Focusing parameter for Focal Loss"
     )
 
+    # ==================== Factory Method ====================
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "TrainingConfig":
         """
-        Factory method to map CLI arguments to the TrainingConfig schema.
-        Only overrides fields that are present in the args Namespace.
+        Factory method to instantiate TrainingConfig from CLI arguments.
+
+        Only overrides schema fields that exist in the args Namespace and are not None.
+        This approach automatically adapts to new fields added to the schema.
+
+        Args:
+            args (argparse.Namespace): Parsed command-line arguments.
+
+        Returns:
+            TrainingConfig: Config instance with CLI-overridden values.
         """
-        arg_map = {
-            "seed": "seed",
-            "reproducible": "reproducible",
-            "batch_size": "batch_size",
-            "learning_rate": "lr",
-            "momentum": "momentum",
-            "weight_decay": "weight_decay",
-            "epochs": "epochs",
-            "patience": "patience",
-            "mixup_alpha": "mixup_alpha",
-            "mixup_epochs": "mixup_epochs",
-            "use_tta": "use_tta",
-            "cosine_fraction": "cosine_fraction",
-            "use_amp": "use_amp",
-            "grad_clip": "grad_clip",
-            "label_smoothing": "label_smoothing",
-            "min_lr": "min_lr",
-            "scheduler_type": "scheduler_type",
-            "scheduler_patience": "scheduler_patience",
-            "scheduler_factor": "scheduler_factor",
-            "step_size": "step_size",
-            "criterion_type": "criterion_type",
-            "weighted_loss": "weighted_loss",
-            "focal_gamma": "focal_gamma"
+        args_dict = vars(args)
+        # Keep only args that match schema fields and are not None
+        valid_fields = cls.model_fields.keys()
+        params = {
+            k: v for k, v in args_dict.items() if k in valid_fields and v is not None
         }
-        
-        params = {}
-        for config_key, arg_key in arg_map.items():
-            val = getattr(args, arg_key, None)
-            if val is not None:
-                params[config_key] = val
-        
+
         return cls(**params)
