@@ -103,10 +103,11 @@ class Config(BaseModel):
             raise ValueError("AMP requires GPU (CUDA/MPS), cannot use with CPU")
 
         # 4. Model-dataset consistency
-        if self.model.pretrained and self.dataset.in_channels != 3:
+        if self.model.pretrained and self.dataset.effective_in_channels != 3:
             raise ValueError(
                 f"Pretrained {self.model.name} requires RGB (3 channels), "
-                f"got {self.dataset.in_channels}. Set 'force_rgb: true' in dataset config"
+                f"but dataset will provide {self.dataset.effective_in_channels} channels. "
+                f"Set 'force_rgb: true' in dataset config or disable pretraining"
             )
 
         # 5. Optimizer bounds
@@ -218,7 +219,11 @@ class Config(BaseModel):
         return cls._hydrate_yaml(yaml_path, metadata)
 
     @classmethod
-    def _build_from_yaml_or_args(cls, args: argparse.Namespace, ds_meta: dict) -> "Config":
+    def _build_from_yaml_or_args(
+        cls,
+        args: argparse.Namespace,
+        ds_meta: dict
+    ) -> "Config":
         """
         Constructs Config from YAML or CLI arguments.
         
@@ -232,8 +237,17 @@ class Config(BaseModel):
             Configured instance
         """
         if getattr(args, "config", None):
-            return cls.from_yaml(Path(args.config), metadata=ds_meta)
-
+            yaml_path = Path(args.config)
+            raw_data = load_config_from_yaml(yaml_path)
+            
+            yaml_dataset_name = raw_data.get("dataset", {}).get("name")
+            if yaml_dataset_name:
+                resolution = raw_data.get("dataset", {}).get("resolution", 28)
+                wrapper = DatasetRegistryWrapper(resolution=resolution)
+                ds_meta = wrapper.get_dataset(yaml_dataset_name)
+            
+            return cls.from_yaml(yaml_path, metadata=ds_meta)
+        
         return cls(
             hardware=HardwareConfig.from_args(args),
             telemetry=TelemetryConfig.from_args(args),
@@ -243,7 +257,6 @@ class Config(BaseModel):
             model=ModelConfig.from_args(args),
             evaluation=EvaluationConfig.from_args(args),
         )
-
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "Config":
         """
