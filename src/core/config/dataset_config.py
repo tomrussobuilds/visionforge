@@ -49,14 +49,22 @@ class DatasetConfig(BaseModel):
         arbitrary_types_allowed=True
     )
 
-    # Metadata (injected at runtime)
-    metadata: Optional[DatasetMetadata] = Field(default=None, exclude=True)
-    
+    name: Optional[str] = Field(
+        default=None,
+        description="Dataset identifier (e.g., 'bloodmnist')"
+    )
+    metadata: Optional[DatasetMetadata] = Field(
+        default=None, exclude=True
+    )
+
     # Runtime parameters
     data_root: ValidatedPath = DATASET_DIR
     use_weighted_sampler: bool = True
     max_samples: Optional[PositiveInt] = Field(default=20000)
-    img_size: ImageSize = Field(description="Target square resolution for model input")
+    img_size: ImageSize = Field(
+        description="Target square resolution for model input",
+        default=28,
+    )
     force_rgb: bool = Field(
         default=True,
         description="Convert grayscale to RGB for ImageNet weights"
@@ -106,45 +114,51 @@ class DatasetConfig(BaseModel):
         if self.in_channels == 3:
             return "NATIVE-RGB"
         return "RGB-PROMOTED" if self.effective_in_channels == 3 else "NATIVE-GRAY"
-
+    
     @classmethod
-    def from_args(cls, args: argparse.Namespace, metadata: DatasetMetadata) -> "DatasetConfig":
+    def from_args(cls, args: argparse.Namespace) -> "DatasetConfig":
         """
-        Factory from CLI arguments with conflict resolution.
-        
-        Resolves conflicts between CLI args and dataset constraints,
-        handling RGB promotion and sampling limits.
-        
+        Factory method to create a DatasetConfig from CLI arguments or runtime config.
+
+        Resolves conflicts between CLI args and dataset registry metadata,
+        handling RGB promotion, sampling limits, image size, and multi-resolution support.
+
         Args:
-            args: Parsed CLI arguments
-            metadata: Dataset metadata from registry
-            
+            args: Parsed CLI arguments containing dataset selection and runtime preferences.
+
         Returns:
-            Configured DatasetConfig instance
+            Configured DatasetConfig instance with proper metadata.
         """
-        # 1. Resolve RGB promotion
+        # 1. Determine dataset name from CLI args or config
+        dataset_name = getattr(args, "dataset", None) or getattr(args, "name", None)
+        if dataset_name is None:
+            raise ValueError("No dataset specified in CLI arguments or configuration!")
+
+        # 2. Determine resolution
+        resolution = getattr(args, "resolution", 28)
+
+        # 3. Load dataset metadata from registry (ignores any old metadata)
+        wrapper = DatasetRegistryWrapper(resolution=resolution)
+        resolved_metadata = wrapper.get_dataset(dataset_name)
+
+        # 4. Resolve RGB promotion
         is_pretrained = getattr(args, "pretrained", True)
         force_rgb_cli = getattr(args, "force_rgb", None)
-        
         resolved_force_rgb = (
             force_rgb_cli if force_rgb_cli is not None 
-            else (metadata.in_channels == 1 and is_pretrained)
+            else (resolved_metadata.in_channels == 1 and is_pretrained)
         )
-            
-        # 2. Resolve sampling limits (0/negative = None)
+
+        # 5. Resolve sampling limits (0 or negative => None)
         cli_max = getattr(args, "max_samples", None)
         resolved_max = None if (cli_max is not None and cli_max <= 0) else (
             cli_max or cls.model_fields['max_samples'].default
         )
 
-        # 3. Resolve image size
-        resolved_img_size = getattr(args, "img_size", None) or metadata.native_resolution
-        
-        # 4. Load resolution-specific metadata
-        resolution = getattr(args, "resolution", 28)
-        wrapper = DatasetRegistryWrapper(resolution=resolution)
-        resolved_metadata = wrapper.get_dataset(metadata.name)
+        # 6. Resolve image size from CLI or metadata
+        resolved_img_size = getattr(args, "img_size", None) or resolved_metadata.native_resolution
 
+        # 7. Construct and return DatasetConfig
         return cls(
             metadata=resolved_metadata,
             data_root=Path(getattr(args, "data_dir", DATASET_DIR)),

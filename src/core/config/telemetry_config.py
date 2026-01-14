@@ -20,7 +20,6 @@ reproducible artifacts free from host-specific filesystem leakage.
 # =========================================================================== #
 import argparse
 from pathlib import Path
-from typing import Optional
 
 # =========================================================================== #
 #                                Third-Party Imports                          #
