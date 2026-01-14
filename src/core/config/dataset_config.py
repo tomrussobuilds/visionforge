@@ -77,12 +77,13 @@ class DatasetConfig(BaseModel):
     )
 
     # --- Properties ---
-
     @property
     def dataset_name(self) -> str:
         """Dataset identifier (e.g., 'bloodmnist')."""
-        if self.metadata.name is None:
-            self.metadata.name = DATASET_REGISTRY.keys[0]
+        if self.metadata is None or self.metadata.name is None:
+            self.metadata = DatasetRegistryWrapper().get_dataset(
+                list(DATASET_REGISTRY.keys())[0]
+            )
         return self.metadata.name
     
     @property
@@ -98,26 +99,51 @@ class DatasetConfig(BaseModel):
     @property
     def effective_in_channels(self) -> int:
         """Actual channels model receives (3 if force_rgb enabled)."""
-        return 3 if self.force_rgb else self.in_channels
+        return 3 if self.force_rgb \
+            else self.in_channels
     
     @property
     def mean(self) -> tuple[float, ...]:
         """Channel-wise mean, expanded if force_rgb on grayscale."""
         m = self.metadata.mean
-        return (m[0],) * 3 if self.force_rgb and self.in_channels == 1 else m
+        return (m[0],) * 3 if self.force_rgb and self.in_channels == 1 \
+            else m
     
     @property
     def std(self) -> tuple[float, ...]:
         """Channel-wise std, expanded if force_rgb on grayscale."""
         s = self.metadata.std
-        return (s[0],) * 3 if self.force_rgb and self.in_channels == 1 else s
+        return (s[0],) * 3 if self.force_rgb and self.in_channels == 1 \
+            else s
 
     @property
     def processing_mode(self) -> str:
         """Channel resolution strategy description."""
         if self.in_channels == 3:
             return "NATIVE-RGB"
-        return "RGB-PROMOTED" if self.effective_in_channels == 3 else "NATIVE-GRAY"
+        return "RGB-PROMOTED" if self.effective_in_channels == 3 \
+            else "NATIVE-GRAY"
+
+    # --- Encapsulated Logic in Separate Methods ---
+    @classmethod
+    def resolve_rgb_promotion(cls, args, resolved_metadata) -> bool:
+        """Resolve the RGB promotion logic."""
+        is_pretrained = getattr(args, "pretrained", True)
+        force_rgb_cli = getattr(args, "force_rgb", None)
+        return force_rgb_cli if force_rgb_cli is not None \
+            else (resolved_metadata.in_channels == 1 and is_pretrained)
+
+    @classmethod
+    def resolve_max_samples(cls, args) -> Optional[PositiveInt]:
+        """Resolve max_samples logic."""
+        cli_max = getattr(args, "max_samples", None)
+        return None if (cli_max is not None and cli_max <= 0) \
+            else (cli_max or cls.model_fields['max_samples'].default)
+
+    @classmethod
+    def resolve_img_size(cls, args, resolved_metadata) -> int:
+        """Resolve image size from CLI args or metadata."""
+        return getattr(args, "img_size", None) or resolved_metadata.native_resolution
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "DatasetConfig":
@@ -155,24 +181,12 @@ class DatasetConfig(BaseModel):
                 f"Dataset '{dataset_name}' not found. Available datasets: {available_datasets}"
             )
 
-        # 4. Resolve RGB promotion based on whether the model is pretrained or not
-        is_pretrained = getattr(args, "pretrained", True)
-        force_rgb_cli = getattr(args, "force_rgb", None)
-        resolved_force_rgb = (
-            force_rgb_cli if force_rgb_cli is not None 
-            else (resolved_metadata.in_channels == 1 and is_pretrained)
-        )
+        # 4. Resolve RGB promotion, sampling limits, and image size using helper methods
+        resolved_force_rgb = cls.resolve_rgb_promotion(args, resolved_metadata)
+        resolved_max = cls.resolve_max_samples(args)
+        resolved_img_size = cls.resolve_img_size(args, resolved_metadata)
 
-        # 5. Resolve sampling limits (0 or negative => None)
-        cli_max = getattr(args, "max_samples", None)
-        resolved_max = None if (cli_max is not None and cli_max <= 0) else (
-            cli_max or cls.model_fields['max_samples'].default
-        )
-
-        # 6. Resolve image size from CLI or from metadata
-        resolved_img_size = getattr(args, "img_size", None) or resolved_metadata.native_resolution
-
-        # 7. Construct and return DatasetConfig with all resolved parameters
+        # 5. Construct and return DatasetConfig with all resolved parameters
         return cls(
             data_root=Path(getattr(args, "data_dir", DATASET_DIR)),
             metadata=resolved_metadata,
@@ -182,4 +196,3 @@ class DatasetConfig(BaseModel):
             img_size=resolved_img_size,
             resolution=resolution
         )
-
