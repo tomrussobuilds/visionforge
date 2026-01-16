@@ -20,18 +20,18 @@ The pipeline follows a 5-stage orchestration logic:
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from src.core import (
+from orchard.core import (
     Config, parse_args, DATASET_REGISTRY, RootOrchestrator
 )
-from src.data_handler import (
+from orchard.data_handler import (
     load_medmnist, get_dataloaders, show_samples_for_dataset, 
     get_augmentations_description
 )
-from src.models import get_model
-from src.trainer import (
+from orchard.models import get_model
+from orchard.trainer import (
     ModelTrainer, get_criterion, get_optimizer, get_scheduler
 )
-from src.evaluation import run_final_evaluation
+from orchard.evaluation import run_final_evaluation
 
 # =========================================================================== #
 #                               MAIN EXECUTION

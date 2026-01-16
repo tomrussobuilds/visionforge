@@ -1,307 +1,545 @@
-# 🧬 Adaptive Image Classification with Adapted ResNet-18 and EfficientNet-B0
+# 🔬 VisionForge: Type-Safe Deep Learning Framework
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-orange?logo=pytorch&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-v2-e92063?logo=pydantic&logoColor=white)
+![Optuna](https://img.shields.io/badge/Optuna-3.0%2B-00ADD8?logo=optuna&logoColor=white)
 
 ![Architecture](https://img.shields.io/badge/Architecture-Decoupled-blueviolet)
 ![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-![Status](https://img.shields.io/badge/status-WIP-orange)
-![Issues](https://img.shields.io/github/issues/tomrussobuilds/medmnist)
+![Status](https://img.shields.io/badge/status-Active-success)
+![Issues](https://img.shields.io/github/issues/tomrussobuilds/visionforge)
 
 ---
 
 ## 📌 Table of Contents
 
-- [🧬 Adaptive Image Classification with Adapted ResNet-18 and EfficientNet-B0](#-adaptive-image-classification-with-adapted-resnet-18-and-efficientnet-b0)
-  - [📌 Table of Contents](#-table-of-contents)
-  - [🚀 Getting Started](#-getting-started)
-    - [1. Installation \& Environment](#1-installation--environment)
-  - [✨ Key Features \& Defensive Engineering](#-key-features--defensive-engineering)
-  - [📊 Experiment Artifacts \& Reporting](#-experiment-artifacts--reporting)
-  - [🧩 Internal Dependency Mapping](#-internal-dependency-mapping)
-  - [🏗 Architecture Details](#-architecture-details)
-  - [🔬 Mathematical Weight Transfer](#-mathematical-weight-transfer)
-  - [🔬 Training Regularization](#-training-regularization)
-  - [📁 Project Structure](#-project-structure)
-  - [⚙️ Requirements \& Installation](#️-requirements--installation)
-  - [💻 Usage (Local)](#-usage-local)
-    - [Option A: Running with a Recipe (Recommended)](#option-a-running-with-a-recipe-recommended)
-    - [Option B: Standard CLI (Quick Tests)](#option-b-standard-cli-quick-tests)
-  - [✅ Environment Verification (Smoke Test)](#-environment-verification-smoke-test)
-  - [🐳 Docker Execution (Recommended for Portability)](#-docker-execution-recommended-for-portability)
-  - [📊 Command Line Arguments](#-command-line-arguments)
-  - [Scaling to Other MedMNIST Datasets](#scaling-to-other-medmnist-datasets)
-  - [Citation](#citation)
-  - [🗺 Research Goals \& Roadmap](#-research-goals--roadmap)
-
-This repository provides a highly reproducible training framework for the MedMNIST v2 suite using an adapted ResNet-18 architecture. Originally developed on CPU with small datasets (~11k samples for BloodMNIST, ~2.5h training time), it now runs in minutes on modern GPUs (e.g., RTX 5070), automatically adapting device and execution policies—paving the way for larger datasets and higher-resolution experiments.
+- [🎯 Overview](#-overview)
+- [🚀 Quick Start](#-quick-start)
+- [✨ Core Features](#-core-features)
+- [🏗 System Architecture](#-system-architecture)
+- [📊 Experiment Management](#-experiment-management)
+- [🧩 Dependency Graph](#-dependency-graph)
+- [🔬 Technical Deep Dive](#-technical-deep-dive)
+- [📁 Project Structure](#-project-structure)
+- [💻 Usage Patterns](#-usage-patterns)
+- [🎯 Hyperparameter Optimization](#-hyperparameter-optimization)
+- [✅ Environment Verification](#-environment-verification)
+- [🐳 Containerized Deployment](#-containerized-deployment)
+- [📊 Configuration Reference](#-configuration-reference)
+- [🔄 Extending to New Datasets](#-extending-to-new-datasets)
+- [📚 Citation](#-citation)
+- [🗺 Development Roadmap](#-development-roadmap)
 
 ---
 
-## 🚀 Getting Started
+## 🎯 Overview
 
-### 1. Installation & Environment
+**VisionForge** is a research-grade PyTorch training framework engineered for reproducible, scalable computer vision experiments. Originally designed for medical imaging (MedMNIST v2), it has evolved into a domain-agnostic platform supporting multi-resolution architectures (28×28 to 224×224+), automated hyperparameter optimization, and cluster-safe execution.
 
-Ensure you have the project structure correctly set up with `src/` as a package:
+**Key Differentiators:**
+- **Type-Safe Configuration Engine**: Pydantic V2-based declarative manifests eliminate runtime errors
+- **Zero-Conflict Execution**: Kernel-level file locking (`fcntl`) prevents concurrent runs from corrupting shared resources
+- **Intelligent Hyperparameter Search**: Optuna integration with TPE sampling and Median Pruning
+- **Hardware-Agnostic**: Auto-detection and optimization for CPU/CUDA/MPS backends
+- **Audit-Grade Traceability**: BLAKE2b-hashed run directories with full YAML snapshots
+
+
+**Representative Benchmarks** (RTX 5070, OrganCMNIST):
+
+| Task | Architecture | Resolution | Trials | Time | Notes |
+|------|-------------|-----------|--------|------|-------|
+| **Training** | ResNet-18 | 28×28 | - | ~5 min (60 epochs) | BloodMNIST, GPU |
+| **Training** | ResNet-18 | 28×28 | - | ~2.5h (60 epochs) | BloodMNIST, CPU (16 cores) |
+| **Optimization** | EfficientNet-B0 | 224×224 | 3 | ~1.5h | **Early stopped** at AUC≥0.9999 |
+| **Single Trial** | EfficientNet-B0 | 224×224 | 1 | ~29 min (15 epochs) | Batch size 8 |
+
+>[!Note]
+>Optimization times vary significantly with early stopping.
+>The framework automatically stops when target performance is reached 
+>(e.g., 3 trials vs planned 20 when AUC≥0.9999).
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/tomrussobuilds/medmnist.git
-cd medmnist
+# 1. Clone and setup environment
+git clone https://github.com/tomrussobuilds/visionforge.git
+cd visionforge
+pip install -r requirements.txt
 
-# (Optional) Add src to PYTHONPATH to enable absolute imports
-export PYTHONPATH=$PYTHONPATH:$(pwd)
+# 2. Run a quick verification (1-epoch sanity check)
+python -m tools.smoke_test
+
+# 3. Train with optimized recipe (ResNet-18, 28×28)
+python main.py --config recipes/config_resnet_18_adapted.yaml
+
+# 4. Launch hyperparameter optimization (50 trials, ~15 min on GPU)
+python optimize.py --config recipes/optuna_resnet_18_adapted.yaml
+
+# 5. View optimization results
+firefox outputs/*/figures/param_importances.html
+
+# 6. Deploy best configuration
+python main.py --config outputs/*/reports/best_config.yaml
 ```
 
 ---
 
-## ✨ Key Features & Defensive Engineering
+## ✨ Core Features
 
-This pipeline is engineered for unattended, robust execution in research environments and containerized clusters. It moves beyond simple classification by implementing comprehensive system-level safeguards:
+### 🔒 Enterprise-Grade Execution Safety
 
-**Tiered Configuration Engine (SSOT)**: The pipeline core is a declarative, hierarchical manifest built on **Pydantic V2**. It acts as the **Single Source of Truth (SSOT)**, transforming raw inputs into an immutable, type-safe execution blueprint. This engine provides:
+**Tiered Configuration Engine (SSOT)**  
+Built on Pydantic V2, the configuration system acts as a **Single Source of Truth**, transforming raw inputs (CLI/YAML) into an immutable, type-safe execution blueprint:
 
-* **Metadata Hydration**: Late-binding injection of dataset-specific specifications (normalization constants, class mappings, channel counts) directly from a centralized registry.
-* **Cross-Domain Validation**: Post-instantiation logic guards that prevent unstable states, such as enforcing 3-channel input for pretrained backbones or validating **AMP** (Automatic Mixed Precision) compatibility against hardware backends.
-* **Path Portability**: Automated serialization of absolute filesystem paths into environment-agnostic anchors, ensuring experiment recipes are shareable across diverse compute clusters.
+- **Late-Binding Metadata Injection**: Dataset specifications (normalization constants, class mappings) are resolved from a centralized registry at instantiation time
+- **Cross-Domain Validation**: Post-construction logic guards prevent unstable states (e.g., enforcing RGB input for pretrained weights, validating AMP compatibility)
+- **Path Portability**: Automatic serialization converts absolute paths to environment-agnostic anchors for cross-platform reproducibility
 
-**Decentralized Infrastructure Guard**: Moving beyond simple automation, the system implements an independent `InfrastructureManager` that bridges the declarative config with physical hardware. This layer ensures:
+**Infrastructure Guard Layer**  
+An independent `InfrastructureManager` bridges declarative configs with physical hardware:
 
-* **Environment Mutual Exclusion**: Utilizes `fcntl` kernel-level advisory locking (via `flock`) to guarantee that only one training instance is active per workspace, preventing VRAM race conditions and checkpoint corruption.
-* **Proactive Process Sanitization**: An intelligent `psutil` wrapper identifies and terminates ghost Python processes sharing the same entry point.
-* **Cluster-Aware Safety**: Features "Shared-Environment Detection" logic that automatically suspends process-killing routines when a scheduler (e.g., SLURM, PBS, LSF) is detected, preserving multi-user stability in HPC environments.
+- **Mutual Exclusion via `flock`**: Kernel-level advisory locking ensures only one training instance per workspace (prevents VRAM race conditions)
+- **Process Sanitization**: `psutil` wrapper identifies and terminates ghost Python processes
+- **HPC-Aware Safety**: Auto-detects cluster schedulers (SLURM/PBS/LSF) and suspends aggressive process cleanup to preserve multi-user stability
 
-**Atomic Run Isolation**: Managed via the `RunPaths` utility, every execution generates a unique workspace (`outputs/YYYYMMDD_DS_MODEL_HASH/`). The system computes a deterministic **BLAKE2b** cryptographic hash (using a 3-byte digest for 6-hex characters) from the training configuration. This ensures that even slight hyperparameter variations result in isolated directories, preventing resource overlap and guaranteeing auditability.
+**Deterministic Run Isolation**  
+Every execution generates a unique workspace using:
+```
+outputs/YYYYMMDD_DS_MODEL_HASH6/
+```
+Where `HASH6` is a BLAKE2b cryptographic digest (3-byte, deterministic) computed from the training configuration. Even minor hyperparameter variations produce isolated directories, preventing resource overlap and ensuring auditability.
 
-**Data Integrity & Validation**: Implements **MD5** checksum verification for dataset downloads and a strict `validate_npz_keys` check to ensure the structural integrity of MedMNIST `.npz` files before memory allocation.
+### 🔬 Reproducibility Architecture
 
-**Deterministic Pipeline**: Implements a dual-layer reproducibility strategy. Beyond global seeding (Seed 42), it features a Strict Mode that enforces bit-perfect reproducibility by activating deterministic GPU kernels (`torch.use_deterministic_algorithms`) and synchronizing multi-process RNG via `worker_init_fn`, automatically scaling to zero workers when total determinism is required.
+**Dual-Layer Reproducibility Strategy:**
+1. **Standard Mode**: Global seeding (Seed 42) with performance-optimized algorithms
+2. **Strict Mode**: Bit-perfect reproducibility via:
+   - `torch.use_deterministic_algorithms(True)`
+   - `worker_init_fn` for multi-process RNG synchronization
+   - Auto-scaling to `num_workers=0` when determinism is critical
 
-**System Utilities**: The `environment` module serves as a low-level abstraction layer that manages hardware device selection, ensures process-level atomicity through kernel-level file locking, and enforces strict environment-wide reproducibility.
+**Data Integrity Validation:**
+- MD5 checksum verification for dataset downloads
+- `validate_npz_keys` structural integrity checks before memory allocation
 
-**Continuous Stability Guard** (`smoke_test.py`): A dedicated diagnostic script that executes a "micro-pipeline" (1 epoch, minimal data subset). It validates the entire execution chain—from weight interpolation to Excel reporting—in less than 30 seconds, ensuring no regressions after architectural changes.
+### ⚡ Performance Optimization
 
-**Hybrid RAM Management**: Optimized for varying hardware constraints. The system automatically performs full RAM caching for smaller datasets to maximize throughput, while utilizing indexed slicing for massive datasets (like TissueMNIST) to prevent OOM (Out-of-Memory) errors.
+**Hybrid RAM Management:**
+- **Small Datasets** (<50K samples): Full RAM caching for maximum throughput
+- **Large Datasets** (>100K samples): Indexed slicing to prevent OOM errors
 
-**Dynamic Path Anchoring**: Leveraging "search-up" logic, the system dynamically locates the project root by searching for markers (`.git` or `README.md`). This ensures absolute path stability regardless of whether the script is launched from the root, `src/`, or a subfolder.
+**Dynamic Path Anchoring:**
+- "Search-up" logic locates project root via markers (`.git`, `README.md`)
+- Ensures absolute path stability regardless of invocation directory
 
-**Graceful Logger Reconfiguration**: Implements a two-stage logging lifecycle. Initial logs are routed to `STDOUT` for immediate feedback; once the `Orchestrator` initializes the run directory, the logger seamlessly hot-swaps to include a timestamped file handler without losing previous trace data.
+**Graceful Logger Reconfiguration:**
+- Initial logs route to `STDOUT` for immediate feedback
+- Hot-swap to timestamped file handler post-initialization without trace loss
 
-**High-Resolution Support (224×224)**: For experiments requiring higher visual fidelity, the pipeline supports `EfficientNet-B0` backbones at native `224×224` resolution. GPU acceleration is strongly recommended for these models.
+### 🎯 Intelligent Hyperparameter Search
+
+**Optuna Integration Features:**
+- **TPE Sampling**: Tree-structured Parzen Estimator for efficient search space exploration
+- **Median Pruning**: Early stopping of underperforming trials (30-50% time savings)
+- **Persistent Studies**: SQLite storage enables resume-from-checkpoint
+- **Type-Safe Constraints**: All search spaces respect Pydantic validation bounds
+- **Auto-Visualization**: Parameter importance plots, optimization history, parallel coordinates
 
 ---
 
-## 📊 Experiment Artifacts & Reporting
+## 🏗 System Architecture
 
-Every run is fully documented through a suite of automatically generated artifacts, ensuring total traceability and rapid qualitative assessment:
+The framework implements **Separation of Concerns (SoC)** with five core layers:
 
-* **Qualitative Results**: High-resolution grids with correct/incorrect label highlighting.
-* **Quantitative Performance**: Comprehensive `.xlsx` reports (Single Source of Truth) containing epoch logs and class-wise metrics.
-* **Traceability**: Every run mirrors its exact Pydantic configuration state.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      RootOrchestrator                           │
+│              (Lifecycle Manager & Context)                      │
+│                                                                 │
+│  Responsibilities:                                              │
+│  • Phase 1-7 initialization sequence                            │
+│  • Resource acquisition & cleanup (Context Manager)             │
+│  • Device resolution & caching                                  │
+└────────────┬─────────────────────────┬──────────────────────────┘
+             │                         │
+             │ uses                    │ uses
+             │                         │
+    ┌────────▼──────────┐     ┌────────▼───────────────┐
+    │                   │     │                        │
+    │  Config Engine    │     │  InfrastructureManager │
+    │  (Pydantic V2)    │     │  (flock/psutil)        │
+    │                   │     │                        │
+    │  • Type safety    │     │  • Process cleanup     │
+    │  • Validation     │     │  • Kernel locks        │
+    │  • Metadata       │     │  • HPC detection       │
+    │    injection      │     │                        │
+    └───────────────────┘     └────────────────────────┘
+             │
+             │ provides config to
+             │
+    ┌────────▼───────────────────────────────────────────────┐
+    │                                                        │
+    │              Execution Pipeline                        │
+    │                                                        │
+    │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
+    │  │   Data   │  │  Model   │  │ Trainer  │              │
+    │  │ Handler  │→ │ Factory  │→ │  Engine  │              │
+    │  └──────────┘  └──────────┘  └────┬─────┘              │
+    │                                   │                    │
+    │                             ┌─────▼──────┐             │
+    │                             │ Evaluation │             │
+    │                             │  Pipeline  │             │
+    │                             └────────────┘             │
+    │                                                        │
+    └────────────────────────────┬───────────────────────────┘
+                                 │
+                                 │ alternative path
+                                 │
+                        ┌────────▼──────────────┐
+                        │  Optimization Engine  │
+                        │      (Optuna)         │
+                        │                       │
+                        │  • Study management   │
+                        │  • Trial execution    │
+                        │  • Pruning logic      │
+                        │  • Visualization      │
+                        └───────────────────────┘
+```
+
+**Key Design Principles:**
+
+1. Orchestrator owns both Config and InfrastructureManager
+2. Config is the SSOT - all modules receive it as dependency
+3. InfrastructureManager is stateless utility for OS-level operations
+4. Execution pipeline is linear: Data → Model → Training → Eval
+5. Optimization wraps the entire pipeline for each trial
+
+---
+
+## 📊 Experiment Management
+
+Every run generates a complete artifact suite for total traceability:
+
+**Artifact Structure:**
+```
+outputs/20260116_organcmnist_optuna_a3f7c2/
+├── figures/
+│   ├── param_importances.html      # Interactive importance plot
+│   ├── optimization_history.html   # Trial progression
+│   └── parallel_coordinates.html   # Hyperparameter relationships
+├── reports/
+│   ├── best_config.yaml            # Optimized configuration
+│   ├── study_summary.json          # All trials metadata
+│   └── top_10_trials.xlsx          # Best configurations
+└── database/
+    └── study.db                    # SQLite storage for resumption
+```
 
 > [!IMPORTANT]
-> ### 📂 [Explore All Experiment Artifacts & Samples](./docs/artifacts)
-> Click the link above to view sample Excel reports, YAML configs, and full-resolution diagnostic plots.
+> ### 📂 [View Sample Artifacts](./docs/artifacts)
+> Explore Excel reports, YAML configs, and diagnostic plots from real experiments.
 
 ---
 
-## 🧩 Internal Dependency Mapping
-
-The framework is designed with strict **Separation of Concerns (SoC)**. Below is the architectural graph showing the decoupling between the core engine, data handlers, and reporting silos:
+## 🧩 Dependency Graph
 
 <p align="center">
-<img src="docs/framework_map.svg?v=2" width="850" alt="Framework Map">
+<img src="docs/framework_map.svg?v=4" width="900" alt="System Dependency Graph">
 </p>
 
-> *Generated via pydeps. Highlights the centralized Config hub and linear flow from Orchestrator to Trainer.*
+> *Generated via `pydeps`. Highlights the centralized Config hub and modular architecture.*
 
 <details>
-<summary>🛠️ How to update the map</summary>
-
-To regenerate the dependency graph, run the following command from the project root:
+<summary>🛠️ Regenerate Dependency Graph</summary>
 
 ```bash
-PYTHONPATH=src pydeps src --cluster --max-bacon=0 --max-module-depth=4 --only src --noshow -T svg -o docs/framework_map.svg
+pydeps orchard \
+    --cluster \
+    --max-bacon=0 \
+    --max-module-depth=4 \
+    --only orchard \
+    --noshow \
+    -T svg \
+    -o docs/framework_map.svg
 ```
 
-**Requirements:**
-
-* Python package: `pydeps`
-* System dependency: Graphviz (`dot` must be available in your `PATH`)
-
-**Tip:** On Linux, install Graphviz via `sudo apt install graphviz`. On macOS: `brew install graphviz`.
+**Requirements:** `pydeps` + Graphviz (`sudo apt install graphviz` or `brew install graphviz`)
 
 </details>
 
 ---
 
-## 🏗 Architecture Details
+## 🔬 Technical Deep Dive
 
-Standard ResNet-18 is designed for $224 \times 224$ inputs. When applied to the $28 \times 28$ MedMNIST manifold, the standard architecture suffers from aggressive information loss due to its initial downsampling layers. To preserve critical morphological details, the backbone has been modified:
+### Architecture Adaptation
 
-| Layer | Standard ResNet-18 | Adapted ResNet-18 (Ours) | Adaptation Strategy |
-| :--- | :--- | :--- | :--- |
-| **Input Conv** | $7 \times 7$, stride 2, pad 3 | **$3 \times 3$, stride 1, pad 1** | Bicubic Weight Interpolation |
-| **Max Pooling** | $3 \times 3$, stride 2 | **Bypassed (Identity)** | Maintain spatial resolution |
-| **Stage 1 Input** | $56 \times 56$ (from 224) | **$28 \times 28$ (from 28)** | Preserve native resolution |
+Standard ResNet-18 is optimized for 224×224 ImageNet inputs. Direct application to 28×28 domains causes catastrophic information loss. Our adaptation strategy:
+
+| Layer | Standard ResNet-18 | VisionForge Adapted | Rationale |
+|-------|-------------------|---------------------|-----------|
+| **Input Conv** | 7×7, stride=2, pad=3 | **3×3, stride=1, pad=1** | Preserve spatial resolution |
+| **Max Pooling** | 3×3, stride=2 | **Identity (bypassed)** | Prevent 75% feature loss |
+| **Stage 1 Input** | 56×56 (from 224) | **28×28 (from 28)** | Native resolution entry |
 
 **Key Modifications:**
+1. **Stem Redesign**: Replacing large-receptive-field convolution avoids immediate downsampling
+2. **Pooling Removal**: MaxPool bypass maintains full spatial fidelity into residual stages
+3. **Bicubic Weight Transfer**: Pretrained 7×7 weights are spatially interpolated to 3×3 geometry
 
-1. **Stem Adaptation**: The initial large-receptive-field convolution is replaced with a $3 \times 3$ kernel. By setting `stride=1`, we avoid losing 75% of the pixel data in the first layer.
-2. **Downsampling Removal**: The initial MaxPool layer is bypassed. In a standard ResNet, the feature map would be reduced to $14 \times 14$ before even reaching the first residual block. Our adaptation enters the residual stages at the full $28 \times 28$ resolution.
-3. **Bicubic Weight Transfer**: To maintain the representational power of the ImageNet-pretrained backbone, weights from the original $7 \times 7$ stem are mapped to the adapted $3 \times 3$ geometry using bicubic interpolation. This ensures the model starts with learned feature detectors rather than random noise.
+### Mathematical Weight Transfer
 
----
+To retain ImageNet-learned feature detectors, we apply bicubic interpolation:
 
-## 🔬 Mathematical Weight Transfer
-
-To retain the representational power of the pretrained backbone, we do not initialize the new $3 \times 3$ kernel randomly. Instead, we perform a spatial transformation on the weight tensor:
-
-**Source Tensor**: Pretrained ImageNet weights 
-
+**Source Tensor:**
 $$W_{\text{src}} \in \mathbb{R}^{C_{\text{out}} \times C_{\text{in}} \times 7 \times 7}$$
 
-**Interpolation**: Application of a bicubic resizing function $f$ across spatial dimensions:
+**Transformation:**
+$$W_{\text{dest}} = \mathcal{I}_{\text{bicubic}}(W_{\text{src}}, \text{size}=(3, 3))$$
 
-$$W_{\text{dest}} = f(W_{\text{src}}, \text{size}=(3, 3))$$
+**Result:** A 3×3 kernel preserving edge-detection patterns optimized for compact receptive fields, enabling faster convergence than random initialization.
 
-**Result**: A $3 \times 3$ kernel that preserves the edge-detection patterns learned on ImageNet but optimized for a tighter receptive field.
+### Training Regularization
 
-**Note**: This process ensures that the model starts training with "meaningful" filters rather than noise, leading to faster convergence and higher accuracy on small-scale medical textures.
+**MixUp Augmentation** synthesizes training samples via convex combinations:
 
----
+$$\tilde{x} = \lambda x_i + (1 - \lambda) x_j \quad \text{where} \quad \lambda \sim \text{Beta}(\alpha, \alpha)$$
 
-## 🔬 Training Regularization
+$$\tilde{y} = \lambda y_i + (1 - \lambda) y_j$$
 
-To improve generalization on the $28 \times 28$ manifold, the pipeline implements MixUp during training. New samples are synthesized as a convex combination of two random samples from the mini-batch:
-
-$$
-\tilde{x} = \lambda x_i + (1 - \lambda) x_j
-$$
-
-$$
-\tilde{y} = \lambda y_i + (1 - \lambda) y_j
-$$
-
-where $\lambda \in [0, 1]$ is drawn from a $\text{Beta}(\alpha, \alpha)$ distribution.
+This prevents overfitting on small-scale textures and improves generalization.
 
 ---
 
 ## 📁 Project Structure
 
-```bash
-medmnist/
-├── main.py                      # Global entry point: CLI parsing and RootOrchestrator lifecycle.
-├── Dockerfile                   # Image definition: Multi-stage build for reproducibility.
-├── requirements.txt             # Python dependencies: Torch 2.0+, V2 Transforms, Pydantic 2.0.
-├── tools/                       # Diagnostic & Validation Tools:
-│   ├── health_check.py          # Global diagnostic: MD5 integrity, NPZ keys, & samples.
-│   ├── smoke_test.py            # Rapid E2E verification: 1-epoch diagnostic.
-│   └── unit_test.py             # Initial unit testing suite (WIP).
-├── src/                         # Modular package: Core framework logic.
-│   ├── core/                    # System Hub: Centralized SSOT & lifecycle management.
-│   │   ├── config/              # Configuration & Schema Hub (Pydantic validation).
-│   │   ├── environment/         # Infrastructure Layer: Hardware discovery & reproducibility.
-│   │   ├── io/                  # Persistence Layer: YAML serialization & Weight I/O.
-│   │   ├── logger/              # Telemetry & Artifact Tracking: Console, File.
-│   │   ├── metadata/            # Dataset Registry: Class mappings & normalization constants.
-│   │   ├── paths/               # Path anchoring & BLAKE2b (6-char) run-folder generation.
-│   │   ├── cli.py               # Command-line interface definition and parsing logic.
-│   │   ├── orchestrator.py      # Lifecycle Master: Coordinates the 4-phase initialization.
-│   │   └── __init__.py          # Package initialization for the core hub.
-│   ├── data_handler/            # Loading & Augmentation:
-│   │   ├── dataset.py           # MedMNIST logic: RAM caching & indexing.
-│   │   └── transforms.py        # V2 Augmentations: Optimized computer vision pipelines.
-│   ├── models/                  # Architecture Silo:
-│   │   ├── factory.py           # Model Factory: Handles instantiation and weight interpolation.
-│   │   └── resnet_18_adapted.py # Adapted ResNet-18 with spatial stem resizing.
-│   ├── trainer/                 # Training Engine:
-│   │   └── trainer.py           # Main Training Loop: Implements MixUp and state management.
-│   ├── evaluation/              # Analytics Silo:
-│   │   └── pipeline.py          # Evaluation Master: Orchestrates plots, metrics, & Excel reporting.
-│   └── __init__.py              # Root package initialization.
-└── outputs/                     # Results: Isolated workspaces named YYYYMMDD_DS_MODEL_HASH.
+```
+visionforge/
+├── main.py                         # Training entry point
+├── optimize.py                     # Hyperparameter search entry point
+├── Dockerfile                      # Multi-stage reproducible build
+├── requirements.txt                # Pinned dependencies
+├── recipes/                        # YAML configuration presets
+│   ├── config_resnet_18_adapted.yaml
+│   ├── config_efficientnet_b0.yaml
+│   ├── optuna_resnet_18_adapted.yaml
+│   └── optuna_efficientnet_b0.yaml
+├── tools/                          # Diagnostic utilities
+│   ├── smoke_test.py               # 1-epoch E2E verification
+│   ├── health_check.py             # Dataset integrity validation
+│   └── unit_test.py                # Unit test suite (WIP)
+├── orchard/                        # Core framework package
+│   ├── core/                       # Framework nucleus
+│   │   ├── config/                 # Pydantic schemas
+│   │   ├── environment/            # Hardware abstraction
+│   │   ├── io/                     # Serialization utilities
+│   │   ├── logger/                 # Telemetry system
+│   │   ├── metadata/               # Dataset registry
+│   │   ├── paths/                  # Path management
+│   │   ├── cli.py                  # Argument parser
+│   │   └── orchestrator.py         # Lifecycle coordinator
+│   ├── data_handler/               # Loading strategies
+│   ├── models/                     # Architecture factory
+│   ├── trainer/                    # Training loop
+│   ├── evaluation/                 # Metrics and visualization
+│   └── optimization/               # Optuna integration
+│       ├── objective.py            # Trial execution logic
+│       ├── orchestrator.py         # Study management
+│       └── search_spaces.py        # Hyperparameter distributions
+└── outputs/                        # Isolated run workspaces
 ```
 
 ---
 
-## ⚙️ Requirements & Installation
+## 💻 Usage Patterns
+
+### Configuration-Driven Execution
+
+**Recommended Method:** YAML recipes ensure full reproducibility and version control.
 
 ```bash
-pip install -r requirements.txt
+# Verify environment
+python -m tools.smoke_test
+
+# Train with preset (28×28 ResNet-18)
+python main.py --config recipes/config_resnet_18_adapted.yaml
+
+# Train with preset (224×224 EfficientNet-B0)
+python main.py --config recipes/config_efficientnet_b0.yaml
 ```
 
-Install dependencies easily with pip, or check the full list here: [📦 See Full Requirements](requirements.txt)
+### CLI Overrides
+
+For rapid experimentation (not recommended for production):
+
+```bash
+# Quick test on different dataset
+python main.py --dataset dermamnist --epochs 10 --batch_size 64
+
+# Custom learning rate schedule
+python main.py --lr 0.001 --min_lr 1e-7 --epochs 100
+
+# Disable augmentations
+python main.py --mixup_alpha 0 --no_tta
+```
+
+> [!WARNING]
+> **Configuration Precedence Order:**
+> 1. **YAML file** (highest priority - if `--config` is provided)
+> 2. **CLI arguments** (only used when no `--config` specified)
+> 3. **Defaults** (from Pydantic field definitions)
+>
+> **When `--config` is provided, YAML values override CLI arguments.** This prevents configuration drift but means CLI flags are ignored. For reproducible research, always use YAML recipes.
 
 ---
 
-## 💻 Usage (Local)
+## 🎯 Hyperparameter Optimization
 
-### Option A: Running with a Recipe (Recommended)
-
-This is the preferred method to ensure full reproducibility. The YAML file acts as the Single Source of Truth (SSOT).
+### Quick Start
 
 ```bash
-# Ensure PYTHONPATH is set
-export PYTHONPATH=$PYTHONPATH:$(pwd)
+# Install Optuna (if not already present)
+pip install optuna plotly kaleido
 
-# Launch using the configuration recipes:
+# Run optimization with preset (28×28, 50 trials, ~2-3h)
+python optimize.py --config recipes/optuna_resnet_18_adapted.yaml
 
-# CPU-friendly setup (28×28, ResNet-18 adapted)
-python main.py --config recipes/config_28x28_resnet_18_adapted.yaml
+# Run optimization with preset (224×224, 20 trials, ~1h)
+python optimize.py --config recipes/optuna_efficientnet_b0.yaml
 
-# High-resolution setup (224×224, GPU acceleration recommended)
-python main.py --config recipes/config_224x224_efficientnet_b0.yaml
+# Custom search (20 trials, 10 epochs each)
+python optimize.py --dataset pathmnist \
+    --n_trials 20 \
+    --epochs 10 \
+    --search_space_preset quick
+
+# Resume interrupted study
+python optimize.py --config recipes/optuna_resnet_18_adapted.yaml \
+    --load_if_exists true
 ```
+---
 
-### Option B: Standard CLI (Quick Tests)
+### Search Space Coverage
+
+**Full Space** (13 parameters):
+- **Optimization**: `learning_rate`, `weight_decay`, `momentum`, `min_lr`
+- **Regularization**: `mixup_alpha`, `label_smoothing`, `dropout`
+- **Scheduling**: `cosine_fraction`, `scheduler_patience`
+- **Augmentation**: `rotation_angle`, `jitter_val`, `min_scale`
+- **Batch Size**: Resolution-aware categorical choices
+  - 28×28: [16, 32, 48, 64]
+  - 224×224: [8, 12, 16] (OOM-safe for 8GB VRAM)
+
+**Quick Space** (4 parameters):
+- `learning_rate`, `weight_decay`, `batch_size`, `dropout`
+
+### Optimization Workflow
 
 ```bash
-python main.py --dataset dermamnist --epochs 10
+# Phase 1: Rapid exploration (20 trials, 10 epochs, ~30 min)
+python optimize.py --config recipes/optuna_resnet_18_adapted.yaml \
+    --n_trials 20 --epochs 10
+
+# Phase 2: Comprehensive search (50 trials, 15 epochs, ~2-3h)
+python optimize.py --config recipes/optuna_resnet_18_adapted.yaml
+
+# Phase 3: Final training with best config (60 epochs)
+python main.py --config outputs/*/reports/best_config.yaml --epochs 60
 ```
 
-> [!TIP] 
-> When `--config` is provided, the YAML file takes precedence over CLI arguments to prevent configuration drift.
+### Artifacts Generated
+
+```
+outputs/20250116_bloodmnist_optuna_a3f7c2/
+├── figures/
+│   ├── param_importances.html      # Interactive importance plot
+│   ├── optimization_history.html   # Trial progression
+│   └── parallel_coordinates.html   # Hyperparameter relationships
+├── reports/
+│   ├── best_config.yaml            # Optimized configuration
+│   ├── study_summary.json          # All trials metadata
+│   └── top_10_trials.xlsx          # Best configurations
+└── database/
+    └── study.db                    # SQLite storage for resumption
+```
+
+### Customization
+
+Edit search spaces in `orchard/optimization/search_spaces.py`:
+
+```python
+class CustomSearchSpace:
+    @staticmethod
+    def get_optimization_space() -> Dict[str, Callable]:
+        return {
+            "learning_rate": lambda trial: trial.suggest_float(
+                "learning_rate", 1e-4, 1e-2, log=True
+            ),
+            "weight_decay": lambda trial: trial.suggest_float(
+                "weight_decay", 1e-5, 1e-3, log=True
+            ),
+        }
+```
 
 ---
 
-## ✅ Environment Verification (Smoke Test)
+## ✅ Environment Verification
 
-Before starting a full training session, it is highly recommended to run the diagnostic smoke test. This ensures that your local environment, PyTorch versions, and visualization libraries are fully compatible:
-
+**Smoke Test** (1-epoch sanity check):
 ```bash
 python -m tools.smoke_test
 ```
 
-This will run a 1-epoch training on a tiny subset of a MedMNIST dataset and verify the generation of all output files.
+**Output:** Validates full pipeline in <30 seconds:
+- Dataset loading and preprocessing
+- Model instantiation and weight transfer
+- Training loop execution
+- Evaluation metrics computation
+- Excel/PNG artifact generation
+
+**Health Check** (dataset integrity):
+```bash
+python -m tools.health_check --dataset bloodmnist
+```
+
+**Output:** Verifies:
+- MD5 checksum matching
+- NPZ key structure (`train_images`, `train_labels`, `val_images`, etc.)
+- Sample count validation
 
 ---
 
-## 🐳 Docker Execution (Recommended for Portability)
+## 🐳 Containerized Deployment
 
-The pipeline is containerized using the included `Dockerfile`.
-
-**Build the Image**
-
-Build the image locally using the provided Dockerfile. This ensures all dependencies and environment configurations are correctly set up:
+### Build Image
 
 ```bash
-sudo docker build -t bloodmnist_image .
+docker build -t visionforge:latest .
 ```
 
-**Run Experiments**
+### Execution Modes
 
-You can choose between Strict Reproducibility (for testing/validation) and Standard Mode (for performance).
-
-**Option A: Strict Reproducibility Mode (Deterministic)**
-
-Enforces bit-perfect results by disabling multi-processing and forcing deterministic GPU kernels:
-
+**Standard Mode** (Performance Optimized):
 ```bash
-sudo docker run -it --rm \
+docker run -it --rm \
+  --gpus all \
+  -u $(id -u):$(id -g) \
+  -e TORCH_HOME=/tmp/torch_cache \
+  -e MPLCONFIGDIR=/tmp/matplotlib_cache \
+  -v $(pwd)/dataset:/app/dataset \
+  -v $(pwd)/outputs:/app/outputs \
+  visionforge:latest \
+  --config recipes/config_resnet_18_adapted.yaml
+```
+
+**Strict Reproducibility Mode** (Bit-Perfect Determinism):
+```bash
+docker run -it --rm \
+  --gpus all \
   -u $(id -u):$(id -g) \
   -e IN_DOCKER=TRUE \
   -e DOCKER_REPRODUCIBILITY_MODE=TRUE \
@@ -311,112 +549,155 @@ sudo docker run -it --rm \
   -e CUBLAS_WORKSPACE_CONFIG=:4096:8 \
   -v $(pwd)/dataset:/app/dataset \
   -v $(pwd)/outputs:/app/outputs \
-  bloodmnist_image --dataset bloodmnist
+  visionforge:latest \
+  --config recipes/config_resnet_18_adapted.yaml \
+  --reproducible
 ```
 
-**Option B: Standard Mode (High Performance)**
-
-Optimized for training speed using multi-core data loading and standard algorithms:
-
-```bash
-sudo docker run -it --rm \
-  -u $(id -u):$(id -g) \
-  -e IN_DOCKER=TRUE \
-  -e TORCH_HOME=/tmp/torch_cache \
-  -e MPLCONFIGDIR=/tmp/matplotlib_cache \
-  -v $(pwd)/dataset:/app/dataset \
-  -v $(pwd)/outputs:/app/outputs \
-  bloodmnist_image --dataset pathmnist --batch_size 256
-```
-
-> [!IMPORTANT]
-> The flags `-e TORCH_HOME=/tmp/torch_cache` and `-e MPLCONFIGDIR=/tmp/matplotlib_cache` are mandatory when running with a specific user ID (`-u`) to avoid `Permission Denied` errors in the container's root filesystem. The `CUBLAS_WORKSPACE_CONFIG` is also required for bit-perfect CUDA determinism.
+> [!NOTE]
+> - `TORCH_HOME` and `MPLCONFIGDIR` prevent permission errors in containerized environments
+> - `CUBLAS_WORKSPACE_CONFIG` is required for CUDA determinism
+> - `--gpus all` requires NVIDIA Container Toolkit
 
 ---
 
-## 📊 Command Line Arguments
+## 📊 Configuration Reference
 
-You can fully configure training from the command line (via `main.py`):
+### Core Parameters
 
-| Argument | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `--epochs` | int | 60 | Maximum number of training epochs. |
-| `--batch_size` | int | 128 | Batch size for data loaders. |
-| `--lr` | float | 0.008 | Initial learning rate for the SGD optimizer. |
-| `--seed` | int | 42 | Random seed for reproducibility (influences PyTorch, NumPy, Python). |
-| `--mixup_alpha` | float | 0.002 | $\alpha$ parameter for MixUp regularization. Set to 0 to disable MixUp. |
-| `--patience` | int | 15 | Early stopping patience (epochs without validation improvement). |
-| `--momentum` | float | 0.9 | Momentum factor for the SGD optimizer. |
-| `--weight_decay` | float | 5e-4 | Weight decay (L2 penalty) for the optimizer. |
-| `--no_tta` | flag | (disabled) | Flag to disable Test-Time Augmentation (TTA) during final evaluation. |
-| `--hflip` | float | 0.5 | Probability of Horizontal Flip augmentation. |
-| `--rotation_angle` | int | 10 | Maximum rotation angle for random rotations. |
-| `--jitter_val` | float | 0.2 | Strength of Color Jitter (brightness/contrast). |
-| `--dataset` | str | "bloodmnist" | MedMNIST dataset identifier (e.g., bloodmnist, dermamnist). |
-| `--model_name` | str | "ResNet-18 Adapted" | Identifier for logging and folder naming. |
-| `--reproducible` | bool | False | Enables strict deterministic algorithms and forces `num_workers=0`. |
-| `--allow_process_kill` | bool | True | Enables/disables termination of duplicate processes (auto-disabled on clusters). |
+| Parameter | Type | Default | Range | Description |
+|-----------|------|---------|-------|-------------|
+| `epochs` | int | 60 | [1, 1000] | Training epochs |
+| `batch_size` | int | 128 | [1, 2048] | Samples per batch |
+| `learning_rate` | float | 0.008 | (1e-8, 1.0) | Initial SGD learning rate |
+| `min_lr` | float | 1e-6 | (0, lr) | Minimum LR for scheduler |
+| `weight_decay` | float | 5e-4 | [0, 0.2] | L2 regularization |
+| `momentum` | float | 0.9 | [0, 1) | SGD momentum |
+| `mixup_alpha` | float | 0.002 | [0, 1] | MixUp strength (0=disabled) |
+| `label_smoothing` | float | 0.0 | [0, 0.3] | Label smoothing factor |
+| `dropout` | float | 0.0 | [0, 0.9] | Dropout probability |
+| `seed` | int | 42 | - | Global random seed |
+| `reproducible` | bool | False | - | Enable strict determinism |
 
-**Examples:**
+### Augmentation Parameters
 
-Run without TTA:
-```bash
-python main.py --no_tta
-```
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `hflip` | float | 0.5 | Horizontal flip probability |
+| `rotation_angle` | int | 10 | Max rotation degrees |
+| `jitter_val` | float | 0.2 | ColorJitter intensity |
+| `min_scale` | float | 0.95 | Minimum RandomResizedCrop scale |
+| `no_tta` | bool | False | Disable test-time augmentation |
 
-Train for 100 epochs:
-```bash
-python main.py --epochs 100
-```
+### Model Parameters
 
-Lower learning rate for finer tuning:
-```bash
-python main.py --lr 0.001
-```
+| Parameter | Type | Default | Options |
+|-----------|------|---------|---------|
+| `model_name` | str | "resnet_18_adapted" | `resnet_18_adapted`, `efficientnet_b0` |
+| `pretrained` | bool | True | Use ImageNet weights |
+| `force_rgb` | bool | True | Convert grayscale to 3-channel |
+| `resolution` | int | 28 | [28, 224] |
 
-Disable MixUp:
-```bash
-python main.py --mixup_alpha 0
-```
+### Dataset Parameters
 
-Custom batch size & seed:
-```bash
-python main.py --batch_size 64 --seed 123
-```
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dataset` | str | "bloodmnist" | MedMNIST identifier |
+| `data_root` | Path | `./dataset` | Dataset directory |
+| `max_samples` | int | None | Cap training samples (debugging) |
+| `use_weighted_sampler` | bool | True | Balance class distribution |
 
 ---
 
-## Scaling to Other MedMNIST Datasets
+## 🔄 Extending to New Datasets
 
-Thanks to the registry system, you can train on different datasets without modifying the code:
+The framework is designed for zero-code dataset integration via the registry system:
+
+### 1. Add Dataset Metadata
+
+Edit `orchard/core/metadata/medmnist_v2_28x28.py`:
+
+```python
+DATASET_REGISTRY = {
+    "custom_dataset": DatasetMetadata(
+        name="custom_dataset",
+        num_classes=10,
+        in_channels=3,
+        mean=(0.5, 0.5, 0.5),
+        std=(0.25, 0.25, 0.25),
+        native_resolution=28,
+        class_names=["class0", "class1", ...],
+        url="https://example.com/dataset.npz",
+        md5="abc123..."
+    ),
+}
+```
+
+### 2. Train Immediately
 
 ```bash
-python main.py --dataset dermamnist --lr 0.005 --epochs 100
+python main.py --dataset custom_dataset --epochs 30
 ```
+
+No code changes required—the configuration engine automatically resolves metadata.
 
 ---
 
-## Citation
-
-If you use this repository in academic work or derivative projects:
+## 📚 Citation
 
 ```bibtex
-@misc{adaptive_classification_framework,
-  title  = {Adaptive Image Classification Framework with ResNet-18 and EfficientNet-B0},
+@software{visionforge2025,
   author = {Tommaso Russo},
+  title  = {VisionForge: Type-Safe Deep Learning Framework},
   year   = {2025},
-  url    = {https://github.com/tomrussobuilds/medmnist}
+  url    = {https://github.com/tomrussobuilds/visionforge},
+  note   = {PyTorch framework with Pydantic configuration and Optuna optimization}
 }
 ```
 
 ---
 
-## 🗺 Research Goals & Roadmap
+## 🗺 Development Roadmap
 
-- **Phase 1: Architecture Optimization (✅ Completed)** — Implementation of kernel stem resizing ($3 \times 3$) and MaxPool removal to preserve critical morphological details on the $28 \times 28$ MedMNIST manifold.
+### ✅ Phase 1: Foundation (Completed)
+- Architecture adaptation (3×3 stem, MaxPool removal)
+- Pydantic-based configuration engine
+- Infrastructure safety (flock, process management)
 
-- **Phase 2: Configuration-Driven Engine (✅ Completed)** — Transition to a fully declarative execution model using **YAML recipes**. Total decoupling of experiment logic from the core engine for version-controlled, reproducible research.
+### ✅ Phase 2: Automation (Completed)
+- YAML-driven execution model
+- Optuna hyperparameter optimization
+- Multi-resolution support (28×28, 224×224)
 
-- **Phase 3: High-Resolution & Modern Backbones (🔄 Current)** — Scaling the pipeline to handle high-resolution inputs ($224 \times 224$ and beyond). Integration of state-of-the-art architectures including **Vision Transformers (ViT)**, **EfficientNet-V2**, and **ConvNeXt** to benchmark global vs. local feature extraction.
+### 🔄 Phase 3: Modern Architectures (Current)
+- Vision Transformer (ViT) integration
+- EfficientNet-V2 support
+- ConvNeXt architecture addition
+- Attention mechanism analysis
 
-- **Phase 4: Domain Transcendence & Universal Framework (🔮 Long Term)** — Evolving the codebase into a domain-agnostic computer vision framework. This includes abstracting the Data Registry to support diverse manifolds (natural images, satellite imagery, industrial inspection) and implementing multi-modal hooks for broader vision tasks.
+### 🔮 Phase 4: Domain Transcendence (Planned)
+- Abstract dataset registry for non-medical domains
+- Multi-modal hooks (detection, segmentation)
+- Distributed training support (DDP, FSDP)
+- TorchScript/ONNX export pipeline
+- Benchmark suite for architecture comparison
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+## 🤝 Contributing
+
+Contributions welcome! Please open an issue for discussion before submitting PRs.
+
+## 📧 Contact
+
+For questions or collaboration: [GitHub Issues](https://github.com/tomrussobuilds/visionforge/issues)
+
+---
+
+<p align="center">
+<strong>Built with ❤️ for reproducible research</strong>
+</p>

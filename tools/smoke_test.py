@@ -18,17 +18,17 @@ import argparse
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from src.core import (
+from orchard.core import (
     Config, parse_args, DATASET_REGISTRY, RootOrchestrator
 )
-from src.data_handler import (
+from orchard.data_handler import (
     load_medmnist, get_dataloaders, get_augmentations_description
 )
-from src.models import get_model
-from src.trainer import (
+from orchard.models import get_model
+from orchard.trainer import (
     ModelTrainer, get_criterion, get_optimizer, get_scheduler
 )
-from src.evaluation import run_final_evaluation
+from orchard.evaluation import run_final_evaluation
 
 # =========================================================================== #
 #                               SMOKE TEST EXECUTION                          #

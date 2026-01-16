@@ -24,9 +24,9 @@ import torch
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
-from src.core.config import Config, TrainingConfig
-from src.core.orchestrator import RootOrchestrator
-from src.core.io import save_config_as_yaml
+from orchard.core.config import Config, TrainingConfig
+from orchard.core.orchestrator import RootOrchestrator
+from orchard.core.io import save_config_as_yaml
 
 
 # =========================================================================== #

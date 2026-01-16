@@ -1,0 +1,124 @@
+
+
+# ==============================================================================
+# FILE 3: recipes/optuna_resnet_18_adapted.yaml
+# Hyperparameter Optimization for ResNet-18 (28x28)
+# ==============================================================================
+# Usage: python optimize.py --config recipes/optuna_resnet_18_adapted.yaml
+# Estimated Time: ~2 hours (25 trials × 15 epochs)
+# Memory Usage: ~2GB VRAM per trial
+
+dataset:
+  name: "pathmnist"
+  data_root: ./dataset
+  resolution: 28
+  force_rgb: false
+  use_weighted_sampler: false
+  max_samples: null
+
+model:
+  name: "resnet_18_adapted"
+  pretrained: false
+  dropout: 0.3                  # Will be optimized
+
+training:
+  seed: 42
+  reproducible: true
+  
+  # Base values (WILL BE OPTIMIZED BY OPTUNA)
+  batch_size: 16
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  momentum: 0.9
+  min_lr: 1e-6
+  
+  # Regularization (WILL BE OPTIMIZED)
+  mixup_alpha: 0.0
+  label_smoothing: 0.0
+  
+  # Training loop (FIXED)
+  epochs: 60                    # Final training only
+  patience: 15
+  grad_clip: 1.0
+  mixup_epochs: 0
+  
+  # Scheduler (PARTIALLY OPTIMIZED)
+  scheduler_type: "cosine"
+  cosine_fraction: 0.5
+  scheduler_patience: 5
+  scheduler_factor: 0.1
+  step_size: 20
+  
+  # Performance
+  use_amp: true
+  use_tta: false
+  criterion_type: "cross_entropy"
+  weighted_loss: false
+  focal_gamma: 2.0
+
+augmentation:
+  hflip: 0.3
+  rotation_angle: 5             # Will be optimized
+  jitter_val: 0.05              # Will be optimized
+  min_scale: 0.95               # Will be optimized
+  tta_translate: 0.5
+  tta_scale: 1.02
+  tta_blur_sigma: 0.1
+
+hardware:
+  device: "auto"
+
+telemetry:
+  output_dir: ./outputs
+  log_level: "INFO"
+  log_interval: 50
+
+evaluation:
+  batch_size: 64
+  n_samples: 6
+  fig_dpi: 200
+  cmap_confusion: Blues
+  plot_style: seaborn-v0_8-muted
+  grid_cols: 4
+  fig_size_predictions: [12, 8]
+  report_format: xlsx
+  save_confusion_matrix: false  # Skip during optimization
+  save_predictions_grid: false
+
+optuna:
+  study_name: "pathmnist_resnet18_optimized"
+  n_trials: 50
+  epochs: 15                    # Short trials for speed
+  timeout: null
+  
+  # Optimization target
+  metric_name: "auc"
+  direction: "maximize"
+  
+  # Early stopping config
+  enable_early_stopping: true
+  early_stopping_threshold: 0.9999
+  early_stopping_patience: 2 
+  
+  # Search strategy
+  sampler_type: "tpe"
+  search_space_preset: "full"
+  
+  # Pruning
+  enable_pruning: true
+  pruner_type: "median"
+  pruning_warmup_epochs: 5
+  
+  # Storage
+  storage_type: "sqlite"
+  storage_path: null
+  
+  # Execution
+  n_jobs: 1
+  load_if_exists: true
+  show_progress_bar: false
+  
+  # Output
+  save_plots: true
+  save_best_config: true
+
