@@ -51,7 +51,10 @@ from .orchestrator import RootOrchestrator
 # =========================================================================== #
 from .logger import (
     Logger,
-    Reporter
+    Reporter,
+    log_optimization_header,
+    log_study_summary,
+    log_best_config_export
 )
 
 # =========================================================================== #
@@ -121,6 +124,9 @@ __all__ = [
     # Logging
     "Logger",
     "Reporter",
+    "log_optimization_header",
+    "log_study_summary",
+    "log_best_config_export",
     
     # Environment
     "set_seed",

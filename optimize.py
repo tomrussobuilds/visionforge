@@ -68,22 +68,6 @@ def main():
         paths = orchestrator.paths
         logger = orchestrator.run_logger
         
-        # --- Optimization Banner ---
-        logger.info(
-            f"\n{'#' * 80}\n"
-            f"{'OPTUNA HYPERPARAMETER OPTIMIZATION':^80}\n"
-            f"{'#' * 80}\n"
-            f"  Dataset: {config.dataset.dataset_name}\n"
-            f"  Model: {config.model.name}\n"
-            f"  Search Space: {config.optuna.search_space_preset}\n"
-            f"  Trials: {config.optuna.n_trials}\n"
-            f"  Epochs per Trial: {config.optuna.epochs}\n"
-            f"  Metric: {config.optuna.metric_name}\n"
-            f"  Device: {device}\n"
-            f"  Pruning: {'Enabled' if config.optuna.enable_pruning else 'Disabled'}\n"
-            f"{'#' * 80}"
-        )
-        
         try:
             # --- Execute Optimization ---
             study = run_optimization(

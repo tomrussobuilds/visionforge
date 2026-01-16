@@ -1,4 +1,4 @@
-# 🔬 VisionForge: Type-Safe Deep Learning Framework
+# 🔮 VisionForge: Type-Safe Deep Learning Framework
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-orange?logo=pytorch&logoColor=white)

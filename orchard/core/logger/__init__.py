@@ -14,7 +14,9 @@ Available Components:
 #                                Logger & Reporter Exports                    #
 # =========================================================================== #
 from .logger import Logger
-from .reporter import Reporter
+from .reporter import (
+    Reporter, log_optimization_header, log_study_summary, log_best_config_export
+)
 
 # =========================================================================== #
 #                                __all__ Definition                           #

@@ -184,7 +184,7 @@ class RootOrchestrator:
         Summarizes hardware, dataset metadata, and execution policies.
         """
         self.reporter.log_initial_status(
-            logger=self.run_logger,
+            logger_instance=self.run_logger,
             cfg=self.cfg,
             paths=self.paths,
             device=self.get_device(),

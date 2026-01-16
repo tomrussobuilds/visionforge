@@ -29,7 +29,10 @@ from optuna.pruners import (
 # =========================================================================== #
 #                         Internal Imports                                    #
 # =========================================================================== #
-from orchard.core import Config, LOGGER_NAME, save_config_as_yaml, RunPaths
+from orchard.core import (
+    Config, LOGGER_NAME, save_config_as_yaml, RunPaths, log_best_config_export,
+    log_study_summary, log_optimization_header
+)
 from .search_spaces import get_search_space
 from .objective import OptunaObjective
 from .early_stopping import get_early_stopping_callback
@@ -130,6 +133,7 @@ class OptunaOrchestrator:
         )
         
         # Run optimization
+        log_optimization_header(self.cfg)
         logger.info(
             f"\n{'=' * 80}\n"
             f"Starting Optuna optimization: {self.cfg.optuna.n_trials} trials\n"
@@ -159,7 +163,7 @@ class OptunaOrchestrator:
             logger.warning("Optimization interrupted by user. Saving partial results...")
         
         # Post-optimization processing
-        self._log_study_summary(study)
+        log_study_summary(study, self.cfg.optuna.metric_name)
         
         if self.cfg.optuna.save_plots:
             self._generate_visualizations(study)
@@ -215,38 +219,6 @@ class OptunaOrchestrator:
             )
         
         return pruner_factory()
-    
-    def _log_study_summary(self, study: optuna.Study) -> None:
-        """
-        Log optimization results summary.
-        
-        Args:
-            study: Completed Optuna study
-        """
-        completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-        pruned = [t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED]
-        
-        logger.info(
-            f"\n{'=' * 80}\n"
-            f"Optimization Complete\n"
-            f"{'=' * 80}\n"
-            f"  Total trials: {len(study.trials)}\n"
-            f"  Completed: {len(completed)}\n"
-            f"  Pruned: {len(pruned)}\n"
-        )
-        
-        if completed:
-            logger.info(
-                f"  Best {self.cfg.optuna.metric_name}: {study.best_value:.4f}\n"
-                f"  Best trial: {study.best_trial.number}\n"
-                f"{'=' * 80}"
-            )
-            
-            logger.info("\nBest Hyperparameters:")
-            for param, value in study.best_params.items():
-                logger.info(f"  {param}: {value}")
-        else:
-            logger.warning("No trials completed successfully")
     
     def _generate_visualizations(self, study: optuna.Study) -> None:
         """
@@ -331,8 +303,7 @@ class OptunaOrchestrator:
         output_path = self.paths.reports / "best_config.yaml"
         save_config_as_yaml(best_config, output_path)
         
-        logger.info(f"Best configuration saved to {output_path}")
-        logger.info(f"To use: python main.py --config {output_path}")
+        log_best_config_export(output_path)
 
 
 # =========================================================================== #
