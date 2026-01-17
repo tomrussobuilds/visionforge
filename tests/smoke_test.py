@@ -42,31 +42,17 @@ def run_smoke_test(args: argparse.Namespace) -> None:
     # 1. Configuration Setup & Override
     
     # Disable AMP for CPU compatibility
-    if not hasattr(args, 'use_amp'):
-        args.use_amp = False
-    else:
-        args.use_amp = False
+    args.use_amp = False
     
     # Set minimal training parameters
-    if not hasattr(args, 'epochs'):
-        args.epochs = 1
-    else:
-        args.epochs = 1
+    args.epochs = 1
+    args.batch_size = 4
+    args.max_samples = 32
+    args.num_workers = 0
     
-    if not hasattr(args, 'batch_size'):
-        args.batch_size = 4
-    else:
-        args.batch_size = 4
-    
-    if not hasattr(args, 'max_samples'):
-        args.max_samples = 32
-    else:
-        args.max_samples = 32
-    
-    if not hasattr(args, 'num_workers'):
-        args.num_workers = 0
-    else:
-        args.num_workers = 0
+    # mixup_epochs default is 20, which exceeds epochs=1
+    args.mixup_alpha = 0.0
+    args.mixup_epochs = 0
     
     # OptunaConfig has pruning_warmup_epochs=10 which fails with epochs=1
     if hasattr(args, 'study_name'):
