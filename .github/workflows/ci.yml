@@ -117,7 +117,7 @@ jobs:
 
       - name: Run smoke test
         run: |
-          python -m tools.smoke_test
+          python -m tests.smoke_test
         timeout-minutes: 10
 
       - name: Upload smoke test artifacts
