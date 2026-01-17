@@ -40,11 +40,14 @@ def run_smoke_test(args: argparse.Namespace) -> None:
     code stability and prevent regression bugs.
     """
     # 1. Configuration Setup & Override
+    
+    # Disable AMP for CPU compatibility
     if not hasattr(args, 'use_amp'):
         args.use_amp = False
     else:
-        args.use_amp = False 
+        args.use_amp = False
     
+    # Set minimal training parameters
     if not hasattr(args, 'epochs'):
         args.epochs = 1
     else:
@@ -64,6 +67,10 @@ def run_smoke_test(args: argparse.Namespace) -> None:
         args.num_workers = 0
     else:
         args.num_workers = 0
+    
+    # OptunaConfig has pruning_warmup_epochs=10 which fails with epochs=1
+    if hasattr(args, 'study_name'):
+        delattr(args, 'study_name')
     
     # Create Config with smoke-test-friendly args
     cfg = Config.from_args(args)
