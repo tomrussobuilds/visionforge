@@ -40,20 +40,33 @@ def run_smoke_test(args: argparse.Namespace) -> None:
     code stability and prevent regression bugs.
     """
     # 1. Configuration Setup & Override
-    # Create Config and force minimal parameters for rapid execution
-    base_cfg = Config.from_args(args)
+    if not hasattr(args, 'use_amp'):
+        args.use_amp = False
+    else:
+        args.use_amp = False 
     
-    cfg = base_cfg.model_copy(update={
-        "num_workers": 0,
-        "training": base_cfg.training.model_copy(update={
-            "epochs": 1,           # Minimal epochs
-            "batch_size": 4,       # Small batch
-            "use_amp": False,      # Disable AMP for stability in test
-        }),
-        "dataset": base_cfg.dataset.model_copy(update={
-            "max_samples": 32,     # Minimal data subset
-        })
-    })
+    if not hasattr(args, 'epochs'):
+        args.epochs = 1
+    else:
+        args.epochs = 1
+    
+    if not hasattr(args, 'batch_size'):
+        args.batch_size = 4
+    else:
+        args.batch_size = 4
+    
+    if not hasattr(args, 'max_samples'):
+        args.max_samples = 32
+    else:
+        args.max_samples = 32
+    
+    if not hasattr(args, 'num_workers'):
+        args.num_workers = 0
+    else:
+        args.num_workers = 0
+    
+    # Create Config with smoke-test-friendly args
+    cfg = Config.from_args(args)
 
     # --- Stage 1: Environment Initialization ---
     with RootOrchestrator(cfg) as orchestrator:
