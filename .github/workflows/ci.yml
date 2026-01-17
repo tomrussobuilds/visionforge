@@ -117,7 +117,7 @@ jobs:
 
       - name: Run smoke test with CPU-safe settings
         run: |
-          python -m tools.smoke_test \
+          python -m tests.smoke_test \
             --dataset bloodmnist \
             --epochs 1 \
             --batch_size 4 \
