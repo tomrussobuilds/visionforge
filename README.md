@@ -117,12 +117,6 @@ firefox outputs/*/figures/param_importances.html
 python main.py --config outputs/*/reports/best_config.yaml
 ```
 
->[!Note]
->**Timing Variance**: GPU training times depend heavily on:
->- Early stopping criteria (can finish in 1-3h if AUC≥0.9999 reached)
->- Dataset complexity (BloodMNIST 28×28: ~5min vs OrganCMNIST 224×224: ~30min/trial)
->- Hardware specifications (times based on RTX 5070)
-
 ---
 
 ## ✨ Core Features
