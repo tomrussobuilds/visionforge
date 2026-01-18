@@ -1,27 +1,41 @@
 """
-Main Execution Script for MedMNIST Classification Pipeline
+Training Pipeline Entry Point for VisionForge.
 
-This orchestrator manages the lifecycle of a deep learning experiment, applying 
-an adapted ResNet-18 architecture to various MedMNIST datasets.
+Orchestrates end-to-end classification experiments with complete lifecycle
+management: environment setup, data loading, model training, evaluation,
+and artifact generation.
 
-The pipeline follows a 5-stage orchestration logic:
-1. Environment Initialization: Centralized setup via RootOrchestrator, 
-   handling seeding, resource locking, and directory management.
-2. Data Preparation: Metadata-driven loading, creation of robust DataLoaders, 
-   and visual diagnostic sampling of augmented images.
-3. Training Execution: Standardized training loops with AMP, MixUp, and 
-   automated checkpointing of the best model based on validation metrics.
-4. Model Recovery & Testing: Restoration of optimal weights and comprehensive 
-   evaluation including Test-Time Augmentation (TTA).
-5. Reporting & Summary: Generation of diagnostic visualizations, structured 
-   Excel performance reports, and finalized session logging.
+Workflow:
+    1. Configuration parsing (CLI/YAML)
+    2. Environment initialization via RootOrchestrator
+    3. Data loading with metadata-driven validation
+    4. Model training with AMP, MixUp, and checkpointing
+    5. Final evaluation with Test-Time Augmentation
+    6. Report generation (Excel, plots, logs)
+
+Usage:
+    # Train with YAML recipe (recommended)
+    python main.py --config recipes/config_resnet_18_adapted.yaml
+    
+    # Quick test with CLI overrides
+    python main.py --dataset bloodmnist --epochs 10 --batch_size 64
+    
+    # High-resolution training (GPU required)
+    python main.py --config recipes/config_vit_tiny.yaml
+
+Key Features:
+    - Type-safe configuration via Pydantic V2
+    - Automatic GPU detection and fallback
+    - Kernel-level file locking for cluster safety
+    - Deterministic run isolation (BLAKE2b hashing)
+    - Comprehensive artifact suite (models, plots, reports)
 """
 
 # =========================================================================== #
-#                                Internal Imports                             #
+#                            INTERNAL IMPORTS                                 #
 # =========================================================================== #
 from orchard.core import (
-    Config, parse_args, DATASET_REGISTRY, RootOrchestrator
+    Config, parse_args, DATASET_REGISTRY, RootOrchestrator, LogStyle
 )
 from orchard.data_handler import (
     load_medmnist, get_dataloaders, show_samples_for_dataset, 
@@ -34,48 +48,62 @@ from orchard.trainer import (
 from orchard.evaluation import run_final_evaluation
 
 # =========================================================================== #
-#                               MAIN EXECUTION
+#                           MAIN EXECUTION                                    #
 # =========================================================================== #
 
 def main() -> None:
     """
-    Main orchestrator that controls the end-to-end training and evaluation flow.
+    Main orchestrator for training pipeline execution.
     
-    This function initializes the environment through the RootOrchestrator,
-    coordinates the data loading phase, executes the training loop via ModelTrainer,
-    and concludes with a rigorous evaluation and reporting phase.
+    Coordinates the complete training lifecycle from configuration parsing
+    to final evaluation. Utilizes RootOrchestrator context manager for
+    resource safety and automatic cleanup.
+    
+    Workflow:
+        1. Parse CLI arguments (YAML config or direct flags)
+        2. Build unified Config with Pydantic validation
+        3. Initialize orchestrator (device, filesystem, logging)
+        4. Load dataset with metadata injection
+        5. Train model with validation checkpointing
+        6. Evaluate on test set with optional TTA
+        7. Generate comprehensive reports and artifacts
+    
+    Raises:
+        KeyboardInterrupt: User interrupted training (graceful cleanup)
+        Exception: Any fatal error during pipeline (logged and re-raised)
     """
+    # Parse CLI arguments (supports both YAML and direct flags)
+    args = parse_args()
     
-    # 1. Configuration & Root Orchestration
-    # We parse the CLI arguments and build the SSOT (Single Source of Truth)
-    args         = parse_args()
-    cfg          = Config.from_args(args)
+    # Build configuration (triggers Pydantic validation)
+    cfg = Config.from_args(args)
     
-    # Using RootOrchestrator as a Context Manager to handle lifecycle, 
-    # resource guarding (locks), and automatic cleanup.
+    # Use orchestrator context manager for resource safety
+    # Guarantees cleanup even if pipeline crashes
     with RootOrchestrator(cfg) as orchestrator:
         
-        # Access the synchronized services provided by the orchestrator
-        paths        = orchestrator.paths
-        run_logger   = orchestrator.run_logger
-        device       = orchestrator.get_device()
+        # Access synchronized services provided by orchestrator
+        paths      = orchestrator.paths
+        run_logger = orchestrator.run_logger
+        device     = orchestrator.get_device()
         
-        # Retrieve dataset metadata from registry using the validated slug
-        # Note: cfg.dataset.dataset_name is now a property resolved via metadata
-        ds_meta      = DATASET_REGISTRY[cfg.dataset.metadata.name.lower()]
+        # Retrieve dataset metadata from registry
+        ds_meta = DATASET_REGISTRY[cfg.dataset.metadata.name.lower()]
 
         try:
-            # --- 2. Data Preparation ---
-            run_logger.info(
-                f"\n{'━' * 80}\n{' DATA PREPARATION ':^80}\n{'━' * 80}"
-            )
+            # ================================================================ #
+            #                       DATA PREPARATION                           #
+            # ================================================================ #
+            run_logger.info(f"\n{LogStyle.HEAVY}")
+            run_logger.info(f"{'DATA PREPARATION':^80}")
+            run_logger.info(LogStyle.HEAVY)
 
-            # Loading data based on metadata and creating DataLoader instances
+            # Load dataset and create DataLoader instances
             data    = load_medmnist(ds_meta)
             loaders = get_dataloaders(data, cfg)
             train_loader, val_loader, test_loader = loaders
 
-            # Visual diagnostic: save sample images to verify augmentations/normalization
+            # Visual diagnostic: save augmentation samples
             show_samples_for_dataset(
                 loader       = train_loader,
                 classes      = ds_meta.classes,
@@ -85,21 +113,20 @@ def main() -> None:
                 resolution   = cfg.dataset.resolution
             )
 
-            # --- 3. Model & Training Execution ---
-            pipeline_title = f" STARTING PIPELINE: {cfg.model.name.upper()} "
-            run_logger.info(
-                f"\n{'#' * 80}\n{pipeline_title:^80}\n{'#' * 80}"
-            )
+            # ================================================================ #
+            #                     MODEL TRAINING                               #
+            # ================================================================ #
+            run_logger.info(f"\n{LogStyle.DOUBLE}")
+            run_logger.info(f"{'TRAINING PIPELINE: ' + cfg.model.name.upper():^80}")
+            run_logger.info(LogStyle.DOUBLE)
 
-            # Factory-based model initialization
-            model   = get_model(device=device, cfg=cfg)
-
-            # Optimization components
+            # Initialize model and optimization components
+            model     = get_model(device=device, cfg=cfg)
             criterion = get_criterion(cfg)
             optimizer = get_optimizer(model, cfg)
             scheduler = get_scheduler(optimizer, cfg)
 
-            # The Trainer encapsulates the training loop logic and validation
+            # Execute training loop
             trainer = ModelTrainer(
                 model        = model,
                 train_loader = train_loader,
@@ -112,16 +139,17 @@ def main() -> None:
                 output_path  = paths.best_model_path
             )
             
-            # Start training and capture history for final plotting
             _, train_losses, val_metrics_history = trainer.train()
 
-            # --- 4. Model Recovery & Evaluation ---
-            run_logger.info(
-                f"\n{'━' * 80}\n{' FINAL EVALUATION PHASE ':^80}\n{'━' * 80}"
-            )
+            # ================================================================ #
+            #                     FINAL EVALUATION                             #
+            # ================================================================ #
+            run_logger.info(f"\n{LogStyle.HEAVY}")
+            run_logger.info(f"{'FINAL EVALUATION PHASE':^80}")
+            run_logger.info(LogStyle.HEAVY)
             
-            # Execute comprehensive testing (including TTA if enabled)
-            macro_f1, test_acc      = run_final_evaluation(
+            # Execute comprehensive testing (with optional TTA)
+            macro_f1, test_acc = run_final_evaluation(
                 model               = model,
                 test_loader         = test_loader,
                 train_losses        = train_losses,
@@ -133,36 +161,37 @@ def main() -> None:
                 log_path            = paths.logs / "session.log"
             )
 
-            # --- 5. Structured Summary Logging ---
-            summary = (
-                f"\n{'#'*80}\n"
-                f"{' PIPELINE EXECUTION SUMMARY ':^80}\n"
-                f"{'━'*80}\n"
-                f"  » Dataset:      {cfg.dataset.dataset_name}\n"
-                f"  » Architecture: {cfg.model.name}\n"
-                f"  » Test Acc:     {test_acc:>8.2%}\n"
-                f"  » Macro F1:     {macro_f1:>8.4f}\n"
-                f"  » Device:       {orchestrator.get_device()}\n"
-                f"  » Artifacts:    {paths.root}\n"
-                f"{'#'*80}"
-            )
-            run_logger.info(summary)
+            # ================================================================ #
+            #                     PIPELINE SUMMARY                             #
+            # ================================================================ #
+            run_logger.info(f"\n{LogStyle.DOUBLE}")
+            run_logger.info(f"{'PIPELINE EXECUTION SUMMARY':^80}")
+            run_logger.info(LogStyle.DOUBLE)
+            run_logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Dataset      : {cfg.dataset.dataset_name}")
+            run_logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Architecture : {cfg.model.name}")
+            if cfg.model.weight_variant:
+                run_logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Weight Var.  : {cfg.model.weight_variant}")
+            run_logger.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Test Accuracy: {test_acc:>8.2%}")
+            run_logger.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Macro F1     : {macro_f1:>8.4f}")
+            run_logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Device       : {orchestrator.get_device()}")
+            run_logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Artifacts    : {paths.root}")
+            run_logger.info(f"{LogStyle.DOUBLE}\n")
         
         except KeyboardInterrupt:
-            run_logger.warning("\n[!] Interrupted by user. Cleaning up and exiting...")
+            run_logger.warning(f"\n{LogStyle.WARNING} Interrupted by user. Cleaning up and exiting...")
+        
         except Exception as e:
-            run_logger.error(f"\n[!] Pipeline crashed during execution: {e}", exc_info=True)
-            raise e
-            
+            run_logger.error(f"\n{LogStyle.WARNING} Pipeline crashed: {e}", exc_info=True)
+            raise
+        
         finally:
-            # The Context Manager (__exit__) handles orchestrator.cleanup() automatically.
-            # This releases the infrastructure lock and closes logging handlers.
+            # Context manager handles automatic cleanup
             if 'paths' in locals() and paths:
-                run_logger.info(f"Pipeline Shutdown completed. Run directory: {paths.root}")
+                run_logger.info(f"Pipeline shutdown complete. Run directory: {paths.root}")
 
 
 # =========================================================================== #
-#                               ENTRY POINT
+#                           ENTRY POINT                                       #
 # =========================================================================== #
 
 if __name__ == "__main__":

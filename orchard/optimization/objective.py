@@ -22,7 +22,9 @@ import torch
 # =========================================================================== #
 #                         Internal Imports                                    #
 # =========================================================================== #
-from orchard.core import Config, LOGGER_NAME
+from orchard.core import (
+    Config, LOGGER_NAME, log_trial_start
+)
 from orchard.data_handler import load_medmnist, get_dataloaders
 from orchard.models import get_model
 from orchard.trainer import (
@@ -77,11 +79,9 @@ class OptunaObjective:
         self.enable_pruning = enable_pruning
         self.warmup_epochs = warmup_epochs
         
-        # CRITICAL FIX: Cache resolved metadata object
         # This ensures _ensure_metadata has been called and prevents None errors
         self.base_metadata = self.cfg.dataset._ensure_metadata
         
-        # CRITICAL FIX: Load dataset once (returns MedMNISTData with path info)
         # This is shared across all trials to avoid repeated downloads
         self.medmnist_data = load_medmnist(self.base_metadata)
         
@@ -111,8 +111,8 @@ class OptunaObjective:
         # Build trial-specific config (with metadata re-injected)
         trial_cfg = self._build_trial_config(params)
         
-        # Log trial parameters
-        logger.info(f"Trial {trial.number} params: {params}")
+        # Log trial parameters with LogStyle formatting
+        log_trial_start(trial.number, params)
         
         # Create data loaders using cached MedMNISTData
         # Pass is_optuna=True to prevent worker leaks
@@ -121,7 +121,7 @@ class OptunaObjective:
             trial_cfg,
             is_optuna=True
         )
-        
+            
         # Initialize model (get_model returns model already on device)
         model = get_model(self.device, trial_cfg)
         

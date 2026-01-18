@@ -18,7 +18,6 @@ Key Responsibilities:
 # =========================================================================== #
 import logging
 import json
-from pathlib import Path
 
 # =========================================================================== #
 #                         THIRD-PARTY IMPORTS                                 #
@@ -37,7 +36,7 @@ from optuna.pruners import (
 # =========================================================================== #
 from orchard.core import (
     Config, LOGGER_NAME, save_config_as_yaml, RunPaths, log_best_config_export,
-    log_study_summary, log_optimization_header
+    log_study_summary, log_optimization_header, LogStyle
 )
 from .search_spaces import get_search_space
 from .objective import OptunaObjective
@@ -97,13 +96,10 @@ class OptunaOrchestrator:
         # Configure storage
         storage_url = self.cfg.optuna.get_storage_url(self.paths)
         
-        logger.info(
-            f"Creating study '{self.cfg.optuna.study_name}' with:\n"
-            f"  Sampler: {self.cfg.optuna.sampler_type}\n"
-            f"  Pruner: {self.cfg.optuna.pruner_type}\n"
-            f"  Storage: {storage_url or 'in-memory'}"
-        )
-        
+        logger.info(LogStyle.DOUBLE)
+        logger.info(f"Starting Optuna optimization: {self.cfg.optuna.n_trials} trials")
+        logger.info(LogStyle.DOUBLE)
+                
         study = optuna.create_study(
             study_name=self.cfg.optuna.study_name,
             direction=self.cfg.optuna.direction,
@@ -141,13 +137,8 @@ class OptunaOrchestrator:
             warmup_epochs=self.cfg.optuna.pruning_warmup_epochs
         )
         
-        # Run optimization
+        # Log optimization header (ONLY ONCE)
         log_optimization_header(self.cfg)
-        logger.info(
-            f"\n{'=' * 80}\n"
-            f"Starting Optuna optimization: {self.cfg.optuna.n_trials} trials\n"
-            f"{'=' * 80}"
-        )
         
         early_stop_callback = get_early_stopping_callback(
             metric_name=self.cfg.optuna.metric_name,
@@ -174,16 +165,19 @@ class OptunaOrchestrator:
         # Post-optimization processing
         log_study_summary(study, self.cfg.optuna.metric_name)
         
-        # Generate all artifacts
         if self.cfg.optuna.save_plots:
             self._generate_visualizations(study)
         
         if self.cfg.optuna.save_best_config:
             self._export_best_config(study)
         
-        # NEW: Export study summary and top trials
-        self._export_study_summary(study)
-        self._export_top_trials(study)
+        # Export study summary and top trials (only if completed trials exist)
+        completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+        if completed:
+            self._export_study_summary(study)
+            self._export_top_trials(study)
+        else:
+            logger.warning("No completed trials. Skipping study summary and top trials export.")
         
         return study
     
@@ -333,21 +327,34 @@ class OptunaOrchestrator:
         Args:
             study: Completed Optuna study
         """
+        # Check if there are completed trials
+        completed = [
+            t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE
+        ]
+        
+        # Safe access to best_trial (might not exist if no trials completed)
+        best_trial_data = None
+        if completed:
+            try:
+                best_trial_data = {
+                    "number": study.best_trial.number,
+                    "value": study.best_trial.value,
+                    "params": study.best_trial.params,
+                    "datetime_start": study.best_trial.datetime_start.isoformat() \
+                        if study.best_trial.datetime_start else None,
+                    "datetime_complete": study.best_trial.datetime_complete.isoformat() \
+                        if study.best_trial.datetime_complete else None,
+                }
+            except ValueError:
+                # No best trial available
+                best_trial_data = None
+        
         summary = {
             "study_name": study.study_name,
             "direction": study.direction.name,
             "n_trials": len(study.trials),
-            "n_completed": len([t for t in study.trials \
-                                if t.state == optuna.trial.TrialState.COMPLETE]),
-            "best_trial": {
-                "number": study.best_trial.number,
-                "value": study.best_trial.value,
-                "params": study.best_trial.params,
-                "datetime_start": study.best_trial.datetime_start.isoformat() \
-                    if study.best_trial.datetime_start else None,
-                "datetime_complete": study.best_trial.datetime_complete.isoformat() \
-                    if study.best_trial.datetime_complete else None,
-            } if study.best_trial else None,
+            "n_completed": len(completed),
+            "best_trial": best_trial_data,
             "trials": [
                 {
                     "number": trial.number,
@@ -358,7 +365,7 @@ class OptunaOrchestrator:
                         if trial.datetime_start else None,
                     "datetime_complete": trial.datetime_complete.isoformat() \
                         if trial.datetime_complete else None,
-                    "duration_seconds": (trial.datetime_complete - trial.datetime_start).total_seconds() \
+                    "duration_seconds": (trial.datetime_complete - trial.datetime_start).total_seconds()
                         if trial.datetime_complete and trial.datetime_start else None,
                 }
                 for trial in study.trials

@@ -4,22 +4,23 @@ Early Stopping Callback for Optuna Studies.
 Terminates optimization when a satisfactory metric threshold is reached,
 preventing wasteful computation when near-perfect performance is achieved.
 """
+
 # =========================================================================== #
-#                         Standard Imports                                    #
+#                         STANDARD LIBRARY                                    #
 # =========================================================================== #
 import logging
 from typing import Optional
 
 # =========================================================================== #
-#                         Third-Party Imports                                 #
+#                         THIRD-PARTY IMPORTS                                 #
 # =========================================================================== #
 from optuna.study import Study
 from optuna.trial import FrozenTrial, TrialState
 
 # =========================================================================== #
-#                         Internal Imports                                    #
+#                         INTERNAL IMPORTS                                    #
 # =========================================================================== #
-from orchard.core import LOGGER_NAME
+from orchard.core import LOGGER_NAME, LogStyle
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -119,24 +120,24 @@ class StudyEarlyStoppingCallback:
         if self._count < self.patience:
             return
 
-        # ---- SAFE COMPUTATION ----
+        # Calculate trials saved
         total_trials = study.user_attrs.get("n_trials")
-
         if isinstance(total_trials, int):
             trials_saved = total_trials - (trial.number + 1)
         else:
             trials_saved = "N/A"
 
-        logger.info(
-            f"\n{'=' * 80}\n"
-            f"EARLY STOPPING: Target performance achieved!\n"
-            f"{'=' * 80}\n"
-            f"  Metric:           {value:.6f}\n"
-            f"  Threshold:        {self.threshold:.6f}\n"
-            f"  Trials completed: {trial.number + 1}\n"
-            f"  Trials saved:     {trials_saved}\n"
-            f"{'=' * 80}"
-        )
+        # Use LogStyle for consistent formatting
+        logger.info("")
+        logger.info(LogStyle.DOUBLE)
+        logger.info(f"{'EARLY STOPPING: Target performance achieved!':^80}")
+        logger.info(LogStyle.DOUBLE)
+        logger.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Metric           : {value:.6f}")
+        logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Threshold        : {self.threshold:.6f}")
+        logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Trials completed : {trial.number + 1}")
+        logger.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Trials saved     : {trials_saved}")
+        logger.info(LogStyle.DOUBLE)
+        logger.info("")
 
         study.stop()
 

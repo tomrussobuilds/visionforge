@@ -8,7 +8,7 @@
 # Search Space: Includes weight variant selection
 
 dataset:
-  name: "organcmnist"
+  name: "bloodmnist"
   data_root: ./dataset
   resolution: 224
   force_rgb: true

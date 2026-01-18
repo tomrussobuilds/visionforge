@@ -54,7 +54,9 @@ from .logger import (
     Reporter,
     log_optimization_header,
     log_study_summary,
-    log_best_config_export
+    log_best_config_export,
+    LogStyle,
+    log_trial_start
 )
 
 # =========================================================================== #
@@ -127,6 +129,8 @@ __all__ = [
     "log_optimization_header",
     "log_study_summary",
     "log_best_config_export",
+    "LogStyle",
+    "log_trial_start",
     
     # Environment
     "set_seed",
