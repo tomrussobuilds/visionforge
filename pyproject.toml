@@ -55,7 +55,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["visionforge*"]
+include = ["orchard*"]
 exclude = ["tests*", "docs*"]
 
 [tool.pytest.ini_options]
@@ -79,7 +79,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["visionforge"]
+source = ["orchard"]
 omit = [
     "*/tests/*",
     "*/conftest.py",
