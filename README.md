@@ -1,10 +1,15 @@
 # 🔮 VisionForge: Type-Safe Deep Learning Framework
 
+---
+
 <!-- Badges Section -->
 <p align="center">
-  <!-- CI/CD & Testing -->
+  <!-- CI/CD & Quality -->
   <a href="https://github.com/tomrussobuilds/visionforge/actions/workflows/ci.yml">
     <img src="https://github.com/tomrussobuilds/visionforge/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline">
+  </a>
+  <a href="https://codecov.io/gh/tomrussobuilds/visionforge">
+    <img src="https://codecov.io/gh/tomrussobuilds/visionforge/branch/main/graph/badge.svg" alt="Coverage">
   </a>
   <a href="https://docs.pytest.org/">
     <img src="https://img.shields.io/badge/tested%20with-pytest-blue?logo=pytest&logoColor=white" alt="Tested with pytest">

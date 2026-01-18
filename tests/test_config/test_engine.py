@@ -35,7 +35,6 @@ def test_config_defaults():
     assert config.dataset is not None
     assert config.model is not None
 
-
 @pytest.mark.unit
 def test_config_from_args_basic(basic_args):
     """Test Config.from_args() with basic arguments."""
@@ -63,7 +62,6 @@ def test_resnet_18_requires_resolution_28():
     with pytest.raises(ValidationError, match="resnet_18_adapted requires resolution=28"):
         Config.from_args(args)
 
-
 @pytest.mark.unit
 def test_amp_requires_gpu():
     """Test AMP validation rejects CPU + AMP."""
@@ -76,7 +74,6 @@ def test_amp_requires_gpu():
     
     with pytest.raises(ValidationError, match="AMP requires GPU"):
         Config.from_args(args)
-
 
 @pytest.mark.unit
 def test_pretrained_requires_rgb():
@@ -91,7 +88,6 @@ def test_pretrained_requires_rgb():
     
     with pytest.raises(ValidationError, match="Pretrained.*requires RGB"):
         Config.from_args(args)
-
 
 @pytest.mark.unit
 def test_min_lr_less_than_lr_validation():
@@ -121,7 +117,6 @@ def test_from_yaml_loads_correctly(temp_yaml_config, mock_metadata_28):
     assert config.training.epochs == 60
     assert config.training.batch_size == 128
 
-
 @pytest.mark.integration
 def test_yaml_optuna_section_loaded(temp_yaml_config, mock_metadata_28):
     """Test YAML with optuna section loads OptunaConfig."""
@@ -131,7 +126,6 @@ def test_yaml_optuna_section_loaded(temp_yaml_config, mock_metadata_28):
     assert config.optuna is not None
     assert config.optuna.study_name == "yaml_test_study"
     assert config.optuna.n_trials == 20
-
 
 @pytest.mark.integration
 def test_yaml_precedence_over_args(temp_yaml_config, mock_metadata_28):
@@ -166,7 +160,6 @@ def test_dump_portable_converts_paths():
     assert "dataset" in portable
     assert "telemetry" in portable
 
-
 @pytest.mark.unit
 def test_dump_serialized_json_compatible():
     """Test dump_serialized() produces JSON-compatible dict."""
@@ -194,7 +187,6 @@ def test_run_slug_property():
     assert "bloodmnist" in slug
     assert config.model.name in slug
 
-
 @pytest.mark.unit
 def test_num_workers_property():
     """Test num_workers delegates to hardware config."""
@@ -217,7 +209,6 @@ def test_frozen_immutability():
     
     with pytest.raises(ValidationError):
         config.training = None
-
 
 @pytest.mark.integration
 def test_invalid_yaml_raises_error(temp_invalid_yaml):

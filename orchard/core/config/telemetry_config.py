@@ -25,7 +25,7 @@ from pathlib import Path
 #                                Third-Party Imports                          #
 # =========================================================================== #
 from pydantic import (
-    BaseModel, Field, field_validator, ConfigDict, model_validator
+    BaseModel, Field, ConfigDict, model_validator
 )
 
 # =========================================================================== #

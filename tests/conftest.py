@@ -191,3 +191,26 @@ training:
     yaml_file = tmp_path / "invalid.yaml"
     yaml_file.write_text(yaml_content)
     return yaml_file
+
+
+# =========================================================================== #
+#                        MINIMAL CONFIG                                       #
+# =========================================================================== #
+
+@pytest.fixture
+def minimal_config():
+    """Minimal valid Config for testing."""
+    from orchard.core import Config
+    
+    return Config(
+        dataset={"name": "bloodmnist", "resolution": 28},
+        model={"name": "resnet_18_adapted", "pretrained": False},
+        training={
+            "epochs": 25,
+            "batch_size": 16,
+            "learning_rate": 0.001,
+            "use_amp": False,
+        },
+        hardware={"device": "cpu", "project_name": "test-project"},
+        telemetry={"data_dir": "./dataset", "output_dir": "./outputs"}
+    )

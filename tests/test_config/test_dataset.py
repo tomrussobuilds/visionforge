@@ -35,7 +35,6 @@ def test_dataset_config_defaults():
     assert config.force_rgb is True
     assert config.resolution == 28
 
-
 @pytest.mark.unit
 def test_dataset_config_with_metadata(mock_metadata_28):
     """Test DatasetConfig with explicit metadata."""
@@ -49,7 +48,6 @@ def test_dataset_config_with_metadata(mock_metadata_28):
     assert config.num_classes == 8
     assert config.in_channels == 3
 
-
 @pytest.mark.unit
 def test_img_size_auto_sync_from_resolution():
     """Test that img_size auto-syncs with resolution when not provided."""
@@ -57,7 +55,6 @@ def test_img_size_auto_sync_from_resolution():
     
     # img_size should default to resolution
     assert config.img_size == 224
-
 
 @pytest.mark.unit
 def test_img_size_explicit_override():
@@ -150,7 +147,6 @@ def test_ensure_metadata_lazy_loading():
     assert config.metadata is not None
     assert config.metadata.name == "bloodmnist"
 
-
 @pytest.mark.unit
 def test_processing_mode_classification(mock_grayscale_metadata, mock_metadata_28):
     """Test processing_mode property returns correct classification."""
@@ -189,21 +185,18 @@ def test_from_args_basic(basic_args):
     assert config.resolution == 28
     assert config.use_weighted_sampler is True
 
-
 @pytest.mark.unit
 def test_from_args_force_rgb_auto_enable_for_grayscale_pretrained():
     """Test force_rgb auto-enables for grayscale + pretrained."""
     args = argparse.Namespace(
-        dataset="pneumoniamnist",  # Grayscale dataset
+        dataset="pneumoniamnist",
         resolution=28,
         pretrained=True,
-        force_rgb=None  # Not explicitly set
+        force_rgb=None
     )
     
     config = DatasetConfig.from_args(args)
     
-    # Should auto-enable force_rgb for grayscale + pretrained
-    # NOTE: This tests the FIXED logic
     assert config.force_rgb is True
 
 
@@ -222,7 +215,6 @@ def test_from_args_force_rgb_explicit_override():
     # Explicit CLI value should override
     assert config.force_rgb is False
 
-
 @pytest.mark.unit
 def test_from_args_max_samples_zero_becomes_none():
     """Test max_samples=0 converts to None."""
@@ -236,7 +228,6 @@ def test_from_args_max_samples_zero_becomes_none():
     
     # Zero should convert to None (unlimited)
     assert config.max_samples is None
-
 
 @pytest.mark.unit
 def test_from_args_max_samples_positive():
@@ -268,7 +259,6 @@ def test_dataset_not_found_raises_error():
     with pytest.raises(KeyError, match="not found"):
         DatasetConfig.from_args(args)
 
-
 @pytest.mark.integration
 def test_resolution_224_loads_correct_metadata():
     """Test resolution=224 loads high-res metadata."""
@@ -296,7 +286,6 @@ def test_frozen_immutability():
     with pytest.raises(ValidationError):
         config.name = "different_name"
 
-
 @pytest.mark.unit
 def test_invalid_resolution_rejected():
     """Test invalid resolution values are rejected."""
@@ -305,7 +294,6 @@ def test_invalid_resolution_rejected():
     
     with pytest.raises(ValidationError):
         DatasetConfig(resolution=2000)  # Too large
-
 
 @pytest.mark.unit
 def test_sync_validator_runs_before_frozen():
