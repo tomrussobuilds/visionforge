@@ -125,10 +125,11 @@ def test_logger_log_file_naming(tmp_path):
     """Test Logger creates log file with correct naming pattern."""
     log_dir = tmp_path / "logs"
 
-    logger = Logger(name="test_naming", log_dir=log_dir, log_to_file=True)
+    logger = Logger(name="test_naming", log_dir=log_dir).get_logger()
+    logger.info("test message")
 
     log_files = list(log_dir.glob("test_naming_*.log"))
-    assert len(log_files) == 1
+    assert len(log_files) == 1, f"Expected 1 log file, found {len(log_files)}"
     assert log_files[0].name.startswith("test_naming_")
     assert log_files[0].suffix == ".log"
 
@@ -334,6 +335,7 @@ def test_logger_handles_permission_error(tmp_path):
     try:
         # Should not crash
         logger = Logger(name="test_perm", log_dir=log_dir, log_to_file=True)
+        assert logger is not None
     except PermissionError:
         # Expected on some systems
         pass
