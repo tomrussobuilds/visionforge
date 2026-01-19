@@ -303,8 +303,9 @@ def test_detect_duplicates_handles_exceptions():
     with patch("psutil.process_iter", return_value=[mock_proc1, mock_proc2]):
         # Should not crash and skip the problematic process
         duplicates = cleaner.detect_duplicates()
-    
+
     assert isinstance(duplicates, list)
+
 
 @pytest.mark.unit
 def test_detect_duplicates_empty_cmdline():

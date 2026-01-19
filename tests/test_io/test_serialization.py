@@ -133,7 +133,7 @@ def test_save_config_as_yaml_with_dump_portable():
         mock_config.dump_portable.assert_called_once()
         mock_config.model_dump.assert_not_called()
 
-        mock_persist.assert_called_once_with(yaml_path, {"portable": True})
+        mock_persist.assert_called_once_with({"portable": True}, yaml_path)
 
 
 @pytest.mark.unit
