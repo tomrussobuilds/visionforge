@@ -121,6 +121,6 @@ def run_final_evaluation(
     report.save(paths.final_report_path)
 
     test_acc = test_metrics["accuracy"]
-    logger.info(f"Final Evaluation Phase Complete.")
+    logger.info("Final Evaluation Phase Complete.")
 
     return macro_f1, test_acc

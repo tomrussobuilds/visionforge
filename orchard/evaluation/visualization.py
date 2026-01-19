@@ -59,7 +59,9 @@ def show_predictions(
 
     # 1. Parameter Resolution & Batch Inference
     num_samples = n or (cfg.evaluation.n_samples if cfg else 12)
-    images, labels, preds = _get_predictions_batch(model, loader, device, num_samples)
+    images, labels, preds = _get_predictions_batch(
+        model, loader, device, num_samples
+    )
 
     # 2. Grid & Figure Setup
     grid_cols = cfg.evaluation.grid_cols if cfg else 4
@@ -68,13 +70,14 @@ def show_predictions(
     # 3. Plotting Loop
     for i, ax in enumerate(axes):
         if i < len(images):
-            # Process image for display
             img = _denormalize_image(images[i], cfg) if cfg else images[i]
             display_img = _prepare_for_plt(img)
 
-            ax.imshow(display_img, cmap="gray" if display_img.ndim == 2 else None)
+            ax.imshow(
+                display_img,
+                cmap="gray" if display_img.ndim == 2 else None,
+            )
 
-            # Semantic highlighting
             is_correct = labels[i] == preds[i]
             ax.set_title(
                 f"T:{classes[labels[i]]}\nP:{classes[preds[i]]}",
@@ -84,24 +87,31 @@ def show_predictions(
 
         ax.axis("off")
 
-    tta_info = f" [TTA: {'ON' if cfg.training.use_tta else 'OFF'}]" if cfg else ""
-
-    domain_info = (
-        f""" | Mode: {
-        'Texture' if cfg.dataset.metadata.is_texture_based else 
-        'Anatomical' if cfg.dataset.metadata.is_anatomical else 'Standard'
-    }"""
+    tta_info = (
+        f" | TTA: {'ON' if cfg.training.use_tta else 'OFF'}"
         if cfg
         else ""
     )
 
+    domain_info = ""
+    if cfg:
+        if cfg.dataset.metadata.is_texture_based:
+            domain_info = " | Mode: Texture"
+        elif cfg.dataset.metadata.is_anatomical:
+            domain_info = " | Mode: Anatomical"
+        else:
+            domain_info = " | Mode: Standard"
+
     plt.suptitle(
-        f"Sample Predictions — {cfg.model.name} | Resolution — {cfg.dataset.resolution}",
+        f"Sample Predictions — {cfg.model.name} | "
+        f"Resolution: {cfg.dataset.resolution}"
+        f"{domain_info}{tta_info}",
         fontsize=14,
     )
 
     # 4. Export and Cleanup
     _finalize_figure(plt, save_path, cfg)
+
 
 
 def plot_training_curves(

@@ -22,8 +22,7 @@ from pydantic import ValidationError
 # =========================================================================== #
 #                         Internal Imports                                    #
 # =========================================================================== #
-from orchard.core.paths import OUTPUTS_ROOT
-from orchard.core.paths import RunPaths
+from orchard.core.paths import OUTPUTS_ROOT, RunPaths
 
 # =========================================================================== #
 #                    RUNPATHS: CLASS CONSTANTS                                #

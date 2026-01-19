@@ -443,6 +443,8 @@ def test_full_guard_workflow(mock_platform, tmp_path):
     cleaner = DuplicateProcessCleaner()
     duplicates = cleaner.detect_duplicates()
 
+    assert isinstance(duplicates, list)
+    
     # Release lock
     with patch("orchard.core.environment.guards._lock_fd", MagicMock()):
         with patch("fcntl.flock"):

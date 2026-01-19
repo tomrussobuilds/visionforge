@@ -33,8 +33,6 @@ from ..environment import determine_tta_mode, get_cuda_name, get_vram_info
 from ..paths import LOGGER_NAME, RunPaths
 
 if TYPE_CHECKING:
-    import optuna
-
     from ..config import Config
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -259,9 +257,7 @@ def log_optimization_header(cfg: "Config", logger_instance: logging.Logger = Non
     if cfg.model.weight_variant:
         log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Weight Var.  : {cfg.model.weight_variant}")
 
-    log.info(
-        f"{LogStyle.INDENT}{LogStyle.ARROW} Search Space : {cfg.optuna.search_space_preset}"
-    )
+    log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Search Space : {cfg.optuna.search_space_preset}")
     log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Trials       : {cfg.optuna.n_trials}")
     log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Epochs/Trial : {cfg.optuna.epochs}")
     log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Metric       : {cfg.optuna.metric_name}")
@@ -280,7 +276,9 @@ def log_optimization_header(cfg: "Config", logger_instance: logging.Logger = Non
     log.info("")
 
 
-def log_trial_start(trial_number: int, params: Dict[str, Any], logger_instance: logging.Logger = None) -> None:
+def log_trial_start(
+    trial_number: int, params: Dict[str, Any], logger_instance: logging.Logger = None
+) -> None:
     """
     Log trial start with formatted parameters (grouped by category).
 
@@ -322,7 +320,9 @@ def log_trial_start(trial_number: int, params: Dict[str, Any], logger_instance: 
     log.info(LogStyle.LIGHT)
 
 
-def log_study_summary(study: "optuna.Study", metric_name: str, logger_instance: logging.getLogger = None) -> None:
+def log_study_summary(
+        study: "optuna.Study", metric_name: str, logger_instance: logging.getLogger = None
+) -> None:
     """
     Log optimization study completion summary.
 
@@ -371,9 +371,7 @@ def log_study_summary(study: "optuna.Study", metric_name: str, logger_instance: 
 
 
 def log_trial_params_compact(
-        trial_number: int,
-        params: Dict[str, Any],
-        logger_instance: logging.getLogger = None
+    trial_number: int, params: Dict[str, Any], logger_instance: logging.getLogger = None
 ) -> None:
     """
     Compact parameter logging for best trial summary.
@@ -500,9 +498,7 @@ def log_optimization_summary(
     log.info(f"{'OPTIMIZATION EXECUTION SUMMARY':^80}")
     log.info(LogStyle.DOUBLE)
     log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Dataset        : {cfg.dataset.dataset_name}")
-    log.info(
-        f"{LogStyle.INDENT}{LogStyle.ARROW} Search Space   : {cfg.optuna.search_space_preset}"
-    )
+    log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Search Space   : {cfg.optuna.search_space_preset}")
     log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Total Trials   : {len(study.trials)}")
     log.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Completed      : {len(completed)}")
     log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Pruned         : {len(pruned)}")

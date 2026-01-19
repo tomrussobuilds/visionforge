@@ -35,7 +35,6 @@ from orchard.core.config.types import (  # Generic primitives; Filesystem; Hardw
     NonNegativeInt,
     Percentage,
     PixelShift,
-    PositiveFloat,
     PositiveInt,
     Probability,
     ProjectSlug,

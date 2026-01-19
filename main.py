@@ -35,24 +35,24 @@ Key Features:
 #                            INTERNAL IMPORTS                                 #
 # =========================================================================== #
 from orchard.core import (
-    Config,
-    parse_args,
     DATASET_REGISTRY,
-    RootOrchestrator,
+    Config,
     LogStyle,
+    RootOrchestrator,
     log_training_summary,
+    parse_args,
 )
 
 from orchard.data_handler import (
-    load_medmnist,
-    get_dataloaders,
-    show_samples_for_dataset,
     get_augmentations_description,
+    get_dataloaders,
+    load_medmnist,
+    show_samples_for_dataset,
 )
+from orchard.evaluation import run_final_evaluation
 from orchard.models import get_model
 from orchard.trainer import ModelTrainer, get_criterion, get_optimizer, get_scheduler
 
-from orchard.evaluation import run_final_evaluation
 
 # =========================================================================== #
 #                           MAIN EXECUTION                                    #

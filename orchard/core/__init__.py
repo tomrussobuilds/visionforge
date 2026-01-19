@@ -87,8 +87,8 @@ from .paths import (
     OUTPUTS_ROOT,
     PROJECT_ROOT,
     STATIC_DIRS,
-    get_project_root,
     RunPaths,
+    get_project_root,
     setup_static_directories,
 )
 

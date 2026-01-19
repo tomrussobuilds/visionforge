@@ -12,7 +12,7 @@ from .data_explorer import show_sample_images, show_samples_for_dataset
 from .dataset import MedMNISTDataset
 from .factory import DataLoaderFactory, get_dataloaders
 from .fetcher import MedMNISTData, ensure_dataset_npz, load_medmnist
-from .transforms import get_pipeline_transforms, get_augmentations_description
+from .transforms import get_augmentations_description, get_pipeline_transforms
 
 
 # =========================================================================== #
