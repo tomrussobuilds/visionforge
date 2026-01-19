@@ -35,14 +35,14 @@ Key Features:
 # =========================================================================== #
 #                            INTERNAL IMPORTS                                 #
 # =========================================================================== #
-from orchard.core import (
-    RootOrchestrator, Config, parse_args, LogStyle
-)
+from orchard.core import RootOrchestrator, Config, parse_args, LogStyle
+
 from orchard.optimization import run_optimization
 
 # =========================================================================== #
 #                           MAIN EXECUTION                                    #
 # =========================================================================== #
+
 
 def main() -> None:
     """
@@ -76,7 +76,7 @@ def main() -> None:
     with RootOrchestrator(cfg) as orchestrator:
 
         # Access synchronized services provided by orchestrator
-        paths  = orchestrator.paths
+        paths = orchestrator.paths
         logger = orchestrator.run_logger
         device = orchestrator.get_device()
                 
@@ -87,23 +87,27 @@ def main() -> None:
             
             # Execute Optuna study with trial pruning and early stopping
             study = run_optimization(
-                cfg    = cfg,
+                cfg = cfg,
                 device = device,
-                paths  = paths
+                paths = paths
             )
             
             # ================================================================ #
             #                     OPTIMIZATION SUMMARY                         #
             # ================================================================ #
             completed = [t for t in study.trials if t.state.name == 'COMPLETE']
-            pruned    = [t for t in study.trials if t.state.name == 'PRUNED']
-            failed    = [t for t in study.trials if t.state.name == 'FAIL']
+            pruned = [t for t in study.trials if t.state.name == 'PRUNED']
+            failed = [t for t in study.trials if t.state.name == 'FAIL']
             
             logger.info(f"\n{LogStyle.DOUBLE}")
             logger.info(f"{'OPTIMIZATION EXECUTION SUMMARY':^80}")
             logger.info(LogStyle.DOUBLE)
-            logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Dataset        : {cfg.dataset.dataset_name}")
-            logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Search Space   : {cfg.optuna.search_space_preset}")
+            logger.info(
+                f"{LogStyle.INDENT}{LogStyle.ARROW} Dataset        : {cfg.dataset.dataset_name}"
+            )
+            logger.info(
+                f"{LogStyle.INDENT}{LogStyle.ARROW} Search Space   : {cfg.optuna.search_space_preset}"
+            )
             logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Total Trials   : {len(study.trials)}")
             logger.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Completed      : {len(completed)}")
             logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Pruned         : {len(pruned)}")
@@ -113,15 +117,21 @@ def main() -> None:
             # Only show best trial if there are completed trials
             if completed:
                 try:
-                    logger.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Best {cfg.optuna.metric_name.upper():<9} : {study.best_value:.6f}")
-                    logger.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Best Trial     : {study.best_trial.number}")
+                    logger.info(
+                        f"{LogStyle.INDENT}{LogStyle.SUCCESS} Best {cfg.optuna.metric_name.upper():<9} : {study.best_value:.6f}"
+                    )
+                    logger.info(
+                        f"{LogStyle.INDENT}{LogStyle.SUCCESS} Best Trial     : {study.best_trial.number}"
+                    )
                 except ValueError:
                     # Edge case: completed trials exist but best_trial lookup fails
                     logger.warning(f"{LogStyle.INDENT}{LogStyle.WARNING} Best trial lookup failed (check study integrity)")
             else:
                 logger.warning(f"{LogStyle.INDENT}{LogStyle.WARNING} No trials completed")
             
-            logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Device         : {orchestrator.get_device()}")
+            logger.info(
+                f"{LogStyle.INDENT}{LogStyle.ARROW} Device         : {orchestrator.get_device()}"
+            )
             logger.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Artifacts      : {paths.root}")
             logger.info(f"{LogStyle.DOUBLE}\n")
 
@@ -137,6 +147,7 @@ def main() -> None:
             # Context manager handles automatic cleanup
             if 'paths' in locals() and paths:
                 logger.info(f"Pipeline shutdown complete. Run directory: {paths.root}")
+
 
 # =========================================================================== #
 #                           ENTRY POINT                                       #

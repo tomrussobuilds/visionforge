@@ -34,17 +34,17 @@ Key Features:
 # =========================================================================== #
 #                            INTERNAL IMPORTS                                 #
 # =========================================================================== #
-from orchard.core import (
-    Config, parse_args, DATASET_REGISTRY, RootOrchestrator, LogStyle
-)
+from orchard.core import Config, parse_args, DATASET_REGISTRY, RootOrchestrator, LogStyle
+
 from orchard.data_handler import (
-    load_medmnist, get_dataloaders, show_samples_for_dataset, 
-    get_augmentations_description
+    load_medmnist,
+    get_dataloaders,
+    show_samples_for_dataset,
+    get_augmentations_description,
 )
 from orchard.models import get_model
-from orchard.trainer import (
-    ModelTrainer, get_criterion, get_optimizer, get_scheduler
-)
+from orchard.trainer import ModelTrainer, get_criterion, get_optimizer, get_scheduler
+
 from orchard.evaluation import run_final_evaluation
 
 # =========================================================================== #
@@ -83,9 +83,9 @@ def main() -> None:
     with RootOrchestrator(cfg) as orchestrator:
         
         # Access synchronized services provided by orchestrator
-        paths      = orchestrator.paths
+        paths = orchestrator.paths
         run_logger = orchestrator.run_logger
-        device     = orchestrator.get_device()
+        device = orchestrator.get_device()
         
         # Retrieve dataset metadata from registry
         ds_meta = DATASET_REGISTRY[cfg.dataset.metadata.name.lower()]
@@ -99,18 +99,18 @@ def main() -> None:
             run_logger.info(LogStyle.HEAVY)
 
             # Load dataset and create DataLoader instances
-            data    = load_medmnist(ds_meta)
+            data = load_medmnist(ds_meta)
             loaders = get_dataloaders(data, cfg)
             train_loader, val_loader, test_loader = loaders
 
             # Visual diagnostic: save augmentation samples
             show_samples_for_dataset(
-                loader       = train_loader,
-                classes      = ds_meta.classes,
-                dataset_name = cfg.dataset.dataset_name,
-                run_paths    = paths,
-                num_samples  = cfg.evaluation.n_samples,
-                resolution   = cfg.dataset.resolution
+                loader=train_loader,
+                classes=ds_meta.classes,
+                dataset_name=cfg.dataset.dataset_name,
+                run_paths=paths,
+                num_samples=cfg.evaluation.n_samples,
+                resolution=cfg.dataset.resolution
             )
 
             # ================================================================ #
@@ -121,22 +121,22 @@ def main() -> None:
             run_logger.info(LogStyle.DOUBLE)
 
             # Initialize model and optimization components
-            model     = get_model(device=device, cfg=cfg)
+            model = get_model(device=device, cfg=cfg)
             criterion = get_criterion(cfg)
             optimizer = get_optimizer(model, cfg)
             scheduler = get_scheduler(optimizer, cfg)
 
             # Execute training loop
             trainer = ModelTrainer(
-                model        = model,
+                model = model,
                 train_loader = train_loader,
-                val_loader   = val_loader,
-                optimizer    = optimizer,
-                scheduler    = scheduler,
-                criterion    = criterion,
-                device       = device,
-                cfg          = cfg,
-                output_path  = paths.best_model_path
+                val_loader = val_loader,
+                optimizer = optimizer,
+                scheduler = scheduler,
+                criterion = criterion,
+                device = device,
+                cfg = cfg,
+                output_path = paths.best_model_path
             )
             
             _, train_losses, val_metrics_history = trainer.train()
@@ -150,15 +150,15 @@ def main() -> None:
             
             # Execute comprehensive testing (with optional TTA)
             macro_f1, test_acc = run_final_evaluation(
-                model               = model,
-                test_loader         = test_loader,
-                train_losses        = train_losses,
+                model = model,
+                test_loader = test_loader,
+                train_losses = train_losses,
                 val_metrics_history = val_metrics_history,
-                class_names         = ds_meta.classes,
-                paths               = paths,
-                cfg                 = cfg,
-                aug_info            = get_augmentations_description(cfg),
-                log_path            = paths.logs / "session.log"
+                class_names = ds_meta.classes,
+                paths = paths,
+                cfg = cfg,
+                aug_info = get_augmentations_description(cfg),
+                log_path = paths.logs / "session.log"
             )
 
             # ================================================================ #

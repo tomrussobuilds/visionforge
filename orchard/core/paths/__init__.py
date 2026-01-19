@@ -15,7 +15,9 @@ from .constants import (
     LOGGER_NAME,
     OUTPUTS_ROOT,
     PROJECT_ROOT,
-    setup_static_directories
+    STATIC_DIRS,
+    get_project_root,
+    setup_static_directories,
 )
 from .run_paths import RunPaths
 
@@ -27,7 +29,8 @@ __all__ = [
     "DATASET_DIR",
     "OUTPUTS_ROOT",
     "LOGGER_NAME",
-    "STATIC_DIR",
+    "STATIC_DIRS",
+    "get_project_root",
     "setup_static_directories",
     "RunPaths",
 ]

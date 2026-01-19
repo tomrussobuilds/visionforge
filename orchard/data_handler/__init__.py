@@ -5,15 +5,15 @@ This package manages the end-to-end data pipeline, from downloading raw NPZ
 files using the Dataset Registry to providing fully configured PyTorch DataLoaders.
 """
 
-from .data_explorer import show_sample_images
-from .dataset import MedMNISTDataset
-from .factory import DataLoaderFactory, get_dataloaders
-
 # =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
+from .data_explorer import show_sample_images, show_samples_for_dataset
+from .dataset import MedMNISTDataset
+from .factory import DataLoaderFactory, get_dataloaders
 from .fetcher import MedMNISTData, ensure_dataset_npz, load_medmnist
 from .transforms import get_pipeline_transforms, get_augmentations_description
+
 
 # =========================================================================== #
 #                                PUBLIC API                                   #

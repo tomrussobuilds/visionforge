@@ -83,6 +83,8 @@ from .paths import (
     LOGGER_NAME,
     OUTPUTS_ROOT,
     PROJECT_ROOT,
+    STATIC_DIRS,
+    get_project_root,
     RunPaths,
     setup_static_directories,
 )
@@ -104,9 +106,11 @@ __all__ = [
     "PROJECT_ROOT",
     "DATASET_DIR",
     "OUTPUTS_ROOT",
+    "STATIC_DIRS",
     "LOGGER_NAME",
     "RunPaths",
     "setup_static_directories",
+    "get_project_root",
     # Metadata
     "DatasetMetadata",
     "DATASET_REGISTRY",

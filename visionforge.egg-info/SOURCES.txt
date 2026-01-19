@@ -53,7 +53,9 @@ orchard/evaluation/visualization.py
 orchard/models/__init__.py
 orchard/models/efficientnet_b0.py
 orchard/models/factory.py
+orchard/models/mini_cnn.py
 orchard/models/resnet_18_adapted.py
+orchard/models/vit_tiny.py
 orchard/optimization/__init__.py
 orchard/optimization/early_stopping.py
 orchard/optimization/objective.py
@@ -64,10 +66,6 @@ orchard/trainer/engine.py
 orchard/trainer/losses.py
 orchard/trainer/setup.py
 orchard/trainer/trainer.py
-tests/test_dataset.py
-tests/test_engine.py
-tests/test_hardware.py
-tests/test_optuna_infra.py
 tests/test_training.py
 visionforge.egg-info/PKG-INFO
 visionforge.egg-info/SOURCES.txt
