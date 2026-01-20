@@ -171,9 +171,7 @@ def test_parse_args_resolution_224():
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize(
-    "scheduler_type", ["cosine", "plateau", "step", "none"]
-)
+@pytest.mark.parametrize("scheduler_type", ["cosine", "plateau", "step", "none"])
 def test_parse_args_scheduler_types(scheduler_type):
     """Test parse_args handles all scheduler types."""
     with patch("sys.argv", ["prog", "--scheduler_type", scheduler_type]):
@@ -188,9 +186,7 @@ def test_parse_args_scheduler_types(scheduler_type):
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize(
-    "criterion_type", ["cross_entropy", "bce_logit", "focal"]
-)
+@pytest.mark.parametrize("criterion_type", ["cross_entropy", "bce_logit", "focal"])
 def test_parse_args_criterion_types(criterion_type):
     """Test parse_args handles all criterion types."""
     with patch("sys.argv", ["prog", "--criterion_type", criterion_type]):
@@ -223,9 +219,7 @@ def test_parse_args_optuna_metric():
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize(
-    "sampler_type", ["tpe", "cmaes", "random", "grid"]
-)
+@pytest.mark.parametrize("sampler_type", ["tpe", "cmaes", "random", "grid"])
 def test_parse_args_optuna_sampler_types(sampler_type):
     """Test parse_args handles all Optuna sampler types."""
     with patch("sys.argv", ["prog", "--sampler_type", sampler_type]):
@@ -235,9 +229,7 @@ def test_parse_args_optuna_sampler_types(sampler_type):
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize(
-    "pruner_type", ["median", "percentile", "hyperband", "none"]
-)
+@pytest.mark.parametrize("pruner_type", ["median", "percentile", "hyperband", "none"])
 def test_parse_args_optuna_pruner_types(pruner_type):
     """Test parse_args handles all Optuna pruner types."""
     with patch("sys.argv", ["prog", "--pruner_type", pruner_type]):
@@ -267,9 +259,12 @@ def test_parse_args_augmentation_params():
         "sys.argv",
         [
             "prog",
-            "--hflip", "0.5",
-            "--rotation_angle", "15",
-            "--jitter_val", "0.3",
+            "--hflip",
+            "0.5",
+            "--rotation_angle",
+            "15",
+            "--jitter_val",
+            "0.3",
         ],
     ):
         args = parse_args()
@@ -291,8 +286,10 @@ def test_parse_args_paths():
         "sys.argv",
         [
             "prog",
-            "--data_dir", "/path/to/data",
-            "--output_dir", "/path/to/outputs",
+            "--data_dir",
+            "/path/to/data",
+            "--output_dir",
+            "/path/to/outputs",
         ],
     ):
         args = parse_args()
@@ -313,9 +310,12 @@ def test_parse_args_evaluation_params():
         "sys.argv",
         [
             "prog",
-            "--n_samples", "20",
-            "--fig_dpi", "300",
-            "--report_format", "json",
+            "--n_samples",
+            "20",
+            "--fig_dpi",
+            "300",
+            "--report_format",
+            "json",
         ],
     ):
         args = parse_args()
@@ -337,13 +337,20 @@ def test_parse_args_complex_combination():
         "sys.argv",
         [
             "prog",
-            "--dataset", "organcmnist",
-            "--model_name", "efficientnet_b0",
-            "--epochs", "50",
-            "--batch_size", "128",
-            "--lr", "0.0001",
-            "--device", "cuda",
-            "--resolution", "224",
+            "--dataset",
+            "organcmnist",
+            "--model_name",
+            "efficientnet_b0",
+            "--epochs",
+            "50",
+            "--batch_size",
+            "128",
+            "--lr",
+            "0.0001",
+            "--device",
+            "cuda",
+            "--resolution",
+            "224",
             "--no_pretrained",
             "--use_amp",
         ],
