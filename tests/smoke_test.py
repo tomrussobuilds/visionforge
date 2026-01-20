@@ -99,10 +99,22 @@ def run_smoke_test(args: argparse.Namespace) -> None:
             #                     DATA PREPARATION                         #
             # ============================================================ #
             run_logger.info("[Stage 1/5] Checking environment for CI/synthetic dataset...")
+
             if os.getenv("CI"):
                 from orchard.data_handler.synthetic import create_synthetic_dataset
+                from pathlib import Path
+                from orchard.data_handler.fetcher import MedMNISTData
+                synthetic_data = create_synthetic_dataset()
 
-                data = create_synthetic_dataset()
+                data = MedMNISTData(
+                    train_images=synthetic_data.train_images,
+                    train_labels=synthetic_data.train_labels,
+                    val_images=synthetic_data.val_images,
+                    val_labels=synthetic_data.val_labels,
+                    test_images=synthetic_data.test_images,
+                    test_labels=synthetic_data.test_labels,
+                    path=Path(synthetic_data.path),
+                )
             else:
                 data = load_medmnist(ds_meta)
 
