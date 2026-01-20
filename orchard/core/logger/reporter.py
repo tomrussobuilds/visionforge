@@ -350,7 +350,7 @@ def log_study_summary(
     if completed:
         try:
             log.info(
-                f"{LogStyle.INDENT}{LogStyle.SUCCESS} Best {metric_name.upper():<10} : {study.best_value:.6f}"
+                f"{LogStyle.INDENT}{LogStyle.SUCCESS} Best {metric_name.upper()} : {study.best_value:.6f}"
             )
             log.info(
                 f"{LogStyle.INDENT}{LogStyle.SUCCESS} Best Trial     : {study.best_trial.number}"
@@ -417,7 +417,7 @@ def log_best_config_export(config_path: Any, logger_instance: logging.getLogger 
     """
     log = logger or logger_instance
 
-    log.info(f"\n{LogStyle.DOUBLE}")
+    log.info(f"{LogStyle.DOUBLE}")
     log.info(f"{'BEST CONFIGURATION EXPORTED':^80}")
     log.info(LogStyle.DOUBLE)
     log.info(f"{LogStyle.INDENT}{LogStyle.SUCCESS} Configuration saved to: {config_path}")
@@ -494,7 +494,7 @@ def log_optimization_summary(
     pruned = [t for t in study.trials if t.state.name == "PRUNED"]
     failed = [t for t in study.trials if t.state.name == "FAIL"]
 
-    log.info(f"\n{LogStyle.DOUBLE}")
+    log.info(f"{LogStyle.DOUBLE}")
     log.info(f"{'OPTIMIZATION EXECUTION SUMMARY':^80}")
     log.info(LogStyle.DOUBLE)
     log.info(f"{LogStyle.INDENT}{LogStyle.ARROW} Dataset        : {cfg.dataset.dataset_name}")

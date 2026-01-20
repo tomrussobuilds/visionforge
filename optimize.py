@@ -92,7 +92,6 @@ def main() -> None:
 
             # Execute Optuna study with trial pruning and early stopping
             study = run_optimization(cfg=cfg, device=device, paths=paths)
-
             # ================================================================ #
             #                     OPTIMIZATION SUMMARY                         #
             # ================================================================ #

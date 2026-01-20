@@ -19,7 +19,7 @@ import numpy as np
 # =========================================================================== #
 #                              Internal Imports                               #
 # =========================================================================== #
-from orchard.data_handler.fetcher import MedMNISTData
+from .fetcher import MedMNISTData
 
 # =========================================================================== #
 #                                FACTORY FUNCTIONS                            #
