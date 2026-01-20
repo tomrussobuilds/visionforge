@@ -20,7 +20,7 @@ import pytest
 # =========================================================================== #
 #                         Internal Imports                                    #
 # =========================================================================== #
-from orchard.optimization.orchestrator import OptunaOrchestrator, run_optimization
+from orchard.optimization.orchestrator import OptunaOrchestrator
 from orchard.optimization.orchestrator.builders import (
     build_callbacks,
     build_pruner,
