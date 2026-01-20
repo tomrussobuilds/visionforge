@@ -37,6 +37,11 @@ from typing import TYPE_CHECKING, Callable, Optional, Protocol
 import torch
 
 # =========================================================================== #
+#                                Relative Imports                             #
+# =========================================================================== #
+from .config.infrastructure_config import InfrastructureManager
+
+# =========================================================================== #
 #                                Internal Imports                             #
 # =========================================================================== #
 from .environment import (
@@ -48,7 +53,6 @@ from .environment import (
 from .io import save_config_as_yaml
 from .logger import Logger, Reporter
 from .paths import LOGGER_NAME, RunPaths, setup_static_directories
-from .config.infrastructure_config import InfrastructureManager
 
 if TYPE_CHECKING:
     from .config.engine import Config
