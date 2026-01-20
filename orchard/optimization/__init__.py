@@ -8,16 +8,24 @@ Provides components for automated hyperparameter search:
     - run_optimization: Convenience function for complete workflow
 """
 
+# =========================================================================== #
+#                             Internal Imports                                #
+# =========================================================================== #
 from .early_stopping import StudyEarlyStoppingCallback, get_early_stopping_callback
-from .objective import OptunaObjective, PrunableTrainer
+from .objective import OptunaObjective, TrialTrainingExecutor, MetricExtractor, TrialConfigBuilder
 from .orchestrator import OptunaOrchestrator, run_optimization
 from .search_spaces import SearchSpaceRegistry, get_search_space
 
+# =========================================================================== #
+#                              Public API                                     #
+# =========================================================================== #
 __all__ = [
     "SearchSpaceRegistry",
     "get_search_space",
     "OptunaObjective",
-    "PrunableTrainer",
+    "TrialTrainingExecutor",
+    "MetricExtractor",
+    "TrialConfigBuilder",
     "OptunaOrchestrator",
     "run_optimization",
     "StudyEarlyStoppingCallback",

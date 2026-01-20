@@ -1,0 +1,115 @@
+"""
+Trial configuration building utilities.
+
+This module provides a builder responsible for creating trial-specific
+Config instances for Optuna experiments, handling parameter mapping,
+metadata preservation, and validation.
+"""
+
+# =========================================================================== #
+#                              Standard Imports                               #
+# =========================================================================== #
+from typing import Any, Dict
+
+# =========================================================================== #
+#                             Internal Imports                                #
+# =========================================================================== #
+from orchard.core import Config
+
+# =========================================================================== #
+#                          CONFIG BUILDER                                     #
+# =========================================================================== #
+
+
+class TrialConfigBuilder:
+    """
+    Builds trial-specific Config instances for Optuna trials.
+
+    Handles parameter mapping from Optuna's flat namespace to Config's
+    hierarchical structure, preserves dataset metadata excluded from
+    serialization, and validates via Pydantic.
+
+    Attributes:
+        base_cfg: Base configuration template
+        optuna_epochs: Number of epochs for Optuna trials (from cfg.optuna.epochs)
+        base_metadata: Cached dataset metadata
+
+    Example:
+        >>> builder = TrialConfigBuilder(base_cfg)
+        >>> trial_params = {"learning_rate": 0.001, "dropout": 0.3}
+        >>> trial_cfg = builder.build(trial_params)
+    """
+
+    # Mapping of parameter names to config sections
+    PARAM_MAPPING = {
+        "training": [
+            "learning_rate",
+            "weight_decay",
+            "momentum",
+            "min_lr",
+            "mixup_alpha",
+            "label_smoothing",
+            "batch_size",
+            "cosine_fraction",
+            "scheduler_patience",
+        ],
+        "model": ["dropout"],
+        "augmentation": ["rotation_angle", "jitter_val", "min_scale"],
+    }
+
+    def __init__(self, base_cfg: Config):
+        """
+        Initialize config builder.
+
+        Args:
+            base_cfg: Base configuration template
+        """
+        self.base_cfg = base_cfg
+        self.optuna_epochs = base_cfg.optuna.epochs
+        self.base_metadata = base_cfg.dataset._ensure_metadata
+
+    def build(self, trial_params: Dict[str, Any]) -> Config:
+        """
+        Build trial-specific Config with parameter overrides.
+
+        Args:
+            trial_params: Sampled hyperparameters from Optuna
+
+        Returns:
+            Validated Config instance with trial parameters
+        """
+        config_dict = self.base_cfg.model_dump()
+
+        # Preserve resolution
+        if config_dict["dataset"].get("resolution") is None:
+            config_dict["dataset"]["resolution"] = self.base_cfg.dataset.resolution
+
+        # Re-inject metadata (excluded from serialization)
+        config_dict["dataset"]["metadata"] = self.base_metadata
+
+        # Override epochs for Optuna trials
+        config_dict["training"]["epochs"] = self.optuna_epochs
+
+        # Apply trial-specific overrides
+        self._apply_param_overrides(config_dict, trial_params)
+
+        return Config(**config_dict)
+
+    def _apply_param_overrides(
+        self, config_dict: Dict[str, Any], trial_params: Dict[str, Any]
+    ) -> None:
+        """
+        Apply parameter overrides to config dict (in-place).
+
+        Maps flat parameter names to hierarchical config structure
+        using PARAM_MAPPING.
+
+        Args:
+            config_dict: Config dictionary to modify
+            trial_params: Parameters to apply
+        """
+        for param_name, value in trial_params.items():
+            for section, params in self.PARAM_MAPPING.items():
+                if param_name in params:
+                    config_dict[section][param_name] = value
+                    break

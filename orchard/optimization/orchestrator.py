@@ -43,7 +43,7 @@ from orchard.core import (
 )
 
 from .early_stopping import get_early_stopping_callback
-from .objective import OptunaObjective
+from .objective.objective import OptunaObjective
 from .search_spaces import get_search_space
 
 # =========================================================================== #
@@ -136,9 +136,6 @@ class OptunaOrchestrator:
             cfg=self.cfg,
             search_space=search_space,
             device=self.device,
-            metric_name=self.cfg.optuna.metric_name,
-            enable_pruning=self.cfg.optuna.enable_pruning,
-            warmup_epochs=self.cfg.optuna.pruning_warmup_epochs,
         )
 
         # Log optimization header
@@ -146,11 +143,11 @@ class OptunaOrchestrator:
         log_optimization_header(self.cfg)
 
         early_stop_callback = get_early_stopping_callback(
-            metric_name=self.cfg.optuna.metric_name,
             direction=self.cfg.optuna.direction,
             threshold=self.cfg.optuna.early_stopping_threshold,
             patience=self.cfg.optuna.early_stopping_patience,
             enabled=self.cfg.optuna.enable_early_stopping,
+            metric_name=self.cfg.optuna.metric_name,
         )
 
         callbacks = [early_stop_callback] if early_stop_callback else []

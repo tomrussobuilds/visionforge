@@ -19,6 +19,7 @@ Expected Runtime: ~30 seconds on GPU, ~2 minutes on CPU
 #                              STANDARD LIBRARY                               #
 # =========================================================================== #
 import argparse
+import os
 
 # =========================================================================== #
 #                            INTERNAL IMPORTS                                 #
@@ -97,8 +98,15 @@ def run_smoke_test(args: argparse.Namespace) -> None:
             # ============================================================ #
             #                     DATA PREPARATION                         #
             # ============================================================ #
+            run_logger.info("[Stage 1/5] Checking environment for CI/synthetic dataset...")
+            if os.getenv("CI"):
+                from orchard.data_handler.synthetic import create_synthetic_dataset
+
+                data = create_synthetic_dataset()
+            else:
+                data = load_medmnist(ds_meta)
+
             run_logger.info("[Stage 2/5] Initializing DataLoaders...")
-            data = load_medmnist(ds_meta)
             train_loader, val_loader, test_loader = get_dataloaders(data, cfg)
 
             # ============================================================ #

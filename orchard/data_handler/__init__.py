@@ -1,8 +1,7 @@
 """
 Data Handler Package
-
-This package manages the end-to-end data pipeline, from downloading raw NPZ
-files using the Dataset Registry to providing fully configured PyTorch DataLoaders.
+This package manages the end-to-end data pipeline, from downloading raw NPZ files
+using the Dataset Registry to providing fully configured PyTorch DataLoaders.
 """
 
 # =========================================================================== #
@@ -13,11 +12,11 @@ from .dataset import MedMNISTDataset
 from .factory import DataLoaderFactory, get_dataloaders
 from .fetcher import MedMNISTData, ensure_dataset_npz, load_medmnist
 from .transforms import get_augmentations_description, get_pipeline_transforms
+from .synthetic import SyntheticMedMNISTData, create_synthetic_dataset
 
 # =========================================================================== #
 #                                PUBLIC API                                   #
 # =========================================================================== #
-
 __all__ = [
     "load_medmnist",
     "MedMNISTData",
@@ -29,4 +28,6 @@ __all__ = [
     "get_augmentations_description",
     "get_pipeline_transforms",
     "MedMNISTDataset",
+    "SyntheticMedMNISTData",
+    "create_synthetic_dataset",
 ]
