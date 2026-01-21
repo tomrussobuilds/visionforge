@@ -45,7 +45,7 @@ class DatasetConfig(BaseModel):
     Bridges static registry metadata with runtime preferences. Resolves
     channel promotion and sampling policies with multi-resolution support.
 
-    CRITICAL FIX: Auto-syncs img_size with resolution when not explicitly set.
+    Auto-syncs img_size with resolution when not explicitly set.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
