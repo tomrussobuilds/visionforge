@@ -66,13 +66,8 @@ if TYPE_CHECKING:
 class InfraManagerProtocol(Protocol):
     """Protocol for infrastructure management (allows mocking)."""
 
-    def prepare_environment(self, cfg: "Config", logger: logging.Logger) -> None:
-        """Prepare system resources."""
-        ...
-
-    def release_resources(self, cfg: "Config", logger: logging.Logger) -> None:
-        """Release system resources."""
-        ...
+    def prepare_environment(self, cfg: "Config", logger: logging.Logger) -> None: ...
+    def release_resources(self, cfg: "Config", logger: logging.Logger) -> None: ...
 
 
 class ReporterProtocol(Protocol):
@@ -86,9 +81,7 @@ class ReporterProtocol(Protocol):
         device: torch.device,
         applied_threads: int,
         num_workers: int,
-    ) -> None:
-        """Log environment initialization status."""
-        ...
+    ) -> None: ...
 
 
 # =========================================================================== #
@@ -284,19 +277,35 @@ class RootOrchestrator:
         Secures system-level resource locks via InfrastructureManager.
         Prevents concurrent execution conflicts and manages cleanup.
         """
-        if self.infra:
-            self.infra.prepare_environment(self.cfg, logger=self.run_logger)
+        if self.infra is not None:
+            try:
+                self.infra.prepare_environment(self.cfg, logger=self.run_logger)
+            except Exception as e:
+                if self.run_logger:
+                    self.run_logger.warning(f"Infra guard failed: {e}")
+                else:
+                    logging.warning(f"Infra guard failed: {e}")
 
     def _phase_7_environment_reporting(self, applied_threads: int) -> None:
         """
         Emits baseline environment report to active logging streams.
         Summarizes hardware, dataset metadata, and execution policies.
         """
+        if self._device_cache is None:
+            try:
+                self._device_cache = self.get_device()
+            except Exception as e:
+                self._device_cache = torch.device("cpu")
+                if self.run_logger:
+                    self.run_logger.warning(f"Device detection failed, fallback to CPU: {e}")
+                else:
+                    logging.warning(f"Device detection failed, fallback to CPU: {e}")
+
         self.reporter.log_initial_status(
             logger_instance=self.run_logger,
             cfg=self.cfg,
             paths=self.paths,
-            device=self.get_device(),
+            device=self._device_cache,
             applied_threads=applied_threads,
             num_workers=self.num_workers,
         )

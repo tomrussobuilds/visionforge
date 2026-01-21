@@ -79,7 +79,7 @@ from .metadata import DATASET_REGISTRY, DatasetMetadata
 # =========================================================================== #
 #                                Environment Orchestration                    #
 # =========================================================================== #
-from .orchestrator import RootOrchestrator
+from .orchestrator import InfraManagerProtocol, RootOrchestrator
 
 # =========================================================================== #
 #                                Constants & Paths                            #
@@ -123,6 +123,7 @@ __all__ = [
     "DATASET_REGISTRY",
     # Orchestration
     "RootOrchestrator",
+    "InfraManagerProtocol",
     # Logging
     "Logger",
     "Reporter",
