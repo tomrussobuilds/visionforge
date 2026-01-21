@@ -170,6 +170,29 @@ def test_show_sample_images_with_title_prefix(mock_plt, tmp_path):
     assert mock_plt.title.called
 
 
+@pytest.mark.unit
+@patch("orchard.data_handler.data_explorer.plt")
+def test_show_sample_images_grayscale_line80(mock_plt, tmp_path):
+    """Force grayscale path to hit line 80 in show_sample_images."""
+    mock_loader = MagicMock()
+    mock_images = torch.rand(1, 1, 28, 28)
+    mock_labels = torch.zeros(1)
+    mock_loader.__iter__ = MagicMock(return_value=iter([(mock_images, mock_labels)]))
+
+    save_path = tmp_path / "gray_grid.png"
+
+    show_sample_images(
+        loader=mock_loader,
+        save_path=save_path,
+        cfg=None,
+        num_samples=1,
+    )
+
+    assert mock_plt.imshow.called
+    assert mock_plt.savefig.called
+    assert mock_plt.close.called
+
+
 # =========================================================================== #
 #                    SHOW SAMPLES FOR DATASET: SMOKE TESTS                    #
 # =========================================================================== #

@@ -118,6 +118,7 @@ def main() -> None:
                 run_paths=paths,
                 num_samples=cfg.evaluation.n_samples,
                 resolution=cfg.dataset.resolution,
+                cfg=cfg,
             )
 
             # ================================================================ #

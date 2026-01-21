@@ -75,12 +75,14 @@ def show_sample_images(
     grid = make_grid(images, nrow=int(actual_samples**0.5), padding=2)
 
     # Convert to numpy HWC for matplotlib
-    if grid.shape[0] == 1:
-        # Grayscale
-        plt.imshow(grid.squeeze(0).cpu().numpy(), cmap="gray")
-    else:
-        # RGB
-        plt.imshow(grid.permute(1, 2, 0).cpu().numpy())
+    plt.imshow(
+        (
+            grid.squeeze(0).cpu().numpy()
+            if images.shape[1] == 1
+            else grid.permute(1, 2, 0).cpu().numpy()
+        ),
+        cmap="gray" if images.shape[1] == 1 else None,
+    )
 
     # Figure title
     model_title = cfg.model.name if cfg else "Model"
@@ -105,12 +107,23 @@ def show_samples_for_dataset(
     classes: List[str],
     dataset_name: str,
     run_paths: RunPaths,
+    cfg: Optional[Config] = None,
     num_samples: int = 16,
     resolution: int | None = None,
 ) -> None:
     """
     Generates a grid of sample images from a dataset and saves it in the
-    run-specific figures directory. Includes resolution to avoid overwriting.
+    run-specific figures directory. Optionally uses Config to display
+    the model name and apply denormalization.
+
+    Args:
+        loader (DataLoader): PyTorch DataLoader to sample images from.
+        classes (List[str]): List of class names (unused here, for metadata).
+        dataset_name (str): Name of the dataset, used in the filename and title.
+        run_paths (RunPaths): RunPaths instance to resolve figure saving path.
+        cfg (Config, optional): Config object with model.name, dataset.mean/std.
+        num_samples (int, optional): Number of images to include in the grid.
+        resolution (int | None, optional): Resolution to include in filename to avoid overwriting.
     """
     res_str = f"_{resolution}x{resolution}" if resolution else ""
     save_path = run_paths.get_fig_path(f"{dataset_name}/sample_grid{res_str}.png")
@@ -119,7 +132,7 @@ def show_samples_for_dataset(
     show_sample_images(
         loader=loader,
         save_path=save_path,
-        cfg=None,
+        cfg=cfg,
         num_samples=num_samples,
         title_prefix=f"{dataset_name}{res_str}",
     )
