@@ -76,6 +76,8 @@ def export_best_config(study: optuna.Study, cfg: Config, paths: RunPaths) -> Non
     save_config_as_yaml(best_config, output_path)
     log_best_config_export(output_path)
 
+    return output_path
+
 
 def export_study_summary(study: optuna.Study, paths: RunPaths, metric_name: str) -> None:
     """
