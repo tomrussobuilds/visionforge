@@ -11,11 +11,10 @@ the Excel export logic, and the factory function for report generation.
 from pathlib import Path
 from unittest.mock import ANY, MagicMock, patch
 
-import pandas as pd
-
 # =========================================================================== #
 #                                Third-Party Imports                          #
 # =========================================================================== #
+import pandas as pd
 import pytest
 
 # =========================================================================== #

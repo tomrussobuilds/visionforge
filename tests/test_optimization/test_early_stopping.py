@@ -90,24 +90,23 @@ def test_callback_trials_saved():
     # Mocking the trial object
     trial = MagicMock(spec=Trial)
     trial.state = TrialState.COMPLETE
-    trial.value = 0.9999  # Exactly meets the threshold
-    trial.number = 5  # Mock the trial number
+    trial.value = 0.9999
+    trial.number = 5
 
     # Mocking the study object with user_attrs containing total trials
     study_mock = MagicMock()
-    study_mock.user_attrs = {"n_trials": 10}  # Total trials = 10
+    study_mock.user_attrs = {"n_trials": 10}
 
-    callback._count = 3  # Simulate that patience has been reached
+    callback._count = 3
 
     # Call the callback function
     callback(study=study_mock, trial=trial)
 
     # Check that the correct number of trials saved is calculated
-    trials_saved = 10 - (trial.number + 1)  # 10 - (5 + 1) = 4 trials saved
+    trials_saved = 10 - (trial.number + 1)
     study_mock.stop.assert_called_once()
 
-    # Optionally, you can assert the trials saved calculation or check logs if necessary
-    assert trials_saved == 4  # This is the expected value of trials saved
+    assert trials_saved == 4
 
 
 @pytest.mark.unit
