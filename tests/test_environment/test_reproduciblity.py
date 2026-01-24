@@ -8,6 +8,7 @@ and DataLoader worker initialization logic.
 # Standard Imports
 import os
 import random
+from unittest.mock import MagicMock, patch
 
 # Third-Party Imports
 import numpy as np
@@ -68,14 +69,59 @@ def test_set_seed_sets_python_hashseed():
 
 
 @pytest.mark.unit
-def test_set_seed_strict_mode_flags():
-    """Strict mode enables deterministic PyTorch behavior."""
-    set_seed(42, strict=True)
-    if torch.cuda.is_available():
-        assert torch.backends.cudnn.deterministic is True
-        assert torch.backends.cudnn.benchmark is False
-    else:
-        assert True
+def test_set_seed_strict_mode_with_cuda_available():
+    """Strict mode enables deterministic PyTorch behavior when CUDA is available."""
+    with patch("torch.cuda.is_available", return_value=True):
+        with patch("torch.use_deterministic_algorithms") as mock_deterministic:
+            set_seed(42, strict=True)
+
+            # Verify deterministic algorithms enabled
+            mock_deterministic.assert_called_once_with(True)
+
+            # Verify cudnn flags
+            assert torch.backends.cudnn.deterministic is True
+            assert torch.backends.cudnn.benchmark is False
+
+
+@pytest.mark.unit
+def test_set_seed_non_strict_mode_with_cuda_available():
+    """Non-strict mode sets cudnn flags when CUDA is available."""
+    with patch("torch.cuda.is_available", return_value=True):
+        with patch("torch.use_deterministic_algorithms") as mock_deterministic:
+            set_seed(42, strict=False)
+
+            # Verify deterministic algorithms NOT called
+            mock_deterministic.assert_not_called()
+
+            # Verify cudnn flags still set
+            assert torch.backends.cudnn.deterministic is True
+            assert torch.backends.cudnn.benchmark is False
+
+
+@pytest.mark.unit
+def test_set_seed_without_cuda():
+    """set_seed works correctly when CUDA is not available."""
+    with patch("torch.cuda.is_available", return_value=False):
+        set_seed(42, strict=True)
+        set_seed(42, strict=False)
+
+
+@pytest.mark.unit
+def test_set_seed_cuda_branches_coverage():
+    """Ensures all CUDA-related branches are executed in tests."""
+    # Test when CUDA is available
+    with patch("torch.cuda.is_available", return_value=True):
+        # Mock cudnn to verify flags are set
+        mock_cudnn = MagicMock()
+        with patch("torch.backends.cudnn", mock_cudnn):
+            set_seed(42, strict=True)
+            assert mock_cudnn.deterministic is True
+            assert mock_cudnn.benchmark is False
+
+    # Test when CUDA is NOT available
+    with patch("torch.cuda.is_available", return_value=False):
+        set_seed(42, strict=True)
+        set_seed(42, strict=False)
 
 
 # TESTS: worker_init_fn
@@ -120,61 +166,20 @@ def test_worker_init_fn_sets_deterministic_state(monkeypatch):
     assert torch.equal(c1, c2)
 
 
-# TESTS: set_seed - strict mode branches
-
-
+# INTEGRATION TESTS (run on real hardware when available)
 @pytest.mark.unit
-def test_set_seed_strict_mode_enables_deterministic_algorithms():
-    """Strict mode calls torch.use_deterministic_algorithms(True)."""
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+def test_set_seed_strict_mode_real_cuda():
+    """Integration test: strict mode with real CUDA hardware."""
     set_seed(42, strict=True)
-
-    # Only check cudnn flags if CUDA is available
-    if torch.cuda.is_available():
-        assert torch.backends.cudnn.deterministic is True
-        assert torch.backends.cudnn.benchmark is False
+    assert torch.backends.cudnn.deterministic is True
+    assert torch.backends.cudnn.benchmark is False
 
 
 @pytest.mark.unit
-def test_set_seed_strict_mode_behavior():
-    """Strict mode enables deterministic algorithms without errors."""
-    # This will call torch.use_deterministic_algorithms(True) internally
-    # If it fails, the test will raise an exception
-    try:
-        set_seed(42, strict=True)
-        # Success - strict mode worked
-        assert True
-    except RuntimeError as e:
-        if "deterministic" in str(e).lower():
-            assert True
-        else:
-            raise
-
-
-@pytest.mark.unit
-def test_set_seed_non_strict_mode_sets_cudnn_flags():
-    """Non-strict mode sets cudnn flags only when CUDA available."""
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+def test_set_seed_non_strict_mode_real_cuda():
+    """Integration test: non-strict mode with real CUDA hardware."""
     set_seed(42, strict=False)
-
-    # Only verify cudnn flags if CUDA is available
-    if torch.cuda.is_available():
-        assert torch.backends.cudnn.deterministic is True
-        assert torch.backends.cudnn.benchmark is False
-    else:
-        # On CPU, these flags aren't set (the code is inside if torch.cuda.is_available())
-        # Just verify the function completed without error
-        assert True
-
-
-@pytest.mark.unit
-def test_set_seed_strict_vs_non_strict_behavior():
-    """Verify that strict and non-strict modes differ in algorithm enforcement."""
-    # Non-strict mode
-    set_seed(42, strict=False)
-
-    # Strict mode
-    set_seed(42, strict=True)
-
-    # Only check cudnn if CUDA available
-    if torch.cuda.is_available():
-        assert torch.backends.cudnn.deterministic is True
-        assert torch.backends.cudnn.benchmark is False
+    assert torch.backends.cudnn.deterministic is True
+    assert torch.backends.cudnn.benchmark is False

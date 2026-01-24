@@ -1,5 +1,5 @@
 """
-Minimal Test Suite for Training Engine.
+Test Suite for Training Engine.
 
 Quick tests to cover core training/validation functions and eliminate codecov warnings.
 """
@@ -62,7 +62,7 @@ def test_train_one_epoch_basic(simple_model, simple_loader, criterion, optimizer
         device=device,
         epoch=1,
         total_epochs=10,
-        use_tqdm=False,  # Disable for testing
+        use_tqdm=False,
     )
     assert isinstance(loss, float)
     assert loss > 0
@@ -80,7 +80,7 @@ def test_train_one_epoch_with_tqdm(simple_model, simple_loader, criterion, optim
         device=device,
         epoch=1,
         total_epochs=10,
-        use_tqdm=True,  # Enable tqdm
+        use_tqdm=True,
     )
     assert isinstance(loss, float)
     assert loss > 0
@@ -129,6 +129,9 @@ def test_train_one_epoch_scaler_grad_clip_coverage(
 
 
 @pytest.mark.unit
+@pytest.mark.filterwarnings(
+    "ignore:torch.cuda.amp.GradScaler is enabled, but CUDA is not available:UserWarning"
+)
 def test_train_one_epoch_scaler_grad_clip_minimal():
     """Test scaler + grad_clip branch with minimal setup."""
     # Minimal real components
@@ -170,7 +173,9 @@ def test_train_one_epoch_scaler_grad_clip_minimal():
 
 
 @pytest.mark.unit
-@pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings(
+    "ignore:torch.cuda.amp.GradScaler is enabled, but CUDA is not available:UserWarning"
+)
 def test_train_one_epoch_with_scaler_and_grad_clip(
     simple_model, simple_loader, criterion, optimizer
 ):
@@ -315,7 +320,6 @@ def test_validate_epoch_auc_error_handling(simple_model, criterion):
         device=device,
     )
 
-    # Should not crash, AUC should be 0.0
     assert metrics["auc"] >= 0.0
 
 
