@@ -257,7 +257,6 @@ def test_get_storage_url_sqlite_with_custom_path(tmp_path):
 
     url = config.get_storage_url(MockPaths())
 
-    # Should use custom path, not default from paths
     assert url.startswith("sqlite:///")
     assert "custom.db" in url
     assert "default_study.db" not in url
@@ -266,11 +265,8 @@ def test_get_storage_url_sqlite_with_custom_path(tmp_path):
 @pytest.mark.unit
 def test_get_storage_url_unknown_storage_type():
     """Test get_storage_url() raises ValueError for unknown storage type."""
-    # Create config with valid storage type first
     config = OptunaConfig(storage_type="sqlite")
 
-    # Manually override storage_type to invalid value (bypassing validation)
-    # This simulates the edge case where storage_type becomes invalid
     object.__setattr__(config, "storage_type", "invalid_backend")
 
     class MockPaths:
@@ -317,7 +313,7 @@ def test_from_args_partial():
     config = OptunaConfig.from_args(args)
 
     assert config.n_trials == 20
-    assert config.study_name == "vision_optimization"  # Default
+    assert config.study_name == "vision_optimization"
 
 
 # OPTUNA CONFIG: IMMUTABILITY

@@ -11,7 +11,7 @@ from pathlib import Path
 # Third-Party Imports
 import numpy as np
 
-#                                Module Under Test                            #
+# Internal Imports
 from orchard.data_handler import (
     MedMNISTData,
     create_synthetic_dataset,
@@ -70,7 +70,6 @@ def test_synthetic_dataset_shapes_rgb():
         )
         assert npz["train_labels"].shape == (samples, 1)
 
-        # val/test: max(10, samples // 10)
         expected_aux = max(10, samples // 10)
         assert npz["val_images"].shape == (
             expected_aux,

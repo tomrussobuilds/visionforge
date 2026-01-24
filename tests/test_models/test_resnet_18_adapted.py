@@ -67,7 +67,6 @@ class TestResNet18Adapted:
         """Verify conv1 layer is modified to 3x3 with stride 1."""
         model = build_resnet18_adapted(device, num_classes=10, in_channels=3, cfg=mock_cfg)
 
-        # Check conv1 modifications
         assert model.conv1.kernel_size == (3, 3)
         assert model.conv1.stride == (1, 1)
         assert model.conv1.out_channels == 64
@@ -76,14 +75,12 @@ class TestResNet18Adapted:
         """Verify maxpool is replaced with Identity layer."""
         model = build_resnet18_adapted(device, num_classes=10, in_channels=3, cfg=mock_cfg)
 
-        # Check maxpool is Identity (no downsampling)
         assert isinstance(model.maxpool, torch.nn.Identity)
 
     def test_resnet18_adapted_grayscale_input(self, mock_cfg, device):
         """Verify grayscale input channel adaptation."""
         model = build_resnet18_adapted(device, num_classes=10, in_channels=1, cfg=mock_cfg)
 
-        # Check conv1 has 1 input channel
         assert model.conv1.in_channels == 1
         assert model.conv1.out_channels == 64
 
@@ -91,7 +88,6 @@ class TestResNet18Adapted:
         """Verify RGB input channel configuration."""
         model = build_resnet18_adapted(device, num_classes=10, in_channels=3, cfg=mock_cfg)
 
-        # Check conv1 has 3 input channels
         assert model.conv1.in_channels == 3
         assert model.conv1.out_channels == 64
 
@@ -99,11 +95,9 @@ class TestResNet18Adapted:
         """Verify pretrained weights are loaded and morphed."""
         mock_cfg.model.pretrained = True
 
-        # Import the module to find the correct path
         from orchard.models import resnet_18_adapted as resnet_module
 
         with patch.object(resnet_module, "models") as mock_models:
-            # Create a mock model with weights
             mock_model = MagicMock()
             mock_conv = MagicMock()
             mock_conv.weight = torch.randn(64, 3, 7, 7)
@@ -112,14 +106,11 @@ class TestResNet18Adapted:
             mock_model.fc.in_features = 512
             mock_model.maxpool = MagicMock()
             mock_model.to = MagicMock(return_value=mock_model)
-
-            # Mock the resnet18 function
             mock_models.resnet18.return_value = mock_model
             mock_models.ResNet18_Weights.IMAGENET1K_V1 = "mock_weights"
 
             model = build_resnet18_adapted(device, num_classes=5, in_channels=1, cfg=mock_cfg)
 
-            # Verify pretrained weights were requested
             mock_models.resnet18.assert_called_once_with(weights="mock_weights")
 
     def test_resnet18_adapted_fc_replacement(self, mock_cfg, device):
@@ -127,7 +118,6 @@ class TestResNet18Adapted:
         num_classes = 7
         model = build_resnet18_adapted(device, num_classes=num_classes, in_channels=3, cfg=mock_cfg)
 
-        # Check fc layer has correct output dimension
         assert model.fc.out_features == num_classes
 
     def test_resnet18_adapted_device_placement(self, mock_cfg):
@@ -135,7 +125,6 @@ class TestResNet18Adapted:
         device = torch.device("cpu")
         model = build_resnet18_adapted(device, num_classes=10, in_channels=3, cfg=mock_cfg)
 
-        # Check model parameters are on CPU
         for param in model.parameters():
             assert param.device.type == "cpu"
 
@@ -144,11 +133,10 @@ class TestResNet18Adapted:
         model = build_resnet18_adapted(device, num_classes=10, in_channels=3, cfg=mock_cfg)
         model.eval()
 
-        # Test with 28x28 input
         dummy_input = torch.randn(1, 3, 28, 28)
 
         with torch.no_grad():
-            # Hook to check intermediate spatial dimensions
+
             activations = {}
 
             def get_activation(name):
@@ -157,13 +145,11 @@ class TestResNet18Adapted:
 
                 return hook
 
-            # Register hooks on key layers
             model.conv1.register_forward_hook(get_activation("conv1"))
             model.layer1.register_forward_hook(get_activation("layer1"))
 
             output = model(dummy_input)
 
-            # After conv1 (3x3, stride 1, padding 1): 28x28 should be preserved
             assert activations["conv1"][2] == 28
             assert activations["conv1"][3] == 28
 

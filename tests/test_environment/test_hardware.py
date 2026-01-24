@@ -65,13 +65,10 @@ def test_configure_system_libraries_docker_env_var(mock_platform):
 def test_configure_system_libraries_windows(mock_platform):
     """Test configure_system_libraries skips Agg backend on Windows."""
     with patch.dict(os.environ, {}, clear=True):
-        # Store original backend
         original_backend = matplotlib.get_backend()
 
         configure_system_libraries()
 
-        # Backend should remain unchanged on Windows
-        # (unless Docker env is set)
         assert matplotlib.get_backend() == original_backend
 
 
@@ -88,7 +85,6 @@ def test_detect_best_device_cuda(mock_cuda):
 @patch("torch.cuda.is_available", return_value=False)
 def test_detect_best_device_mps(mock_cuda):
     """Test detect_best_device falls back to MPS when CUDA unavailable."""
-    # Mock MPS availability
     if hasattr(torch.backends, "mps"):
         with patch.object(torch.backends.mps, "is_available", return_value=True):
             device = detect_best_device()
@@ -99,13 +95,11 @@ def test_detect_best_device_mps(mock_cuda):
 @patch("torch.cuda.is_available", return_value=False)
 def test_detect_best_device_cpu(mock_cuda):
     """Test detect_best_device falls back to CPU when no accelerators."""
-    # Mock MPS unavailable
     if hasattr(torch.backends, "mps"):
         with patch.object(torch.backends.mps, "is_available", return_value=False):
             device = detect_best_device()
             assert device == "cpu"
     else:
-        # If MPS backend doesn't exist (older PyTorch)
         device = detect_best_device()
         assert device == "cpu"
 
@@ -176,11 +170,9 @@ def test_to_device_obj_invalid_device():
 @pytest.mark.unit
 def test_to_device_obj_case_sensitivity():
     """Test to_device_obj is case-sensitive."""
-    # Valid lowercase
     device = to_device_obj("cpu")
     assert device.type == "cpu"
 
-    # Invalid uppercase should raise error
     with pytest.raises(ValueError, match="Unsupported device"):
         to_device_obj("CPU")
 
@@ -219,7 +211,6 @@ def test_get_vram_info_available(mock_mem_info, mock_device_count, mock_cuda):
     """Test get_vram_info returns formatted VRAM string when CUDA available."""
     info = get_vram_info(device_idx=0)
 
-    # Should contain both free and total memory
     assert "GB" in info
     assert "/" in info
     assert "8.00 GB" in info
@@ -293,8 +284,7 @@ def test_apply_cpu_threads_standard(mock_cpu_count):
     num_workers = 4
     threads = apply_cpu_threads(num_workers)
 
-    # Should reserve threads for workers
-    assert threads == 4  # 8 total - 4 workers
+    assert threads == 4
     assert torch.get_num_threads() == threads
     assert os.environ["OMP_NUM_THREADS"] == str(threads)
     assert os.environ["MKL_NUM_THREADS"] == str(threads)
@@ -304,10 +294,9 @@ def test_apply_cpu_threads_standard(mock_cpu_count):
 @patch("os.cpu_count", return_value=4)
 def test_apply_cpu_threads_minimum(mock_cpu_count):
     """Test apply_cpu_threads maintains minimum of 2 threads."""
-    num_workers = 8  # More workers than cores
+    num_workers = 8
     threads = apply_cpu_threads(num_workers)
 
-    # Should never go below 2
     assert threads >= 2
     assert torch.get_num_threads() == threads
 
@@ -319,7 +308,6 @@ def test_apply_cpu_threads_fallback(mock_cpu_count):
     num_workers = 4
     threads = apply_cpu_threads(num_workers)
 
-    # Should use fallback value (1 total - 4 workers = max(2, -3) = 2)
     assert threads >= 2
 
 
@@ -330,7 +318,7 @@ def test_apply_cpu_threads_high_core_system(mock_cpu_count):
     num_workers = 4
     threads = apply_cpu_threads(num_workers)
 
-    assert threads == 12  # 16 - 4
+    assert threads == 12
     assert torch.get_num_threads() == 12
 
 
@@ -339,23 +327,18 @@ def test_apply_cpu_threads_high_core_system(mock_cpu_count):
 @patch("os.cpu_count", return_value=8)
 def test_full_hardware_workflow(mock_cpu_count):
     """Test complete hardware configuration workflow."""
-    # Configure system libraries
     configure_system_libraries()
 
-    # Detect best device
     device_str = detect_best_device()
     assert device_str in ["cuda", "mps", "cpu"]
 
-    # Convert to device object (skip if cuda not available)
     if device_str != "cuda" or torch.cuda.is_available():
         device = to_device_obj(device_str)
         assert isinstance(device, torch.device)
 
-    # Get optimal workers
     num_workers = get_num_workers()
     assert 2 <= num_workers <= 8
 
-    # Apply CPU threading
     threads = apply_cpu_threads(num_workers)
     assert threads >= 2
 

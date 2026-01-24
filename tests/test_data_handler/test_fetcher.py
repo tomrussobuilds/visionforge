@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 import requests
 
-#                                Module Under Test                            #
+# Internal Imports
 from orchard.data_handler.fetcher import (
     _is_valid_npz,
     _stream_download,
@@ -63,7 +63,7 @@ def monkeypatch_md5(monkeypatch):
     )
 
 
-#                          TEST: _is_valid_npz                                 #
+# TEST: _is_valid_npz
 @pytest.mark.unit
 def test_is_valid_npz_true(valid_npz_file, monkeypatch_md5):
     """Valid NPZ with matching MD5 should return True."""
@@ -114,7 +114,7 @@ def test_is_valid_npz_ioerror(tmp_path, monkeypatch):
     assert _is_valid_npz(path, "any_md5") is False
 
 
-#                     TEST: ensure_dataset_npz                                 #
+# TEST: ensure_dataset_npz
 @pytest.mark.unit
 def test_ensure_dataset_npz_uses_existing_valid_file(metadata, valid_npz_file, monkeypatch_md5):
     """Existing valid dataset should not trigger download."""
@@ -161,7 +161,6 @@ def test_ensure_dataset_npz_removes_corrupted_file(
     metadata, tmp_path, monkeypatch_md5, monkeypatch
 ):
     """Corrupted existing file should be deleted before download."""
-    # Create corrupted file
     metadata.path.parent.mkdir(parents=True, exist_ok=True)
     metadata.path.write_bytes(b"CORRUPTED")
 
@@ -281,8 +280,8 @@ def test_ensure_dataset_npz_rate_limit_429(metadata, monkeypatch):
     assert call_count["count"] == 3
 
     assert len(sleep_calls) == 2
-    assert sleep_calls[0] == 1.0  # First retry: delay * 1^2
-    assert sleep_calls[1] == 4.0  # Second retry: delay * 2^2
+    assert sleep_calls[0] == 1.0
+    assert sleep_calls[1] == 4.0
 
 
 @pytest.mark.unit
@@ -291,7 +290,6 @@ def test_ensure_dataset_npz_cleans_up_tmp_on_error(metadata, tmp_path, monkeypat
     tmp_file_path = metadata.path.with_suffix(".tmp")
 
     def fake_stream_download(url, tmp_path):
-        # Create temp file
         tmp_path.write_bytes(b"temp_data")
         raise requests.ConnectionError("network error")
 
@@ -333,11 +331,10 @@ def test_ensure_dataset_npz_error_without_response_attribute(metadata, monkeypat
     with pytest.raises(RuntimeError):
         ensure_dataset_npz(metadata, retries=2, delay=2.0)
 
-    # Should use normal delay, not exponential
     assert sleep_calls[0] == 2.0
 
 
-#                         TEST: _stream_download                               #
+# TEST: _stream_download
 @pytest.mark.unit
 def test_stream_download_success(tmp_path, monkeypatch):
     """Successful download should write content to file."""
@@ -415,8 +412,8 @@ def test_stream_download_skips_empty_chunks(tmp_path, monkeypatch):
 
         def iter_content(self, chunk_size):
             yield b"first"
-            yield b""  # Empty chunk
-            yield None  # None chunk
+            yield b""
+            yield None
             yield b"second"
 
         def __enter__(self):
@@ -460,7 +457,7 @@ def test_stream_download_http_error(tmp_path, monkeypatch):
         _stream_download("https://example.com/file.npz", output_path)
 
 
-#                         TEST: load_medmnist                                  #
+# TEST: load_medmnist
 @pytest.mark.unit
 def test_load_medmnist_rgb(metadata, valid_npz_file, monkeypatch_md5, monkeypatch):
     """RGB dataset metadata should be inferred correctly."""
@@ -558,7 +555,6 @@ def test_load_medmnist_health_check_small_chunk(metadata, tmp_path, monkeypatch_
     """Health check with small chunk should count classes correctly."""
     path = tmp_path / "test.npz"
 
-    # Create dataset where first 3 samples only have 2 classes
     labels = np.array([0, 1, 0] + [2, 3, 4] * 10)
 
     np.savez(
@@ -580,5 +576,4 @@ def test_load_medmnist_health_check_small_chunk(metadata, tmp_path, monkeypatch_
 
     data = load_medmnist_health_check(metadata, chunk_size=3)
 
-    # Should only count classes present in the chunk (0 and 1)
     assert data.num_classes == 2

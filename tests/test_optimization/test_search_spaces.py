@@ -27,7 +27,6 @@ def test_get_optimization_space():
     assert "momentum" in space
     assert "min_lr" in space
 
-    # Check that the suggested values are within the expected bounds
     trial_mock = MagicMock(spec=Trial)
     trial_mock.suggest_float.side_effect = lambda param, low, high, log: 0.001
     learning_rate = space["learning_rate"](trial_mock)
@@ -44,7 +43,6 @@ def test_get_regularization_space():
     assert "label_smoothing" in space
     assert "dropout" in space
 
-    # Check value ranges for regularization parameters
     trial_mock = MagicMock(spec=Trial)
     trial_mock.suggest_float.side_effect = lambda param, low, high: 0.2
     mixup_alpha = space["mixup_alpha"](trial_mock)
@@ -55,7 +53,6 @@ def test_get_regularization_space():
 @pytest.mark.unit
 def test_get_batch_size_space():
     """Test retrieval of batch size space with resolution-aware choices."""
-    # Test with high resolution (224)
     space_224 = SearchSpaceRegistry.get_batch_size_space(resolution=224)
     assert "batch_size" in space_224
     trial_mock = MagicMock(spec=Trial)
@@ -64,7 +61,6 @@ def test_get_batch_size_space():
     assert batch_size_224 in [8, 12, 16]
     assert batch_size_224 == 12
 
-    # Test with low resolution (28)
     space_28 = SearchSpaceRegistry.get_batch_size_space(resolution=28)
     assert "batch_size" in space_28
     trial_mock = MagicMock(spec=Trial)
@@ -79,7 +75,6 @@ def test_get_full_space():
     """Test retrieval of combined full search space."""
     space = SearchSpaceRegistry.get_full_space(resolution=28)
 
-    # Ensure all key spaces are present
     assert "learning_rate" in space
     assert "mixup_alpha" in space
     assert "batch_size" in space
@@ -92,13 +87,10 @@ def test_get_quick_space():
     """Test retrieval of the reduced quick search space."""
     space = SearchSpaceRegistry.get_quick_space(resolution=28)
 
-    # Only a subset of parameters should be included
     assert "learning_rate" in space
     assert "batch_size" in space
     assert "dropout" in space
     assert "weight_decay" in space
-
-    # Ensure irrelevant parameters (like "scheduler_patience") are excluded
     assert "scheduler_patience" not in space
 
 
@@ -107,11 +99,9 @@ def test_get_model_space_224():
     """Test retrieval of model space for 224x224 resolution."""
     space = SearchSpaceRegistry.get_model_space_224()
 
-    # Ensure model_name and weight_variant are present for 224x224
     assert "model_name" in space
     assert "weight_variant" in space
 
-    # Test model choice based on trial
     trial_mock = MagicMock(spec=Trial)
     trial_mock.suggest_categorical.side_effect = lambda param, choices: "vit_tiny"
     model_name = space["model_name"](trial_mock)
@@ -124,7 +114,6 @@ def test_get_model_space_28():
     """Test retrieval of model space for 28x28 resolution."""
     space = SearchSpaceRegistry.get_model_space_28()
 
-    # Ensure model_name is present for 28x28
     assert "model_name" in space
 
     trial_mock = MagicMock(spec=Trial)
@@ -137,12 +126,10 @@ def test_get_model_space_28():
 @pytest.mark.unit
 def test_get_full_space_with_models():
     """Test retrieval of full space with model selection based on resolution."""
-    # Test with low resolution (28)
     space_28 = SearchSpaceRegistry.get_full_space_with_models(resolution=28)
     assert "model_name" in space_28
     assert "batch_size" in space_28
 
-    # Test with high resolution (224)
     space_224 = SearchSpaceRegistry.get_full_space_with_models(resolution=224)
     assert "model_name" in space_224
     assert "weight_variant" in space_224
@@ -158,13 +145,11 @@ def test_get_search_space_invalid_preset():
 @pytest.mark.unit
 def test_get_search_space_valid_presets():
     """Test behavior when valid presets are passed to get_search_space."""
-    # Test quick preset
     space_quick = get_search_space(preset="quick", resolution=28)
     assert "learning_rate" in space_quick
     assert "batch_size" in space_quick
     assert "dropout" in space_quick
 
-    # Test full preset
     space_full = get_search_space(preset="full", resolution=28)
     assert "learning_rate" in space_full
     assert "mixup_alpha" in space_full
@@ -176,14 +161,11 @@ def test_full_search_space_sample_params():
     """Test resolution-aware sampling in the FullSearchSpace class."""
     full_space = FullSearchSpace(resolution=28)
 
-    # Mock trial
     trial_mock = MagicMock(spec=Trial)
 
-    # Mocking suggest_float for both log=True and log=False cases
     trial_mock.suggest_float = MagicMock()
     trial_mock.suggest_float.return_value = 0.001
 
-    # Mocking suggest_categorical
     trial_mock.suggest_categorical = MagicMock()
     trial_mock.suggest_categorical.return_value = 32
     sampled_params = full_space.sample_params(trial_mock)
@@ -222,7 +204,6 @@ def test_full_search_space_sample_params_high_resolution():
     """Test FullSearchSpace with 224x224 resolution uses smaller batch choices."""
     full_space = FullSearchSpace(resolution=224)
 
-    # Mock trial
     trial_mock = MagicMock(spec=Trial)
     trial_mock.suggest_float = MagicMock(return_value=0.001)
     trial_mock.suggest_int = MagicMock(return_value=5)

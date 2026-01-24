@@ -63,7 +63,7 @@ def executor(mock_cfg):
     )
 
 
-#                    TESTS: Initialization                                    #
+# TESTS: INITIALIZATION
 @pytest.mark.unit
 def test_executor_init(executor):
     """Test correctly mapping config to executor attributes."""
@@ -73,7 +73,7 @@ def test_executor_init(executor):
     assert executor.scaler is None
 
 
-#                    TESTS: Optuna Integration                                #
+# TESTS: OPTUNA INTEGRATION
 @pytest.mark.unit
 def test_should_prune_respects_warmup(executor, mock_trial):
     """Ensure pruning is never triggered before warmup_epochs."""
@@ -95,7 +95,7 @@ def test_should_prune_respects_flag(executor, mock_trial):
     assert executor._should_prune(mock_trial, epoch=1) is False
 
 
-#                    TESTS: Scheduler Logic                                   #
+# TESTS: SCHEDULER LOGIC
 @pytest.mark.unit
 def test_step_scheduler_plateau(executor):
     """Test plateau scheduler receives val_loss."""
@@ -120,7 +120,6 @@ def test_step_scheduler_standard(executor):
 def test_return_if_scheduler_is_none(executor):
     """Ensures the function exits early when the scheduler is not initialized."""
     executor.scheduler = None
-    # This should not raise any AttributeError when calling internal step logic
     result = executor._step_scheduler(val_loss=0.5)
     assert result is None
 
@@ -145,12 +144,9 @@ def test_validate_epoch_returns_fallback_on_exception():
     )
 
     with patch("orchard.optimization.objective.training_executor.validate_epoch") as mock_validate:
-        # Simulate validation exception
         mock_validate.side_effect = RuntimeError("Validation error")
-
         result = executor._validate_epoch()
 
-        # Should return fallback metrics
         assert result == {"loss": 999.0, "accuracy": 0.0, "auc": 0.0}
 
 
@@ -173,12 +169,9 @@ def test_validate_epoch_returns_fallback_on_invalid_type():
     )
 
     with patch("orchard.optimization.objective.training_executor.validate_epoch") as mock_validate:
-        # Simulate invalid return type
         mock_validate.return_value = "not_a_dict"
-
         result = executor._validate_epoch()
 
-        # Should return fallback metrics
         assert result == {"loss": 999.0, "accuracy": 0.0, "auc": 0.0}
 
 
@@ -201,12 +194,9 @@ def test_validate_epoch_returns_fallback_on_none():
     )
 
     with patch("orchard.optimization.objective.training_executor.validate_epoch") as mock_validate:
-        # Simulate None return
         mock_validate.return_value = None
-
         result = executor._validate_epoch()
 
-        # Should return fallback metrics
         assert result == {"loss": 999.0, "accuracy": 0.0, "auc": 0.0}
 
 
@@ -240,8 +230,6 @@ def test_execute_handles_none_validation_result():
     with patch.object(executor, "_train_epoch", return_value=0.5):
         with patch.object(executor, "_validate_epoch", return_value=None):
             result = executor.execute(mock_trial)
-
-            # Should return 0.0 when validation is None
             assert result == 0.0
 
 
@@ -274,8 +262,6 @@ def test_execute_handles_invalid_validation_type():
     with patch.object(executor, "_train_epoch", return_value=0.5):
         with patch.object(executor, "_validate_epoch", return_value="invalid"):
             result = executor.execute(mock_trial)
-
-            # Should return 0.0 when validation is invalid type
             assert result == 0.0
 
 
@@ -324,7 +310,6 @@ def test_execute_logs_completion(mock_val, mock_train, executor, mock_trial):
     mock_val.return_value = {"loss": 0.25, "accuracy": 0.9, "auc": 0.92}
     executor.epochs = 1
 
-    # Simulate optimizer.step being called
     def train_side_effect(*args, **kwargs):
         executor.optimizer.step()
         return 0.35

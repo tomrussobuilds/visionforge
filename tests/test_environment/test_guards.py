@@ -113,7 +113,6 @@ def test_release_single_instance_with_lock(tmp_path):
     lock_file = tmp_path / "test.lock"
     lock_file.touch()
 
-    # Mock the global lock file descriptor
     mock_fd = MagicMock()
     with patch("orchard.core.environment.guards._lock_fd", mock_fd):
         with patch("fcntl.flock") as mock_flock:
@@ -186,7 +185,6 @@ def test_detect_duplicates_no_duplicates():
     """Test detect_duplicates returns empty list when no duplicates."""
     cleaner = DuplicateProcessCleaner()
 
-    # Mock process iteration to return no Python processes
     mock_procs = []
     with patch("psutil.process_iter", return_value=mock_procs):
         duplicates = cleaner.detect_duplicates()
@@ -199,7 +197,6 @@ def test_detect_duplicates_skips_self():
     """Test detect_duplicates skips current process."""
     cleaner = DuplicateProcessCleaner(script_name="test.py")
 
-    # Mock current process
     mock_proc = MagicMock()
     mock_proc.info = {
         "pid": cleaner.current_pid,
@@ -210,7 +207,6 @@ def test_detect_duplicates_skips_self():
     with patch("psutil.process_iter", return_value=[mock_proc]):
         duplicates = cleaner.detect_duplicates()
 
-    # Should skip own PID
     assert duplicates == []
 
 
@@ -219,7 +215,6 @@ def test_detect_duplicates_skips_non_python():
     """Test detect_duplicates skips non-Python processes."""
     cleaner = DuplicateProcessCleaner(script_name="test.py")
 
-    # Mock non-Python process
     mock_proc = MagicMock()
     mock_proc.info = {
         "pid": 9999,
@@ -239,7 +234,6 @@ def test_detect_duplicates_finds_duplicate():
     script_path = "/path/to/test.py"
     cleaner = DuplicateProcessCleaner(script_name=script_path)
 
-    # Mock duplicate process
     mock_proc = MagicMock()
     mock_proc.info = {
         "pid": 9999,
@@ -260,11 +254,9 @@ def test_detect_duplicates_handles_exceptions():
     """Test detect_duplicates handles psutil exceptions gracefully."""
     cleaner = DuplicateProcessCleaner()
 
-    # Mock a process that works
     mock_proc1 = MagicMock()
     mock_proc1.info = {"pid": 1000, "name": "python", "cmdline": ["python"]}
 
-    # Mock a process that raises exception when accessing info
     mock_proc2 = MagicMock()
     mock_proc2.info = MagicMock(side_effect=psutil.NoSuchProcess(9999))
 
@@ -423,7 +415,6 @@ def test_terminate_duplicates_with_logger():
             count = cleaner.terminate_duplicates(logger=logger)
 
     assert count == 1
-    # Verify logger was called
     logger.info.assert_called_once()
 
 

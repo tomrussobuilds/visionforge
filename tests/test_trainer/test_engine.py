@@ -111,7 +111,6 @@ def test_train_one_epoch_scaler_grad_clip_coverage(
     device = torch.device("cpu")
     scaler = torch.amp.GradScaler(enabled=True)
 
-    # Patch clip_grad_norm_ to verify it's called
     with patch("torch.nn.utils.clip_grad_norm_") as mock_clip:
         loss = train_one_epoch(
             model=simple_model,
@@ -123,7 +122,7 @@ def test_train_one_epoch_scaler_grad_clip_coverage(
             grad_clip=1.0,
             use_tqdm=False,
         )
-        # Verify clip_grad_norm_ was called
+
         assert mock_clip.call_count >= 2
         assert isinstance(loss, float)
 
@@ -134,20 +133,16 @@ def test_train_one_epoch_scaler_grad_clip_coverage(
 )
 def test_train_one_epoch_scaler_grad_clip_minimal():
     """Test scaler + grad_clip branch with minimal setup."""
-    # Minimal real components
     model = nn.Linear(10, 2)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     criterion = nn.CrossEntropyLoss()
     device = torch.device("cpu")
 
-    # Single batch loader
     batch = (torch.randn(4, 10), torch.randint(0, 2, (4,)))
     loader = [batch]
 
-    # Real scaler
     scaler = torch.amp.GradScaler(enabled=True)
 
-    # Track if unscale_ is called
     original_unscale = scaler.unscale_
     unscale_called = [False]
 
@@ -239,7 +234,6 @@ def test_train_one_epoch_updates_tqdm_postfix(simple_model, simple_loader, crite
         mock_iterator = MagicMock()
         mock_tqdm.return_value = mock_iterator
 
-        # Make the iterator behave like the loader
         batch1 = (torch.randn(4, 1, 28, 28), torch.randint(0, 10, (4,)))
         batch2 = (torch.randn(4, 1, 28, 28), torch.randint(0, 10, (4,)))
         mock_iterator.__iter__ = MagicMock(return_value=iter([batch1, batch2]))
@@ -250,10 +244,9 @@ def test_train_one_epoch_updates_tqdm_postfix(simple_model, simple_loader, crite
             criterion=criterion,
             optimizer=optimizer,
             device=device,
-            use_tqdm=True,  # Enable tqdm
+            use_tqdm=True,
         )
 
-        # Check that set_postfix was called
         assert mock_iterator.set_postfix.called
 
 
@@ -281,13 +274,11 @@ def test_validate_epoch_binary_classification(simple_model, criterion):
     """Test validate_epoch with binary classification."""
     device = torch.device("cpu")
 
-    # Modify model to output 2 classes (binary)
     model = nn.Sequential(
         nn.Flatten(),
         nn.Linear(28 * 28, 2),
     )
 
-    # Create loader with binary labels
     batch = (torch.randn(8, 1, 28, 28), torch.randint(0, 2, (8,)))
     loader = MagicMock()
     loader.__iter__ = MagicMock(return_value=iter([batch]))
@@ -308,7 +299,6 @@ def test_validate_epoch_auc_error_handling(simple_model, criterion):
     """Test validate_epoch handles AUC calculation errors."""
     device = torch.device("cpu")
 
-    # Create loader with constant predictions (causes AUC error)
     batch = (torch.randn(4, 1, 28, 28), torch.zeros(4, dtype=torch.long))
     loader = MagicMock()
     loader.__iter__ = MagicMock(return_value=iter([batch]))

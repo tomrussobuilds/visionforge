@@ -46,14 +46,13 @@ def test_augmentation_config_custom_values():
 @pytest.mark.unit
 def test_hflip_probability_bounds():
     """Test hflip probability must be in [0, 1]."""
-    # Valid
+
     config = AugmentationConfig(hflip=0.0)
     assert config.hflip == 0.0
 
     config = AugmentationConfig(hflip=1.0)
     assert config.hflip == 1.0
 
-    # Invalid
     with pytest.raises(ValidationError):
         AugmentationConfig(hflip=-0.1)
 
@@ -64,14 +63,13 @@ def test_hflip_probability_bounds():
 @pytest.mark.unit
 def test_rotation_angle_bounds():
     """Test rotation_angle must be in [0, 360]."""
-    # Valid
+
     config = AugmentationConfig(rotation_angle=0)
     assert config.rotation_angle == 0
 
     config = AugmentationConfig(rotation_angle=360)
     assert config.rotation_angle == 360
 
-    # Invalid
     with pytest.raises(ValidationError):
         AugmentationConfig(rotation_angle=-10)
 
@@ -82,11 +80,9 @@ def test_rotation_angle_bounds():
 @pytest.mark.unit
 def test_jitter_val_non_negative():
     """Test jitter_val must be non-negative."""
-    # Valid
-    config = AugmentationConfig(jitter_val=0.0)
-    assert config.jitter_val == 0.0
 
-    # Invalid
+    config = AugmentationConfig(jitter_val=0.0)
+
     with pytest.raises(ValidationError):
         AugmentationConfig(jitter_val=-0.1)
 
@@ -94,7 +90,7 @@ def test_jitter_val_non_negative():
 @pytest.mark.unit
 def test_min_scale_probability_bounds():
     """Test min_scale must be in (0, 1]."""
-    # Valid
+
     config = AugmentationConfig(min_scale=0.5)
     assert config.min_scale == 0.5
 
@@ -109,14 +105,13 @@ def test_min_scale_probability_bounds():
 @pytest.mark.unit
 def test_tta_translate_bounds():
     """Test tta_translate must be in [0, 50]."""
-    # Valid
+
     config = AugmentationConfig(tta_translate=0.0)
     assert config.tta_translate == 0.0
 
     config = AugmentationConfig(tta_translate=10.0)
     assert config.tta_translate == 10.0
 
-    # Invalid
     with pytest.raises(ValidationError):
         AugmentationConfig(tta_translate=-1.0)
 
@@ -127,14 +122,13 @@ def test_tta_translate_bounds():
 @pytest.mark.unit
 def test_tta_scale_bounds():
     """Test tta_scale must be in (0, 2]."""
-    # Valid
+
     config = AugmentationConfig(tta_scale=1.0)
     assert config.tta_scale == 1.0
 
     config = AugmentationConfig(tta_scale=2.0)
     assert config.tta_scale == 2.0
 
-    # Invalid
     with pytest.raises(ValidationError):
         AugmentationConfig(tta_scale=0.0)
 
@@ -145,14 +139,13 @@ def test_tta_scale_bounds():
 @pytest.mark.unit
 def test_tta_blur_sigma_bounds():
     """Test tta_blur_sigma must be in [0, 5]."""
-    # Valid
+
     config = AugmentationConfig(tta_blur_sigma=0.0)
     assert config.tta_blur_sigma == 0.0
 
     config = AugmentationConfig(tta_blur_sigma=5.0)
     assert config.tta_blur_sigma == 5.0
 
-    # Invalid
     with pytest.raises(ValidationError):
         AugmentationConfig(tta_blur_sigma=-0.5)
 
@@ -182,8 +175,8 @@ def test_from_args_partial():
     config = AugmentationConfig.from_args(args)
 
     assert config.hflip == 0.3
-    assert config.rotation_angle == 10  # Default
-    assert config.jitter_val == 0.2  # Default
+    assert config.rotation_angle == 10
+    assert config.jitter_val == 0.2
 
 
 @pytest.mark.unit

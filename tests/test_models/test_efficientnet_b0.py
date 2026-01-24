@@ -66,7 +66,6 @@ class TestEfficientNetB0:
         """Verify grayscale input channel adaptation."""
         model = build_efficientnet_b0(device, num_classes=10, in_channels=1, cfg=mock_cfg)
 
-        # Check first conv layer has 1 input channel
         first_conv = model.features[0][0]
         assert first_conv.in_channels == 1
         assert first_conv.out_channels == 32
@@ -75,7 +74,6 @@ class TestEfficientNetB0:
         """Verify RGB input channel configuration."""
         model = build_efficientnet_b0(device, num_classes=10, in_channels=3, cfg=mock_cfg)
 
-        # Check first conv layer has 3 input channels
         first_conv = model.features[0][0]
         assert first_conv.in_channels == 3
         assert first_conv.out_channels == 32
@@ -84,11 +82,9 @@ class TestEfficientNetB0:
         """Verify pretrained weights are loaded and morphed for grayscale."""
         mock_cfg.model.pretrained = True
 
-        # Import the module to find the correct path
         from orchard.models import efficientnet_b0 as efficientnet_module
 
         with patch.object(efficientnet_module, "models") as mock_models:
-            # Create a mock model with weights
             mock_model = MagicMock()
             mock_conv = MagicMock()
             mock_conv.weight = torch.randn(32, 3, 3, 3)
@@ -96,14 +92,11 @@ class TestEfficientNetB0:
             mock_model.classifier = [None, MagicMock()]
             mock_model.classifier[1].in_features = 1280
             mock_model.to = MagicMock(return_value=mock_model)
-
-            # Mock the efficientnet_b0 function
             mock_models.efficientnet_b0.return_value = mock_model
             mock_models.EfficientNet_B0_Weights.IMAGENET1K_V1 = "mock_weights"
 
             model = build_efficientnet_b0(device, num_classes=5, in_channels=1, cfg=mock_cfg)
 
-            # Verify pretrained weights were requested
             mock_models.efficientnet_b0.assert_called_once_with(weights="mock_weights")
 
     def test_efficientnet_b0_classifier_head_replacement(self, mock_cfg, device):
@@ -111,7 +104,6 @@ class TestEfficientNetB0:
         num_classes = 7
         model = build_efficientnet_b0(device, num_classes=num_classes, in_channels=3, cfg=mock_cfg)
 
-        # Check classifier head has correct output dimension
         assert model.classifier[1].out_features == num_classes
         assert model.classifier[1].in_features == 1280
 
@@ -120,7 +112,6 @@ class TestEfficientNetB0:
         device = torch.device("cpu")
         model = build_efficientnet_b0(device, num_classes=10, in_channels=3, cfg=mock_cfg)
 
-        # Check model parameters are on CPU
         for param in model.parameters():
             assert param.device.type == "cpu"
 

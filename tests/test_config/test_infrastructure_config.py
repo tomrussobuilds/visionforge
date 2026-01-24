@@ -32,7 +32,6 @@ def test_infrastructure_manager_is_singleton_like():
     manager1 = InfrastructureManager()
     manager2 = InfrastructureManager()
 
-    # Should be different instances
     assert manager1 is not manager2
 
 
@@ -42,9 +41,8 @@ def test_prepare_environment_creates_lock(tmp_path):
     """Test prepare_environment() creates lock file."""
     manager = InfrastructureManager()
 
-    # Mock config with temp lock path
     class MockHardware:
-        allow_process_kill = False  # Skip process cleanup
+        allow_process_kill = False
         lock_file_path = tmp_path / "test.lock"
 
     class MockConfig:
@@ -52,12 +50,8 @@ def test_prepare_environment_creates_lock(tmp_path):
 
     config = MockConfig()
 
-    # Should create lock file
     manager.prepare_environment(config)
-
     assert config.hardware.lock_file_path.exists()
-
-    # Cleanup
     manager.release_resources(config)
 
 
@@ -75,7 +69,6 @@ def test_release_resources_removes_lock(tmp_path):
 
     config = MockConfig()
 
-    # Create and release
     manager.prepare_environment(config)
     assert config.hardware.lock_file_path.exists()
 
@@ -89,7 +82,7 @@ def test_prepare_environment_with_existing_lock(tmp_path):
     manager = InfrastructureManager()
 
     lock_path = tmp_path / "existing.lock"
-    lock_path.touch()  # Create existing lock
+    lock_path.touch()
 
     class MockHardware:
         allow_process_kill = False
@@ -98,13 +91,9 @@ def test_prepare_environment_with_existing_lock(tmp_path):
     class MockConfig:
         hardware = MockHardware()
 
-    # Should handle existing lock (implementation-dependent)
     manager.prepare_environment(MockConfig())
-
-    # Lock should still exist or be recreated
     assert lock_path.exists()
 
-    # Cleanup
     manager.release_resources(MockConfig())
 
 
@@ -124,9 +113,8 @@ def test_release_resources_idempotent(tmp_path):
 
     manager.prepare_environment(config)
 
-    # Release twice
     manager.release_resources(config)
-    manager.release_resources(config)  # Should not raise
+    manager.release_resources(config)
 
     assert not config.hardware.lock_file_path.exists()
 
@@ -137,7 +125,6 @@ def test_flush_compute_cache_no_error():
     """Test _flush_compute_cache() runs without error."""
     manager = InfrastructureManager()
 
-    # Should not raise even if no GPU
     manager._flush_compute_cache()
 
 
@@ -146,7 +133,6 @@ def test_flush_compute_cache_callable():
     """Test _flush_compute_cache() is callable."""
     manager = InfrastructureManager()
 
-    # Should be a method
     assert callable(manager._flush_compute_cache)
 
 
@@ -156,7 +142,6 @@ def test_integration_with_hardware_config(tmp_path):
     """Test InfrastructureManager works with real HardwareConfig."""
     manager = InfrastructureManager()
 
-    # Create real HardwareConfig with temp lock path
     hw_config = HardwareConfig(project_name="test-integration")
 
     class MockConfig:
@@ -188,10 +173,7 @@ def test_prepare_environment_with_logger(tmp_path):
         def warning(self, msg):
             pass
 
-    # Should accept logger without error
     manager.prepare_environment(MockConfig(), logger=MockLogger())
-
-    # Cleanup
     manager.release_resources(MockConfig())
 
 
@@ -217,7 +199,6 @@ def test_release_resources_with_logger(tmp_path):
     config = MockConfig()
     manager.prepare_environment(config)
 
-    # Should accept logger without error
     manager.release_resources(config, logger=MockLogger())
 
 
@@ -240,14 +221,10 @@ def test_optuna_hardware_integration():
     hw_config = HardwareConfig.for_optuna(device="cpu")
     optuna_config = OptunaConfig(n_trials=10)
 
-    # Reproducible mode should be enabled
     assert hw_config.reproducible is True
     assert hw_config.effective_num_workers == 0
-
-    # Optuna config should be valid
     assert optuna_config.n_trials == 10
 
-    # InfrastructureManager should work with this config
     manager = InfrastructureManager()
     assert manager is not None
 
@@ -258,13 +235,12 @@ def test_prepare_environment_with_process_kill_enabled(tmp_path, monkeypatch):
     """Test prepare_environment() with process kill enabled on non-shared environment."""
     manager = InfrastructureManager()
 
-    # Remove shared environment markers
     monkeypatch.delenv("SLURM_JOB_ID", raising=False)
     monkeypatch.delenv("PBS_JOBID", raising=False)
     monkeypatch.delenv("LSB_JOBID", raising=False)
 
     class MockHardware:
-        allow_process_kill = True  # Enable process cleanup
+        allow_process_kill = True
         lock_file_path = tmp_path / "test.lock"
 
     class MockConfig:
@@ -286,14 +262,11 @@ def test_prepare_environment_with_process_kill_enabled(tmp_path, monkeypatch):
     logger = MockLogger()
     config = MockConfig()
 
-    # Should execute process cleanup
     manager.prepare_environment(config, logger=logger)
 
-    # Check that process termination was logged
     info_messages = [msg for level, msg in logger.messages if level == "info"]
     assert any("Duplicate processes terminated" in msg for msg in info_messages)
 
-    # Cleanup
     manager.release_resources(config)
 
 
@@ -302,7 +275,6 @@ def test_prepare_environment_skips_process_kill_on_shared_env(tmp_path, monkeypa
     """Test prepare_environment() skips process kill on shared compute."""
     manager = InfrastructureManager()
 
-    # Simulate SLURM environment
     monkeypatch.setenv("SLURM_JOB_ID", "12345")
 
     class MockHardware:
@@ -330,11 +302,9 @@ def test_prepare_environment_skips_process_kill_on_shared_env(tmp_path, monkeypa
 
     manager.prepare_environment(config, logger=logger)
 
-    # Should skip process cleanup on shared environment
     debug_messages = [msg for level, msg in logger.messages if level == "debug"]
     assert any("Shared environment detected" in msg for msg in debug_messages)
 
-    # Cleanup
     manager.release_resources(config)
 
 
@@ -343,7 +313,6 @@ def test_prepare_environment_with_pbs_environment(tmp_path, monkeypatch):
     """Test prepare_environment() detects PBS environment."""
     manager = InfrastructureManager()
 
-    # Simulate PBS environment
     monkeypatch.setenv("PBS_JOBID", "67890")
     monkeypatch.delenv("SLURM_JOB_ID", raising=False)
 
@@ -372,7 +341,6 @@ def test_prepare_environment_with_pbs_environment(tmp_path, monkeypatch):
 
     assert any("Shared environment detected" in msg for msg in logger.debug_calls)
 
-    # Cleanup
     manager.release_resources(MockConfig())
 
 
@@ -388,7 +356,6 @@ def test_flush_compute_cache_with_cuda(monkeypatch):
         nonlocal cuda_cache_cleared
         cuda_cache_cleared = True
 
-    # Mock CUDA availability
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(torch.cuda, "empty_cache", mock_empty_cache)
 
@@ -417,10 +384,8 @@ def test_flush_compute_cache_with_mps(monkeypatch):
         nonlocal mps_cache_cleared
         mps_cache_cleared = True
 
-    # Mock MPS availability
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
-    # Create mock MPS backend
     class MockMPSBackend:
         @staticmethod
         def is_available():
@@ -459,7 +424,6 @@ def test_flush_compute_cache_mps_failure(monkeypatch):
     def mock_mps_empty_cache_fail():
         raise RuntimeError("MPS error")
 
-    # Mock MPS that raises exception
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
     class MockMPSBackend:
@@ -488,7 +452,6 @@ def test_flush_compute_cache_mps_failure(monkeypatch):
     logger = MockLogger()
     manager._flush_compute_cache(log=logger)
 
-    # Should handle exception gracefully
     assert any("MPS cache cleanup failed" in msg for msg in logger.debug_messages)
 
 
@@ -497,13 +460,11 @@ def test_release_resources_lock_failure(tmp_path):
     """Test release_resources() handles lock release failures."""
     manager = InfrastructureManager()
 
-    # Create lock in a way that removal will fail
     lock_path = tmp_path / "readonly_dir" / "test.lock"
     lock_path.parent.mkdir()
     lock_path.touch()
 
-    # Make parent directory read-only (on Unix systems)
-    if os.name != "nt":  # Skip on Windows
+    if os.name != "nt":
         lock_path.parent.chmod(0o444)
 
     class MockHardware:
@@ -529,13 +490,10 @@ def test_release_resources_lock_failure(tmp_path):
     logger = MockLogger()
     config = MockConfig()
 
-    # Should handle lock release failure gracefully
     manager.release_resources(config, logger=logger)
 
-    # Should log warning about failed lock release
     assert any("Failed to release lock" in msg for msg in logger.warnings)
 
-    # Cleanup: restore permissions
     if os.name != "nt":
         lock_path.parent.chmod(0o755)
 

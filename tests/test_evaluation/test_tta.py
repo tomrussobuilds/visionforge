@@ -52,8 +52,6 @@ def mock_model(mock_cfg):
     model = MagicMock(spec=nn.Module)
     num_classes = mock_cfg.dataset.num_classes
     mock_logits = torch.randn(4, num_classes)
-
-    # Mock both forward and __call__ for compatibility
     model.return_value = mock_logits
     model.forward.return_value = mock_logits
     model.to.return_value = model
@@ -70,11 +68,9 @@ def test_get_tta_transforms_base(dummy_input, device, mock_cfg):
 
     assert len(transforms) >= 2, "Base transforms (identity + flip) are missing."
 
-    # Test identity transform
     transformed = transforms[0](dummy_input)
     assert torch.equal(transformed, dummy_input), "Identity transform modified the input."
 
-    # Test horizontal flip
     flipped = transforms[1](dummy_input)
     assert not torch.equal(flipped, dummy_input), "Horizontal flip failed to modify the input."
 
@@ -86,10 +82,8 @@ def test_get_tta_transforms_texture_based(dummy_input, device, mock_cfg):
         device, is_anatomical=False, is_texture_based=True, cfg=mock_cfg
     )
 
-    # Should contain more than just base transforms
     assert len(transforms) > 2, "Texture-based augmentations were not added."
 
-    # Verify a transform produces different output
     modified = transforms[-1](dummy_input)
     assert not torch.equal(
         modified, dummy_input
@@ -104,11 +98,9 @@ def test_get_tta_transforms_gpu_rotations_mocked():
     mock_cfg.augmentation.tta_scale = 1.05
     mock_cfg.augmentation.tta_blur_sigma = 0.5
 
-    # Create a mock GPU device
     mock_device = MagicMock()
-    mock_device.type = "cuda"  # ← Force GPU type
+    mock_device.type = "cuda"
 
-    # This will trigger the GPU branch even on CPU-only CI
     gpu_transforms = _get_tta_transforms(
         device=mock_device,
         is_anatomical=False,
@@ -116,7 +108,6 @@ def test_get_tta_transforms_gpu_rotations_mocked():
         cfg=mock_cfg,
     )
 
-    # GPU: base(2) + texture(4) + rotations(3) = 9
     assert len(gpu_transforms) == 9
 
 
@@ -128,7 +119,6 @@ def test_get_tta_transforms_cpu_fallback_vertical_flip():
     mock_cfg.augmentation.tta_scale = 1.05
     mock_cfg.augmentation.tta_blur_sigma = 0.5
 
-    # Real CPU device
     cpu_device = torch.device("cpu")
 
     cpu_transforms = _get_tta_transforms(
@@ -138,16 +128,13 @@ def test_get_tta_transforms_cpu_fallback_vertical_flip():
         cfg=mock_cfg,
     )
 
-    # CPU: base(2) + texture(4) + vflip(1) = 7
     assert len(cpu_transforms) == 7
 
-    # Verify last transform is vertical flip
     test_tensor = torch.ones(1, 3, 4, 4)
     test_tensor[0, 0, 0, :] = 0
 
     vflip_result = cpu_transforms[-1](test_tensor)
 
-    # Top row moved to bottom
     assert torch.all(vflip_result[0, 0, -1, :] == 0)
     assert torch.all(vflip_result[0, 0, 0, :] == 1)
 
@@ -161,7 +148,6 @@ def test_get_tta_transforms_gpu_rotations():
     mock_cfg.augmentation.tta_scale = 1.05
     mock_cfg.augmentation.tta_blur_sigma = 0.5
 
-    # GPU device, non-anatomical
     gpu_transforms = _get_tta_transforms(
         device=torch.device("cuda"),
         is_anatomical=False,
@@ -169,8 +155,6 @@ def test_get_tta_transforms_gpu_rotations():
         cfg=mock_cfg,
     )
 
-    # GPU should have rotations instead of just vertical flip
-    # base(2) + texture(4) + rotations(3) = 9
     assert len(gpu_transforms) == 9
 
 
@@ -195,9 +179,7 @@ def test_tta_is_deterministic_under_eval(mock_model, dummy_input, device, mock_c
     model = mock_model
     model.to(device)
 
-    # First pass
     res1 = adaptive_tta_predict(model, dummy_input, device, False, False, mock_cfg)
-    # Second pass
     res2 = adaptive_tta_predict(model, dummy_input, device, False, False, mock_cfg)
 
     assert_close(res1, res2)

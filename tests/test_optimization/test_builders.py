@@ -145,7 +145,6 @@ def mock_config():
     optuna_mock.direction = "maximize"
     optuna_mock.metric_name = "val_acc"
 
-    # Attach optuna mock to config
     config.optuna = optuna_mock
 
     return config

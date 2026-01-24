@@ -15,7 +15,7 @@ import pytest
 import torch
 from torchvision import transforms
 
-#                                Module Under Test                            #
+# Internal Imports
 from orchard.data_handler.dataset import MedMNISTDataset
 
 
@@ -60,7 +60,7 @@ def grayscale_npz(tmp_path: Path):
     return path
 
 
-#                          TEST: Initialization Errors                        #
+# TEST: Initialization Errors
 def test_init_requires_cfg(rgb_npz):
     """Dataset initialization without Config should fail."""
     with pytest.raises(ValueError):
@@ -73,7 +73,7 @@ def test_init_requires_existing_file(cfg, tmp_path):
         MedMNISTDataset(path=tmp_path / "missing.npz", cfg=cfg)
 
 
-#                          TEST: Basic Loading                                #
+# TEST: Basic Loading
 def test_len_matches_number_of_samples(cfg, rgb_npz):
     """__len__ should match number of loaded labels."""
     ds = MedMNISTDataset(path=rgb_npz, split="train", cfg=cfg)
@@ -93,7 +93,7 @@ def test_getitem_returns_tensor_pair(cfg, rgb_npz):
     assert img.shape[0] == 3
 
 
-#                   TEST: Grayscale Handling                                  #
+# TEST: Grayscale Handling
 def test_grayscale_images_are_expanded(cfg, grayscale_npz):
     """Grayscale datasets should be expanded to (H, W, 1)."""
     ds = MedMNISTDataset(path=grayscale_npz, split="train", cfg=cfg)
@@ -105,7 +105,7 @@ def test_grayscale_images_are_expanded(cfg, grayscale_npz):
     assert img.shape[0] == 1
 
 
-#                   TEST: Deterministic Subsampling                           #
+# TEST: Deterministic Subsampling
 def test_max_samples_is_deterministic(cfg, rgb_npz):
     """Subsampling should be reproducible given the same seed."""
     ds1 = MedMNISTDataset(path=rgb_npz, split="train", max_samples=5, cfg=cfg)
@@ -122,7 +122,7 @@ def test_max_samples_smaller_than_dataset(cfg, rgb_npz):
     assert len(ds) == 7
 
 
-#                       TEST: Transform Application                           #
+# TEST: Transform Application
 def test_custom_transform_is_applied(cfg, rgb_npz):
     """Custom transforms should be applied to images."""
     transform = transforms.Compose(
@@ -145,7 +145,7 @@ def test_custom_transform_is_applied(cfg, rgb_npz):
     assert img.dtype == torch.float32
 
 
-#                     TEST: Different Splits                                  #
+# TEST: Different Splits
 @pytest.mark.parametrize("split,expected_len", [("train", 20), ("val", 10), ("test", 10)])
 def test_dataset_splits(cfg, rgb_npz, split, expected_len):
     """Dataset should correctly load all supported splits."""

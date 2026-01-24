@@ -13,7 +13,7 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 # Internal Imports
-from orchard.core.config.types import (  # Generic primitives; Filesystem; Hardware; Model geometry; Optimization; Augmentation; System
+from orchard.core.config.types import (
     BatchSize,
     BlurSigma,
     Channels,
@@ -131,7 +131,7 @@ def test_percentage_bounds():
     assert Model(pct=1.0).pct == 1.0
 
     with pytest.raises(ValidationError):
-        Model(pct=0.0)  # Must be > 0
+        Model(pct=0.0)
 
     with pytest.raises(ValidationError):
         Model(pct=1.5)
@@ -418,20 +418,16 @@ def test_project_slug_pattern():
     class Model(BaseModel):
         slug: ProjectSlug
 
-    # Valid
     assert Model(slug="my-project").slug == "my-project"
     assert Model(slug="project_v2").slug == "project_v2"
     assert Model(slug="abc123").slug == "abc123"
 
-    # Invalid - uppercase
     with pytest.raises(ValidationError):
         Model(slug="MyProject")
 
-    # Invalid - spaces
     with pytest.raises(ValidationError):
         Model(slug="my project")
 
-    # Invalid - special chars
     with pytest.raises(ValidationError):
         Model(slug="project@v1")
 
@@ -496,7 +492,7 @@ def test_device_type_literals():
         assert Model(device=device).device == device
 
     with pytest.raises(ValidationError):
-        Model(device="gpu")  # Should be 'cuda'
+        Model(device="gpu")
 
     with pytest.raises(ValidationError):
         Model(device="tpu")

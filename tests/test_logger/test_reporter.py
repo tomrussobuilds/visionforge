@@ -165,8 +165,6 @@ def test_log_optimization_summary_completed_trials():
     mock_device = torch.device("cuda")
     mock_paths = MagicMock()
     mock_paths.root = "/tmp/outputs"
-
-    # Mock study with completed trials
     mock_study = MagicMock()
     mock_trial = MagicMock()
     mock_trial.state.name = "COMPLETE"
@@ -198,8 +196,6 @@ def test_log_optimization_summary_no_completed_trials():
     mock_cfg.optuna.metric_name = "auc"
     mock_device = torch.device("cpu")
     mock_paths = MagicMock()
-
-    # Mock study with no completed trials
     mock_study = MagicMock()
     mock_trial = MagicMock()
     mock_trial.state.name = "PRUNED"
@@ -225,8 +221,6 @@ def test_log_optimization_summary_with_failed_trials():
     mock_cfg.optuna.metric_name = "auc"
     mock_device = torch.device("cpu")
     mock_paths = MagicMock()
-
-    # Mock study with failed trials
     mock_study = MagicMock()
     mock_trial_complete = MagicMock()
     mock_trial_complete.state.name = "COMPLETE"
@@ -402,7 +396,7 @@ def test_log_trial_start_formats_small_floats():
 
 @pytest.mark.unit
 def test_log_trial_start_with_string_params():
-    """Test log_trial_start handles string parameters (line 408)."""
+    """Test log_trial_start handles string parameters."""
     mock_logger = MagicMock()
     params = {
         "model_name": "resnet18",
@@ -420,7 +414,7 @@ def test_log_trial_start_with_string_params():
 
 @pytest.mark.unit
 def test_log_trial_start_with_regular_floats():
-    """Test log_trial_start with regular floats (not small) - line 400."""
+    """Test log_trial_start with regular floats (not small)."""
     mock_logger = MagicMock()
     params = {
         "learning_rate": 0.01,
@@ -448,10 +442,8 @@ def test_log_study_summary_value_error_on_best_trial():
     mock_trial.state = optuna.trial.TrialState.COMPLETE
     mock_study.trials = [mock_trial]
 
-    # Make best_value raise ValueError
     type(mock_study).best_value = PropertyMock(side_effect=ValueError("No best trial"))
 
-    # Patch the module logger since the function may fall back to it
     with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
         log_study_summary(study=mock_study, metric_name="auc", logger_instance=mock_logger)
         warning_called = mock_logger.warning.called or mock_module_logger.warning.called
@@ -466,7 +458,6 @@ def test_log_best_config_export():
     config_path.__str__ = lambda x: "/tmp/best_config.yaml"
     config_path.parent.parent = MagicMock()
 
-    # Patch the module logger since function uses logger fallback
     with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
         log_best_config_export(config_path=config_path, logger_instance=None)
 
@@ -711,7 +702,6 @@ def test_log_study_summary_with_failed_trials():
     """Test log_study_summary includes failed trials count."""
     import optuna
 
-    # Patch the module logger
     with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
         mock_study = MagicMock()
         mock_trial_complete = MagicMock()

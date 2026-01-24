@@ -56,13 +56,11 @@ def test_focal_loss_forward_perfect_predictions():
     """Test FocalLoss with perfect predictions (should give very low loss)."""
     loss_fn = FocalLoss()
 
-    # Perfect predictions: high logit for correct class
     inputs = torch.tensor([[10.0, -10.0, -10.0], [-10.0, 10.0, -10.0], [-10.0, -10.0, 10.0]])
     targets = torch.tensor([0, 1, 2])
 
     loss = loss_fn(inputs, targets)
 
-    # Loss should be very small for perfect predictions
     assert loss.item() < 0.1
 
 
@@ -71,13 +69,11 @@ def test_focal_loss_forward_poor_predictions():
     """Test FocalLoss with poor predictions (should give higher loss)."""
     loss_fn = FocalLoss()
 
-    # Poor predictions: low logit for correct class
     inputs = torch.tensor([[-5.0, 5.0, 5.0], [5.0, -5.0, 5.0], [5.0, 5.0, -5.0]])
     targets = torch.tensor([0, 1, 2])
 
     loss = loss_fn(inputs, targets)
 
-    # Loss should be higher for poor predictions
     assert loss.item() > 0.5
 
 
@@ -102,15 +98,12 @@ def test_focal_loss_gamma_effect():
     inputs = torch.tensor([[5.0, 1.0, 0.5], [1.0, 6.0, 0.5], [0.5, 1.0, 7.0]])
     targets = torch.tensor([0, 1, 2])
 
-    # Low gamma
     loss_fn_low = FocalLoss(gamma=0.5)
     loss_low = loss_fn_low(inputs, targets)
 
-    # High gamma
     loss_fn_high = FocalLoss(gamma=5.0)
     loss_high = loss_fn_high(inputs, targets)
 
-    # Higher gamma should give lower loss for well-classified examples
     assert loss_high.item() < loss_low.item()
 
 
@@ -126,7 +119,6 @@ def test_focal_loss_alpha_effect():
     loss_fn_alpha2 = FocalLoss(alpha=2.0)
     loss_alpha2 = loss_fn_alpha2(inputs, targets)
 
-    # Alpha=2 should give approximately 2x the loss
     assert abs(loss_alpha2.item() - 2 * loss_alpha1.item()) < 0.01
 
 
@@ -135,17 +127,14 @@ def test_focal_loss_batch_size():
     """Test FocalLoss with different batch sizes."""
     loss_fn = FocalLoss()
 
-    # Small batch
     inputs_small = torch.randn(4, 10)
     targets_small = torch.randint(0, 10, (4,))
     loss_small = loss_fn(inputs_small, targets_small)
 
-    # Large batch
     inputs_large = torch.randn(64, 10)
     targets_large = torch.randint(0, 10, (64,))
     loss_large = loss_fn(inputs_large, targets_large)
 
-    # Both should return scalar losses
     assert loss_small.dim() == 0
     assert loss_large.dim() == 0
 
@@ -179,7 +168,6 @@ def test_focal_loss_gradient_flow():
     loss = loss_fn(inputs, targets)
     loss.backward()
 
-    # Gradients should be computed
     assert inputs.grad is not None
     assert not torch.all(inputs.grad == 0)
 
@@ -265,15 +253,12 @@ def test_focal_loss_comparable_to_ce_when_gamma_zero():
     inputs = torch.randn(16, 10)
     targets = torch.randint(0, 10, (16,))
 
-    # FocalLoss with gamma=0 and alpha=1
     focal_loss_fn = FocalLoss(gamma=0.0, alpha=1.0)
     focal_loss = focal_loss_fn(inputs, targets)
 
-    # Standard Imports
     ce_loss_fn = nn.CrossEntropyLoss()
     ce_loss = ce_loss_fn(inputs, targets)
 
-    # Should be very close (within numerical precision)
     assert abs(focal_loss.item() - ce_loss.item()) < 0.01
 
 
@@ -282,20 +267,18 @@ def test_focal_loss_with_mixed_difficulty():
     """Test FocalLoss focuses on hard examples."""
     loss_fn = FocalLoss(gamma=2.0)
 
-    # Mix of easy and hard examples
     inputs = torch.tensor(
         [
-            [10.0, -5.0, -5.0],  # Easy: correct class has high logit
-            [-5.0, -5.0, 10.0],  # Easy: correct class has high logit
-            [1.0, 0.8, 0.9],  # Hard: all classes have similar logits
-            [0.9, 1.0, 0.8],  # Hard: all classes have similar logits
+            [10.0, -5.0, -5.0],
+            [-5.0, -5.0, 10.0],
+            [1.0, 0.8, 0.9],
+            [0.9, 1.0, 0.8],
         ]
     )
     targets = torch.tensor([0, 2, 0, 1])
 
     loss = loss_fn(inputs, targets)
 
-    # Loss should be positive and influenced more by hard examples
     assert loss.item() > 0.0
 
 

@@ -98,7 +98,6 @@ def test_registry_wrapper_get_dataset_returns_deep_copy():
     """Test get_dataset returns independent copy of metadata."""
     wrapper = DatasetRegistryWrapper(resolution=28)
 
-    # Get first available dataset
     available_datasets = list(wrapper.registry.keys())
     assert len(available_datasets) > 0
 
@@ -138,7 +137,6 @@ def test_dataset_metadata_normalization_info_property():
 @pytest.mark.unit
 def test_registry_wrapper_empty_source_registry():
     """Test DatasetRegistryWrapper raises ValueError when source registry is empty (line 55 in wrapper.py)."""
-    # Mock the registries to be empty
     with patch("orchard.core.metadata.wrapper.REG_28", {}):
         with patch("orchard.core.metadata.wrapper.REG_224", {}):
             with pytest.raises(ValueError) as exc_info:

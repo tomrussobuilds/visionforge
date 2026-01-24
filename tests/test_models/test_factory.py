@@ -24,7 +24,7 @@ def test_get_model_returns_nn_module():
     device = torch.device("cpu")
     mock_cfg = MagicMock()
     mock_cfg.model.name = "mini_cnn"
-    mock_cfg.model.dropout = 0.0  # Concrete value
+    mock_cfg.model.dropout = 0.0
     mock_cfg.dataset.effective_in_channels = 3
     mock_cfg.dataset.num_classes = 10
     mock_cfg.dataset.img_size = 28
@@ -47,7 +47,6 @@ def test_get_model_deploys_to_device():
 
     model = get_model(device=device, cfg=mock_cfg)
 
-    # Check model is on correct device
     assert next(model.parameters()).device.type == device.type
 
 
@@ -70,8 +69,8 @@ def test_get_model_case_insensitive():
     """Test get_model handles case-insensitive model names."""
     device = torch.device("cpu")
     mock_cfg = MagicMock()
-    mock_cfg.model.name = "MINI_CNN"  # Uppercase
-    mock_cfg.model.dropout = 0.0  # Concrete value
+    mock_cfg.model.name = "MINI_CNN"
+    mock_cfg.model.dropout = 0.0
     mock_cfg.dataset.effective_in_channels = 3
     mock_cfg.dataset.num_classes = 10
     mock_cfg.dataset.img_size = 28
@@ -92,7 +91,7 @@ def test_get_model_all_registered_models(model_name):
     device = torch.device("cpu")
     mock_cfg = MagicMock()
     mock_cfg.model.name = model_name
-    mock_cfg.model.dropout = 0.0  # Concrete value for mini_cnn
+    mock_cfg.model.dropout = 0.0
     mock_cfg.dataset.effective_in_channels = 3
     mock_cfg.dataset.num_classes = 10
     mock_cfg.dataset.img_size = 224 if model_name == "vit_tiny" else 28

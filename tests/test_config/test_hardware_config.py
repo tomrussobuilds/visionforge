@@ -24,7 +24,6 @@ def test_device_auto_resolves():
     """Test device='auto' resolves to best available."""
     config = HardwareConfig(device="auto")
 
-    # Should resolve to cuda, mps, or cpu
     assert config.device in ("cpu", "cuda", "mps")
 
 
@@ -51,7 +50,6 @@ def test_device_cuda_fallback_to_cpu():
     """Test device='cuda' falls back to CPU when unavailable."""
     config = HardwareConfig(device="cuda")
 
-    # Should fallback to CPU
     assert config.device == "cpu"
 
 
@@ -63,17 +61,14 @@ def test_device_cuda_fallback_when_unavailable():
     with patch("torch.cuda.is_available", return_value=False):
         config = HardwareConfig(device="cuda")
 
-        # Should fallback to CPU
         assert config.device == "cpu"
 
 
 @pytest.mark.unit
 def test_invalid_device_fallback():
     """Test invalid device type falls through validator."""
-    # MPS on non-Mac should fallback to CPU
     config = HardwareConfig(device="mps")
 
-    # Should either be mps (if on Mac) or cpu (fallback)
     assert config.device in ("mps", "cpu")
 
 
@@ -101,7 +96,6 @@ def test_reproducible_mode_affects_num_workers():
     """Test reproducible mode forces num_workers=0."""
     config = HardwareConfig(reproducible=False)
 
-    # Should use system-detected workers
     assert config.effective_num_workers >= 0
 
 
@@ -157,7 +151,6 @@ def test_lock_file_path_in_temp_dir():
 
     lock_path = config.lock_file_path
 
-    # Should be in temp directory
     assert str(lock_path).startswith(tempfile.gettempdir())
     assert lock_path.name == "test_project.lock"
 
@@ -180,7 +173,6 @@ def test_lock_file_path_sanitizes_slashes():
     config = HardwareConfig(project_name="org/project")
     lock_path = config.lock_file_path
 
-    # Slashes should be replaced with underscores
     assert "/" not in lock_path.name
     assert "org_project.lock" in lock_path.name
 
@@ -222,12 +214,12 @@ def test_from_args_basic():
 @pytest.mark.unit
 def test_from_args_ignores_none_values():
     """Test from_args() ignores None values."""
-    args = Namespace(device="cpu", project_name=None)  # Should use default
+    args = Namespace(device="cpu", project_name=None)
 
     config = HardwareConfig.from_args(args)
 
     assert config.device == "cpu"
-    assert config.project_name == "vision_experiment"  # Default
+    assert config.project_name == "vision_experiment"
 
 
 @pytest.mark.unit
@@ -237,8 +229,8 @@ def test_from_args_partial():
 
     config = HardwareConfig.from_args(args)
 
-    assert config.device in ("cuda", "cpu")  # May fallback
-    assert config.project_name == "vision_experiment"  # Default
+    assert config.device in ("cuda", "cpu")
+    assert config.project_name == "vision_experiment"
 
 
 # HARDWARE CONFIG: DEFAULTS
@@ -258,7 +250,6 @@ def test_config_not_frozen():
     """Test HardwareConfig is NOT frozen (allows reproducible mutation)."""
     config = HardwareConfig()
 
-    # Should be mutable (frozen=False)
     config.reproducible = True
     assert config.reproducible is True
 

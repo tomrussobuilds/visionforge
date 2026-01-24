@@ -22,18 +22,13 @@ def test_evaluation_config_defaults():
     """Test EvaluationConfig with default values."""
     config = EvaluationConfig()
 
-    # Inference
     assert config.batch_size == 64
-
-    # Visualization
     assert config.n_samples == 12
     assert config.fig_dpi == 200
     assert config.cmap_confusion == "Blues"
     assert config.plot_style == "seaborn-v0_8-muted"
     assert config.grid_cols == 4
     assert config.fig_size_predictions == (12, 8)
-
-    # Export
     assert config.report_format == "xlsx"
     assert config.save_confusion_matrix is True
     assert config.save_predictions_grid is True
@@ -57,14 +52,12 @@ def test_evaluation_config_custom_values():
 @pytest.mark.unit
 def test_batch_size_bounds():
     """Test batch_size must be in [1, 2048]."""
-    # Valid
+
     config = EvaluationConfig(batch_size=1)
     assert config.batch_size == 1
 
     config = EvaluationConfig(batch_size=2048)
-    assert config.batch_size == 2048
 
-    # Invalid
     with pytest.raises(ValidationError):
         EvaluationConfig(batch_size=0)
 
@@ -75,11 +68,10 @@ def test_batch_size_bounds():
 @pytest.mark.unit
 def test_n_samples_positive():
     """Test n_samples must be positive."""
-    # Valid
+
     config = EvaluationConfig(n_samples=1)
     assert config.n_samples == 1
 
-    # Invalid
     with pytest.raises(ValidationError):
         EvaluationConfig(n_samples=0)
 
@@ -90,11 +82,10 @@ def test_n_samples_positive():
 @pytest.mark.unit
 def test_fig_dpi_positive():
     """Test fig_dpi must be positive."""
-    # Valid
+
     config = EvaluationConfig(fig_dpi=100)
     assert config.fig_dpi == 100
 
-    # Invalid
     with pytest.raises(ValidationError):
         EvaluationConfig(fig_dpi=0)
 
@@ -105,11 +96,10 @@ def test_fig_dpi_positive():
 @pytest.mark.unit
 def test_grid_cols_positive():
     """Test grid_cols must be positive."""
-    # Valid
+
     config = EvaluationConfig(grid_cols=3)
     assert config.grid_cols == 3
 
-    # Invalid
     with pytest.raises(ValidationError):
         EvaluationConfig(grid_cols=0)
 
@@ -170,7 +160,6 @@ def test_fig_size_tuple():
     config = EvaluationConfig(fig_size_predictions=(16, 10))
     assert config.fig_size_predictions == (16, 10)
 
-    # Invalid - tuple size validation handled by Pydantic
     with pytest.raises(ValidationError):
         EvaluationConfig(fig_size_predictions=(0, 8))
 
@@ -219,8 +208,8 @@ def test_from_args_partial():
     config = EvaluationConfig.from_args(args)
 
     assert config.batch_size == 32
-    assert config.n_samples == 12  # Default
-    assert config.report_format == "xlsx"  # Default
+    assert config.n_samples == 12
+    assert config.report_format == "xlsx"
 
 
 # EVALUATION CONFIG: IMMUTABILITY

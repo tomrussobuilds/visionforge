@@ -54,12 +54,9 @@ def test_init_lazy_attributes_and_policy_extraction():
 
     orch = RootOrchestrator(cfg=mock_cfg)
 
-    # Lazy attributes should be None initially
     assert orch.paths is None
     assert orch.run_logger is None
     assert orch._device_cache is None
-
-    # Policy extraction
     assert orch.repro_mode is True
     assert orch.num_workers == 5
 
@@ -112,7 +109,7 @@ def test_context_manager_exit_calls_cleanup():
     result = orch.__exit__(None, None, None)
 
     orch.cleanup.assert_called_once()
-    assert result is False  # Exception propagation
+    assert result is False
 
 
 @pytest.mark.unit
@@ -125,10 +122,9 @@ def test_context_manager_exit_propagates_exception():
     orch = RootOrchestrator(cfg=mock_cfg)
     orch.cleanup = MagicMock()
 
-    # Simulate exception in with block
     result = orch.__exit__(ValueError, ValueError("test"), None)
 
-    assert result is False  # Allows exception to propagate
+    assert result is False
 
 
 # GET DEVICE
@@ -157,12 +153,9 @@ def test_get_device_caches_result():
 
     orch = RootOrchestrator(cfg=mock_cfg)
 
-    # First call
     device1 = orch.get_device()
-    # Second call
     device2 = orch.get_device()
 
-    # Should be the same object (cached)
     assert device1 is device2
 
 
@@ -368,10 +361,8 @@ def test_cleanup_with_no_infra_manager():
     orch = RootOrchestrator(cfg=mock_cfg, infra_manager=None)
     orch.run_logger = mock_logger
 
-    # Should handle None infra gracefully
     orch.cleanup()
 
-    # Logger should not be closed if infra is None
     assert mock_logger.handlers == mock_logger.handlers
 
 
@@ -392,11 +383,9 @@ def test_cleanup_closes_logger_handlers_on_infra_failure():
 
     orch.cleanup()
 
-    # Both handlers should be closed
     mock_handler1.close.assert_called_once()
     mock_handler2.close.assert_called_once()
 
-    # Both handlers should be removed
     assert mock_logger.removeHandler.call_count == 2
     mock_logger.removeHandler.assert_any_call(mock_handler1)
     mock_logger.removeHandler.assert_any_call(mock_handler2)
@@ -410,12 +399,11 @@ def test_cleanup_with_empty_handlers_list():
     mock_infra.release_resources.side_effect = RuntimeError("fail")
 
     mock_logger = MagicMock()
-    mock_logger.handlers = []  # Empty handlers list
+    mock_logger.handlers = []
 
     orch = RootOrchestrator(cfg=mock_cfg, infra_manager=mock_infra)
     orch.run_logger = mock_logger
 
-    # Should handle empty handlers gracefully
     orch.cleanup()
 
 
@@ -468,16 +456,14 @@ def test_phase_7_device_already_cached_with_logger(caplog):
     mock_logger = MagicMock()
 
     orch = RootOrchestrator(cfg=mock_cfg, reporter=mock_reporter)
-    orch._device_cache = torch.device("cpu")  # Already cached
+    orch._device_cache = torch.device("cpu")
     orch.run_logger = mock_logger
     orch.paths = MagicMock()
 
     with caplog.at_level(logging.WARNING):
         orch._phase_7_environment_reporting(applied_threads=1)
 
-    # Device resolver should not be called
     assert orch._device_cache.type == "cpu"
-    # Reporter should still be called
     mock_reporter.log_initial_status.assert_called_once()
 
 
@@ -499,9 +485,7 @@ def test_phase_7_device_resolution_fails_with_logger():
 
     orch._phase_7_environment_reporting(applied_threads=1)
 
-    # Should fallback to CPU
     assert orch._device_cache.type == "cpu"
-    # Should log warning through run_logger
     mock_logger.warning.assert_called_once()
     assert "fallback to CPU" in mock_logger.warning.call_args[0][0]
 
@@ -524,10 +508,8 @@ def test_phase_7_device_resolution_succeeds():
 
     orch._phase_7_environment_reporting(applied_threads=4)
 
-    # Should use resolved device
     assert orch._device_cache.type == "cuda"
     mock_resolver.assert_called_once()
-    # No warnings should be logged
     mock_logger.warning.assert_not_called()
 
 
@@ -541,10 +523,8 @@ def test_phase_6_with_no_infra_manager():
     orch = RootOrchestrator(cfg=mock_cfg, infra_manager=None)
     orch.run_logger = mock_logger
 
-    # Should handle None infra gracefully without error
     orch._phase_6_infrastructure_guarding()
 
-    # Logger should not be called
     mock_logger.warning.assert_not_called()
 
 
@@ -561,7 +541,6 @@ def test_phase_6_prepare_fails_with_logger():
 
     orch._phase_6_infrastructure_guarding()
 
-    # Should log warning through run_logger
     mock_logger.warning.assert_called_once()
     assert "Infra guard failed" in mock_logger.warning.call_args[0][0]
     assert "lock failed" in mock_logger.warning.call_args[0][0]
@@ -651,7 +630,6 @@ def test_context_manager_full_lifecycle():
         assert orchestrator == orch
         orch.initialize_core_services.assert_called_once()
 
-    # After exiting, cleanup should be called
     mock_infra.release_resources.assert_called_once()
 
 

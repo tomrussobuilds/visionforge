@@ -28,7 +28,7 @@ def test_logger_init_console_only():
     assert logger.logger is not None
     assert logger.name == "test_console"
     assert logger.log_to_file is False
-    assert len(logger.logger.handlers) == 1  # Console handler only
+    assert len(logger.logger.handlers) == 1
 
 
 @pytest.mark.unit
@@ -40,7 +40,7 @@ def test_logger_init_with_file(tmp_path):
 
     assert logger.log_to_file is True
     assert log_dir.exists()
-    assert len(logger.logger.handlers) == 2  # Console + File
+    assert len(logger.logger.handlers) == 2
 
 
 @pytest.mark.unit
@@ -132,7 +132,6 @@ def test_logger_rotating_file_handler(tmp_path):
         backup_count=backup_count,
     )
 
-    # Find file handler
     file_handler = None
     for handler in logger.logger.handlers:
         if hasattr(handler, "maxBytes"):
@@ -151,14 +150,11 @@ def test_logger_reconfiguration_removes_old_handlers(tmp_path):
     log_dir1 = tmp_path / "logs1"
     log_dir2 = tmp_path / "logs2"
 
-    # First configuration
     logger1 = Logger(name="test_reconfig", log_dir=log_dir1, log_to_file=True)
     initial_handler_count = len(logger1.logger.handlers)
 
-    # Reconfigure with new log_dir
     logger2 = Logger(name="test_reconfig", log_dir=log_dir2, log_to_file=True)
 
-    # Should have same number of handlers (old ones removed)
     assert len(logger2.logger.handlers) == initial_handler_count
 
 
@@ -168,7 +164,6 @@ def test_logger_singleton_behavior():
     logger1 = Logger(name="test_singleton")
     logger2 = Logger(name="test_singleton")
 
-    # Should return the same logging.Logger instance
     assert logger1.logger is logger2.logger
 
 
@@ -201,7 +196,6 @@ def test_get_log_file_returns_path(tmp_path):
 @pytest.mark.unit
 def test_get_log_file_none_when_no_file():
     """Test get_log_file() returns None when no file logging."""
-    # Reset class state
     Logger._active_log_file = None
 
     Logger(name="test_no_file", log_dir=None, log_to_file=False)
@@ -264,10 +258,8 @@ def test_logger_can_log_messages(tmp_path):
 
     logger = Logger(name="test_logging", log_dir=log_dir, log_to_file=True)
 
-    # Log a test message
     logger.logger.info("Test message")
 
-    # Verify file was created and contains message
     log_files = list(log_dir.glob("test_logging_*.log"))
     assert len(log_files) == 1
 
@@ -282,10 +274,8 @@ def test_logger_handles_unicode(tmp_path):
 
     logger = Logger(name="test_unicode", log_dir=log_dir, log_to_file=True)
 
-    # Log unicode message
     logger.logger.info("Test emoji: 🚀 ✓ ⚠")
 
-    # Verify unicode is preserved
     log_files = list(log_dir.glob("test_unicode_*.log"))
     log_content = log_files[0].read_text(encoding="utf-8")
     assert "🚀" in log_content
@@ -297,17 +287,15 @@ def test_logger_handles_permission_error(tmp_path):
     """Test Logger handles permission errors gracefully."""
     log_dir = tmp_path / "readonly"
     log_dir.mkdir()
-    log_dir.chmod(0o444)  # Read-only
+    log_dir.chmod(0o444)
 
     try:
-        # Should not crash
         logger = Logger(name="test_perm", log_dir=log_dir, log_to_file=True)
         assert logger is not None
     except PermissionError:
-        # Expected on some systems
         pass
     finally:
-        log_dir.chmod(0o755)  # Restore permissions
+        log_dir.chmod(0o755)
 
 
 @pytest.mark.unit

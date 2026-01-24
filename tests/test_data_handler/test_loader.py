@@ -41,7 +41,7 @@ def mock_cfg_no_sampler():
     """Config with weighted sampler disabled."""
     cfg = MagicMock()
     cfg.dataset.dataset_name = "mock_dataset"
-    cfg.dataset.use_weighted_sampler = False  # Disabled
+    cfg.dataset.use_weighted_sampler = False
     cfg.dataset.max_samples = None
     cfg.dataset.resolution = 28
     cfg.training.batch_size = 2
@@ -56,9 +56,9 @@ def mock_cfg_high_res():
     cfg.dataset.dataset_name = "mock_dataset"
     cfg.dataset.use_weighted_sampler = False
     cfg.dataset.max_samples = None
-    cfg.dataset.resolution = 224  # High resolution
+    cfg.dataset.resolution = 224
     cfg.training.batch_size = 2
-    cfg.num_workers = 8  # Many workers
+    cfg.num_workers = 8
     return cfg
 
 
@@ -125,11 +125,9 @@ def test_build_loaders_without_weighted_sampler(mock_cfg_no_sampler, mock_metada
                 factory = DataLoaderFactory(mock_cfg_no_sampler, mock_metadata)
                 train, val, test = factory.build()
 
-                # Check that sampler is NOT a WeightedRandomSampler
                 from torch.utils.data import WeightedRandomSampler
 
                 assert not isinstance(train.sampler, WeightedRandomSampler)
-                # When shuffle=True and sampler=None, PyTorch creates RandomSampler
                 assert train.dataset is not None
 
 
@@ -150,7 +148,6 @@ def test_infra_kwargs_optuna_high_res(mock_cfg_high_res, mock_metadata):
         factory = DataLoaderFactory(mock_cfg_high_res, mock_metadata)
         infra = factory._get_infrastructure_kwargs(is_optuna=True)
 
-        # With resolution >= 224, workers should be capped at 4
         assert infra["num_workers"] <= 4
         assert infra["persistent_workers"] is False
 
@@ -183,7 +180,6 @@ def test_infra_kwargs_no_pin_memory(monkeypatch, mock_cfg, mock_metadata):
 @pytest.mark.unit
 def test_lazy_npz_dataset():
     """Test LazyNPZDataset loads and returns tensors correctly."""
-    # Create temporary npz
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy.npz"
         data = {
@@ -197,7 +193,7 @@ def test_lazy_npz_dataset():
 
         img, label = dataset[0]
         assert isinstance(img, torch.Tensor)
-        assert img.shape[0] == 1  # grayscale channel
+        assert img.shape[0] == 1
         assert isinstance(label, int)
 
 
@@ -206,7 +202,6 @@ def test_lazy_npz_dataset_rgb():
     """Test LazyNPZDataset with RGB images."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy_rgb.npz"
-        # RGB: shape (N, H, W, C)
         data = {
             "train_images": np.random.randint(0, 255, (5, 28, 28, 3), dtype=np.uint8),
             "train_labels": np.random.randint(0, 2, (5, 1), dtype=np.int64),
@@ -218,7 +213,7 @@ def test_lazy_npz_dataset_rgb():
 
         img, label = dataset[0]
         assert isinstance(img, torch.Tensor)
-        assert img.shape[0] == 3  # RGB channels
+        assert img.shape[0] == 3
         assert img.shape[1] == 28
         assert img.shape[2] == 28
         assert isinstance(label, int)
@@ -229,7 +224,6 @@ def test_lazy_npz_dataset_grayscale_2d():
     """Test LazyNPZDataset with 2D grayscale images."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy_gray.npz"
-        # Grayscale 2D: shape (N, H, W)
         data = {
             "train_images": np.random.randint(0, 255, (5, 28, 28), dtype=np.uint8),
             "train_labels": np.random.randint(0, 2, (5, 1), dtype=np.int64),
@@ -239,7 +233,7 @@ def test_lazy_npz_dataset_grayscale_2d():
         dataset = LazyNPZDataset(tmp_path)
         img, label = dataset[0]
 
-        assert img.shape[0] == 1  # Should expand to (1, H, W)
+        assert img.shape[0] == 1
         assert img.shape[1] == 28
         assert img.shape[2] == 28
 
@@ -249,9 +243,8 @@ def test_lazy_npz_dataset_invalid_shape():
     """Test LazyNPZDataset raises error for invalid image shapes."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy_invalid.npz"
-        # Invalid shape: 1D or 4D+
         data = {
-            "train_images": np.random.randint(0, 255, (5, 28), dtype=np.uint8),  # 1D
+            "train_images": np.random.randint(0, 255, (5, 28), dtype=np.uint8),
             "train_labels": np.random.randint(0, 2, (5, 1), dtype=np.int64),
         }
         np.savez(tmp_path, **data)
@@ -265,7 +258,6 @@ def test_lazy_npz_dataset_invalid_shape():
 @pytest.mark.unit
 def test_create_temp_loader():
     """Test create_temp_loader returns a working DataLoader."""
-    # Reuse temporary npz from LazyNPZDataset
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy.npz"
         data = {
@@ -277,7 +269,7 @@ def test_create_temp_loader():
         loader = create_temp_loader(tmp_path, batch_size=2)
         batch_imgs, batch_labels = next(iter(loader))
         assert batch_imgs.shape[0] <= 2
-        assert batch_imgs.shape[1] == 1  # grayscale channel
+        assert batch_imgs.shape[1] == 1
 
 
 @pytest.mark.unit
@@ -295,7 +287,7 @@ def test_create_temp_loader_rgb():
         batch_imgs, batch_labels = next(iter(loader))
 
         assert batch_imgs.shape[0] <= 4
-        assert batch_imgs.shape[1] == 3  # RGB channels
+        assert batch_imgs.shape[1] == 3
         assert batch_imgs.shape[2] == 32
         assert batch_imgs.shape[3] == 32
 
@@ -306,7 +298,6 @@ def test_get_dataloaders_convenience_function(mock_cfg, mock_metadata):
     """Test get_dataloaders convenience function."""
     from orchard.data_handler.loader import get_dataloaders
 
-    # Mock the factory and its build method
     with patch("orchard.data_handler.loader.DataLoaderFactory") as mock_factory_class:
         mock_factory = MagicMock()
         mock_train = MagicMock()

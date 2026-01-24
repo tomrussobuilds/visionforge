@@ -41,7 +41,6 @@ def test_config_builder_preserves_metadata():
 
     builder = TrialConfigBuilder(mock_cfg)
 
-    # Verify metadata is cached
     assert builder.base_metadata == mock_cfg.dataset._ensure_metadata
     assert builder.optuna_epochs == 20
 
@@ -69,13 +68,11 @@ def test_config_builder_applies_param_overrides():
         "rotation_angle": 15,
     }
 
-    # Test _apply_param_overrides directly
     test_dict = config_dict.copy()
     test_dict["dataset"]["metadata"] = builder.base_metadata
     test_dict["training"]["epochs"] = builder.optuna_epochs
     builder._apply_param_overrides(test_dict, trial_params)
 
-    # Verify overrides
     assert test_dict["training"]["learning_rate"] == 0.0001
     assert test_dict["model"]["dropout"] == 0.3
     assert test_dict["augmentation"]["rotation_angle"] == 15
@@ -150,10 +147,8 @@ def test_training_executor_should_prune_warmup():
         metric_extractor=MetricExtractor("auc"),
     )
 
-    # Before warmup - should NOT prune
     assert executor._should_prune(mock_trial, epoch=5) is False
 
-    # After warmup - should prune
     assert executor._should_prune(mock_trial, epoch=15) is True
 
 
@@ -186,7 +181,6 @@ def test_training_executor_disabled_pruning():
         metric_extractor=MetricExtractor("auc"),
     )
 
-    # These should ALL be False
     result1 = executor._should_prune(mock_trial, epoch=5)
     result2 = executor._should_prune(mock_trial, epoch=15)
 
@@ -221,7 +215,6 @@ def test_training_executor_validate_epoch_error_handling():
     ):
         result = executor._validate_epoch()
 
-    # Should return default metrics
     assert result == {"loss": 999.0, "accuracy": 0.0, "auc": 0.0}
 
 
@@ -238,7 +231,6 @@ def test_optuna_objective_init_with_defaults():
     search_space = {"learning_rate": MagicMock()}
     device = torch.device("cpu")
 
-    # Use dependency injection
     mock_dataset = MagicMock()
     mock_dataset.path = "/fake/path"
     mock_dataset_loader = MagicMock(return_value=mock_dataset)
@@ -250,7 +242,6 @@ def test_optuna_objective_init_with_defaults():
         dataset_loader=mock_dataset_loader,
     )
 
-    # Verify injected loader was called
     mock_dataset_loader.assert_called_once_with(mock_cfg.dataset._ensure_metadata)
     assert objective.medmnist_data == mock_dataset
     assert objective._dataset_loader == mock_dataset_loader
@@ -267,7 +258,6 @@ def test_optuna_objective_uses_injected_dependencies():
     search_space = {}
     device = torch.device("cpu")
 
-    # Mock all injectable dependencies
     mock_dataset_loader = MagicMock(return_value=MagicMock())
     mock_dataloader_factory = MagicMock()
     mock_model_factory = MagicMock()
@@ -281,12 +271,10 @@ def test_optuna_objective_uses_injected_dependencies():
         model_factory=mock_model_factory,
     )
 
-    # Verify all injected dependencies are stored
     assert objective._dataset_loader == mock_dataset_loader
     assert objective._dataloader_factory == mock_dataloader_factory
     assert objective._model_factory == mock_model_factory
 
-    # Verify dataset loader was called during __init__
     mock_dataset_loader.assert_called_once_with(mock_cfg.dataset._ensure_metadata)
 
 
@@ -303,7 +291,6 @@ def test_optuna_objective_sample_params_dict():
     mock_suggest = MagicMock(return_value=0.001)
     search_space = {"learning_rate": mock_suggest}
 
-    # Use injected loader to avoid patching
     mock_loader = MagicMock(return_value=MagicMock())
 
     objective = OptunaObjective(
@@ -316,7 +303,6 @@ def test_optuna_objective_sample_params_dict():
     mock_trial = MagicMock()
     params = objective._sample_params(mock_trial)
 
-    # Verify suggest function was called
     mock_suggest.assert_called_once_with(mock_trial)
     assert params == {"learning_rate": 0.001}
 
@@ -329,14 +315,11 @@ def test_optuna_objective_sample_params_object():
     mock_cfg.optuna.metric_name = "auc"
     mock_cfg.dataset._ensure_metadata = MagicMock()
 
-    # Mock search space with sample_params method
     mock_search_space = MagicMock()
     mock_search_space.sample_params.return_value = {"lr": 0.01, "dropout": 0.3}
 
-    # Mock dataset loader to avoid calling real load_medmnist
     mock_dataset_loader = MagicMock(return_value=MagicMock())
 
-    # Inject both mocks
     objective = OptunaObjective(
         cfg=mock_cfg,
         search_space=mock_search_space,
@@ -391,11 +374,9 @@ def test_optuna_objective_call_with_pruning():
             "orchard.optimization.objective.objective.TrialTrainingExecutor"
         ) as mock_executor_cls:
             mock_executor_instance = MagicMock()
-            # Simulate pruning
             mock_executor_instance.execute.side_effect = optuna.TrialPruned()
             mock_executor_cls.return_value = mock_executor_instance
 
-            # Should raise TrialPruned
             with pytest.raises(optuna.TrialPruned):
                 objective(mock_trial)
 
@@ -425,7 +406,6 @@ def test_optuna_objective_call_cleanup_on_success():
         model_factory=mock_model_factory,
     )
 
-    # Mock cleanup
     objective._cleanup = MagicMock()
 
     with (
@@ -444,7 +424,6 @@ def test_optuna_objective_call_cleanup_on_success():
 
             result = objective(mock_trial)
 
-            # Verify cleanup was called
             objective._cleanup.assert_called_once()
             assert result == 0.88
 
@@ -474,7 +453,6 @@ def test_optuna_objective_call_cleanup_on_exception():
         model_factory=mock_model_factory,
     )
 
-    # Mock cleanup
     objective._cleanup = MagicMock()
 
     with (
@@ -491,11 +469,9 @@ def test_optuna_objective_call_cleanup_on_exception():
             mock_executor_instance.execute.side_effect = RuntimeError("Training failed")
             mock_executor_cls.return_value = mock_executor_instance
 
-            # Should raise the exception but still call cleanup
             with pytest.raises(RuntimeError, match="Training failed"):
                 objective(mock_trial)
 
-            # Verify cleanup was called despite exception
             objective._cleanup.assert_called_once()
 
 
@@ -507,7 +483,6 @@ def test_optuna_objective_call_builds_trial_config():
     mock_cfg.optuna.metric_name = "auc"
     mock_cfg.dataset._ensure_metadata = MagicMock()
 
-    # Mock search space with specific params
     mock_suggest_lr = MagicMock(return_value=0.005)
     mock_suggest_dropout = MagicMock(return_value=0.4)
     search_space = {
@@ -531,7 +506,6 @@ def test_optuna_objective_call_builds_trial_config():
         model_factory=mock_model_factory,
     )
 
-    # Mock config builder
     mock_trial_cfg = MagicMock()
     objective.config_builder.build = MagicMock(return_value=mock_trial_cfg)
 
@@ -551,12 +525,10 @@ def test_optuna_objective_call_builds_trial_config():
 
             objective(mock_trial)
 
-            # Verify config was built with sampled params
             objective.config_builder.build.assert_called_once_with(
                 {"learning_rate": 0.005, "dropout": 0.4}
             )
 
-            # Verify trial config was passed to components
             mock_dataloader_factory.assert_called_once_with(
                 objective.medmnist_data, mock_trial_cfg, is_optuna=True
             )
@@ -587,7 +559,6 @@ def test_cleanup_with_cuda_available(monkeypatch):
         nonlocal cuda_cache_cleared
         cuda_cache_cleared = True
 
-    # Mock CUDA availability
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(torch.cuda, "empty_cache", mock_empty_cache)
 
@@ -620,13 +591,11 @@ def test_cleanup_with_cuda_unavailable(monkeypatch):
         nonlocal cuda_cache_cleared
         cuda_cache_cleared = True
 
-    # Mock CUDA NOT available
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     monkeypatch.setattr(torch.cuda, "empty_cache", mock_empty_cache)
 
     objective._cleanup()
 
-    # Cache should NOT be cleared
     assert not cuda_cache_cleared
 
 
@@ -648,10 +617,8 @@ def test_cleanup_with_mps(monkeypatch):
         dataset_loader=mock_dataset_loader,
     )
 
-    # Mock CUDA unavailable (so no cleanup happens)
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
-    # Should run without error (MPS not explicitly handled)
     objective._cleanup()
 
 
@@ -660,13 +627,11 @@ def test_trial_config_builder_preserves_resolution_when_none():
     """Test TrialConfigBuilder sets resolution when missing from model_dump."""
     from orchard.optimization.objective.config_builder import TrialConfigBuilder
 
-    # Create a mock config where model_dump returns resolution=None
     mock_cfg = MagicMock()
     mock_cfg.optuna.epochs = 15
     mock_cfg.dataset._ensure_metadata = {"num_classes": 10}
-    mock_cfg.dataset.resolution = 224  # Actual resolution
+    mock_cfg.dataset.resolution = 224
 
-    # Mock model_dump to return dict with resolution=None
     mock_cfg.model_dump.return_value = {
         "dataset": {"resolution": None},
         "training": {"epochs": 60},
@@ -676,12 +641,10 @@ def test_trial_config_builder_preserves_resolution_when_none():
 
     builder = TrialConfigBuilder(mock_cfg)
 
-    # Mock Config instantiation to avoid validation
     with patch("orchard.optimization.objective.config_builder.Config") as MockConfig:
         trial_params = {"learning_rate": 0.001}
         builder.build(trial_params)
 
-        # Verify Config was called with resolution set
         call_args = MockConfig.call_args[1]
         assert call_args["dataset"]["resolution"] == 224
 
@@ -696,7 +659,6 @@ def test_trial_config_builder_keeps_existing_resolution():
     mock_cfg.dataset._ensure_metadata = {"num_classes": 10}
     mock_cfg.dataset.resolution = 224
 
-    # model_dump returns resolution already set
     mock_cfg.model_dump.return_value = {
         "dataset": {"resolution": 28},
         "training": {"epochs": 60},
@@ -710,7 +672,6 @@ def test_trial_config_builder_keeps_existing_resolution():
         trial_params = {"learning_rate": 0.001}
         builder.build(trial_params)
 
-        # Verify resolution was NOT overridden
         call_args = MockConfig.call_args[1]
         assert call_args["dataset"]["resolution"] == 28
 

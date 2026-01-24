@@ -204,7 +204,7 @@ def test_handle_checkpointing_no_improve(trainer):
 def test_handle_checkpointing_early_stop(trainer):
     """Test early stopping triggers after patience exhausted."""
     trainer.best_auc = 0.95
-    trainer.epochs_no_improve = 2  # patience is 3
+    trainer.epochs_no_improve = 2
 
     val_metrics = {"accuracy": 0.8, "auc": 0.85}
 
@@ -240,10 +240,7 @@ def test_smart_step_scheduler_reduce_on_plateau(
 @pytest.mark.unit
 def test_smart_step_scheduler_step_lr(trainer):
     """Test scheduler step with StepLR."""
-    # Mock optimizer to suppress warning
     trainer.optimizer.step = MagicMock()
-
-    # Call scheduler step
     trainer._smart_step_scheduler(0.5)
 
 
@@ -251,18 +248,14 @@ def test_smart_step_scheduler_step_lr(trainer):
 @pytest.mark.unit
 def test_load_best_weights_success(trainer):
     """Test loading best weights from checkpoint."""
-    # Save a checkpoint
     torch.save(trainer.model.state_dict(), trainer.best_path)
 
-    # Modify model weights
     with torch.no_grad():
         for param in trainer.model.parameters():
             param.fill_(999.0)
 
-    # Load best weights
     trainer.load_best_weights()
 
-    # Weights should be restored (not all 999)
     first_param = next(trainer.model.parameters())
     assert not torch.all(first_param == 999.0)
 
@@ -270,7 +263,7 @@ def test_load_best_weights_success(trainer):
 @pytest.mark.unit
 def test_load_best_weights_file_not_found(trainer):
     """Test load_best_weights raises when file doesn't exist."""
-    # Delete checkpoint if exists
+
     if trainer.best_path.exists():
         trainer.best_path.unlink()
 
@@ -346,8 +339,8 @@ def test_train_mixup_cutoff(
     cfg.training.epochs = 10
     cfg.training.patience = 20
     cfg.training.use_amp = False
-    cfg.training.mixup_alpha = 1.0  # Enable MixUp
-    cfg.training.cosine_fraction = 0.5  # Disable after epoch 5
+    cfg.training.mixup_alpha = 1.0
+    cfg.training.cosine_fraction = 0.5
     cfg.training.grad_clip = 0.0
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -370,10 +363,8 @@ def test_train_mixup_cutoff(
 
         calls = mock_train.call_args_list
 
-        # Epoch 1-5: mixup_fn should be set
         assert calls[0].kwargs.get("mixup_fn") is not None
 
-        # Epoch 6-10: mixup_fn should be None
         assert calls[6].kwargs.get("mixup_fn") is None
 
 
@@ -397,10 +388,8 @@ def test_smart_step_scheduler_with_non_gradscaler(
         cfg=mock_cfg,
     )
 
-    # Replace scaler with a non-GradScaler object to trigger the branch
-    trainer.scaler = MagicMock()  # Not a torch.amp.GradScaler
+    trainer.scaler = MagicMock()
 
-    # Mock scheduler.step to track if it's called
     original_step = trainer.scheduler.step
     call_count = [0]
 
@@ -410,10 +399,8 @@ def test_smart_step_scheduler_with_non_gradscaler(
 
     trainer.scheduler.step = mock_step
 
-    # Call the method - should trigger scheduler.step() since scaler is not GradScaler
     trainer._smart_step_scheduler(0.5)
 
-    # Verify scheduler.step was called
     assert call_count[0] == 1, "scheduler.step() should be called when scaler is not GradScaler"
 
 

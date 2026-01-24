@@ -52,14 +52,13 @@ def test_telemetry_config_custom_values():
 @pytest.mark.unit
 def test_log_interval_bounds():
     """Test log_interval must be in [1, 1000]."""
-    # Valid
+
     config = TelemetryConfig(log_interval=1)
     assert config.log_interval == 1
 
     config = TelemetryConfig(log_interval=1000)
     assert config.log_interval == 1000
 
-    # Invalid
     with pytest.raises(ValidationError):
         TelemetryConfig(log_interval=0)
 
@@ -91,7 +90,6 @@ def test_path_sanitization():
     """Test paths are resolved to absolute forms."""
     config = TelemetryConfig(data_dir=Path("~/dataset"), output_dir=Path("./outputs"))
 
-    # Should expand ~ and resolve to absolute
     assert config.data_dir.is_absolute()
     assert config.output_dir.is_absolute()
 
@@ -103,10 +101,7 @@ def test_resolved_data_dir():
 
     resolved = config.resolved_data_dir
 
-    # Should be absolute path
     assert resolved.is_absolute()
-
-    # Should be relative to PROJECT_ROOT
     assert resolved == (PROJECT_ROOT / "./dataset").resolve()
 
 
@@ -130,7 +125,6 @@ def test_to_portable_dict():
 
     portable = config.to_portable_dict()
 
-    # Should convert to project-relative paths
     assert portable["data_dir"] == "./dataset"
     assert portable["output_dir"] == "./outputs"
 
@@ -143,7 +137,6 @@ def test_to_portable_dict_absolute_outside_project():
 
     portable = config.to_portable_dict()
 
-    # Should keep absolute path if outside PROJECT_ROOT
     assert str(external_path) in portable["data_dir"]
 
 
@@ -207,8 +200,8 @@ def test_from_args_partial():
     config = TelemetryConfig.from_args(args)
 
     assert config.log_level == "WARNING"
-    assert config.log_interval == 10  # Default
-    assert config.save_model is True  # Default
+    assert config.log_interval == 10
+    assert config.save_model is True
 
 
 @pytest.mark.unit
@@ -219,7 +212,7 @@ def test_from_args_filters_none():
     config = TelemetryConfig.from_args(args)
 
     assert config.log_level == "ERROR"
-    assert config.log_interval == 10  # Default, not None
+    assert config.log_interval == 10
 
 
 # TELEMETRY CONFIG: IMMUTABILITY

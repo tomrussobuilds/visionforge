@@ -42,7 +42,7 @@ def study():
 
     study.best_trial = trial_mock
     study.best_params = trial_mock.params
-    study.trials = [trial_mock]  # Add the mock trial to the study
+    study.trials = [trial_mock]
     study.study_name = "test_study"
     study.direction = optuna.study.StudyDirection.MAXIMIZE
     return study
@@ -107,14 +107,11 @@ def test_export_top_trials(study, paths):
 def test_export_best_config_invalid_config(study, paths):
     """Test handling of invalid config during export."""
 
-    # Test invalid model: Pass a string instead of a ModelConfig
-    invalid_model_config = "invalid_model"  # Invalid config
+    invalid_model_config = "invalid_model"
 
-    # Test invalid epochs: Set epochs to a negative number
-    invalid_training_config = {"epochs": -10}  # Negative epoch value
+    invalid_training_config = {"epochs": -10}
 
     with pytest.raises(ValidationError):
-        # Trying to create a Config instance with invalid model and epochs
         invalid_config = Config(model=invalid_model_config, training=invalid_training_config)
         export_best_config(study, invalid_config, paths)
 
@@ -152,38 +149,31 @@ def test_export_top_trials_no_completed_trials(study, paths):
 @pytest.mark.unit
 def test_build_best_trial_data_value_error():
     """Test build_best_trial_data handles ValueError from study.best_trial."""
-    # Create a study that raises ValueError when accessing best_trial
     study = MagicMock(spec=optuna.Study)
     study.best_trial.side_effect = ValueError("No trials")
 
-    completed = []  # No completed trials
+    completed = []
 
     result = build_best_trial_data(study, completed)
 
-    # Should return None when no completed trials
     assert result is None
 
 
 @pytest.mark.unit
 def test_build_best_trial_data_value_error_with_completed_trials():
     """Test build_best_trial_data handles ValueError even with completed trials."""
-    # Create a real-ish study mock
     study = MagicMock(spec=optuna.Study)
 
-    # Mock a completed trial
     trial_mock = MagicMock(spec=optuna.trial.FrozenTrial)
     trial_mock.state = optuna.trial.TrialState.COMPLETE
     completed = [trial_mock]
 
-    # Configure best_trial to raise ValueError when accessed
-    # Using PropertyMock for proper property mocking
     from unittest.mock import PropertyMock
 
     type(study).best_trial = PropertyMock(side_effect=ValueError("Corrupted study"))
 
     result = build_best_trial_data(study, completed)
 
-    # Should return None when ValueError is raised
     assert result is None
 
 
@@ -191,7 +181,6 @@ def test_build_best_trial_data_value_error_with_completed_trials():
 def test_build_best_trial_data_value_error_direct_call():
     """Test build_best_trial_data ValueError exception path directly."""
 
-    # Another approach: use a custom class
     class BrokenStudy:
         @property
         def best_trial(self):
@@ -199,14 +188,12 @@ def test_build_best_trial_data_value_error_direct_call():
 
     study = BrokenStudy()
 
-    # Mock a completed trial
     trial_mock = MagicMock(spec=optuna.trial.FrozenTrial)
     trial_mock.state = optuna.trial.TrialState.COMPLETE
     completed = [trial_mock]
 
     result = build_best_trial_data(study, completed)
 
-    # Should catch ValueError and return None
     assert result is None
 
 
@@ -218,8 +205,8 @@ def test_build_trial_data_without_timestamps():
     trial.value = 0.95
     trial.params = {"lr": 0.001}
     trial.state = optuna.trial.TrialState.COMPLETE
-    trial.datetime_start = None  # No start time
-    trial.datetime_complete = None  # No complete time
+    trial.datetime_start = None
+    trial.datetime_complete = None
 
     result = build_trial_data(trial)
 
@@ -229,7 +216,7 @@ def test_build_trial_data_without_timestamps():
     assert result["state"] == "COMPLETE"
     assert result["datetime_start"] is None
     assert result["datetime_complete"] is None
-    assert result["duration_seconds"] is None  # Duration should be None
+    assert result["duration_seconds"] is None
 
 
 @pytest.mark.unit
@@ -241,13 +228,13 @@ def test_build_trial_data_with_only_start_time():
     trial.params = {"lr": 0.001}
     trial.state = optuna.trial.TrialState.RUNNING
     trial.datetime_start = datetime(2024, 1, 1, 12, 0, 0)
-    trial.datetime_complete = None  # Trial still running
+    trial.datetime_complete = None
 
     result = build_trial_data(trial)
 
     assert result["datetime_start"] is not None
     assert result["datetime_complete"] is None
-    assert result["duration_seconds"] is None  # No duration without complete time
+    assert result["duration_seconds"] is None
 
 
 @pytest.mark.unit
@@ -257,7 +244,7 @@ def test_build_top_trials_dataframe_without_duration():
     trial1.number = 1
     trial1.value = 0.95
     trial1.params = {"lr": 0.001, "dropout": 0.2}
-    trial1.datetime_start = None  # No timestamps
+    trial1.datetime_start = None
     trial1.datetime_complete = None
 
     trial2 = MagicMock(spec=optuna.trial.FrozenTrial)
@@ -275,21 +262,18 @@ def test_build_top_trials_dataframe_without_duration():
     assert "Rank" in df.columns
     assert "Trial" in df.columns
     assert "AUC" in df.columns
-    assert "Duration (s)" not in df.columns  # Should not be added when no timestamps
+    assert "Duration (s)" not in df.columns
 
 
 @pytest.mark.unit
 def test_build_top_trials_dataframe_with_mixed_durations():
     """Test build_top_trials_dataframe with some trials having duration, some not."""
-    # Trial with duration
     trial1 = MagicMock(spec=optuna.trial.FrozenTrial)
     trial1.number = 1
     trial1.value = 0.95
     trial1.params = {"lr": 0.001}
     trial1.datetime_start = datetime(2024, 1, 1, 12, 0, 0)
-    trial1.datetime_complete = datetime(2024, 1, 1, 12, 5, 30)  # 5.5 minutes
-
-    # Trial without duration
+    trial1.datetime_complete = datetime(2024, 1, 1, 12, 5, 30)
     trial2 = MagicMock(spec=optuna.trial.FrozenTrial)
     trial2.number = 2
     trial2.value = 0.93
@@ -303,19 +287,13 @@ def test_build_top_trials_dataframe_with_mixed_durations():
 
     assert len(df) == 2
     assert "Duration (s)" in df.columns
-
-    # First trial should have duration
     assert df.loc[0, "Duration (s)"] == 330
-
-    # Second trial should not have duration (NaN or missing)
-    # Since not all trials have duration, pandas will handle it appropriately
     assert pd.isna(df.loc[1, "Duration (s)"]) or "Duration (s)" not in df.iloc[1]
 
 
 @pytest.mark.unit
 def test_export_best_config_no_completed_trials_integration(minimal_config, paths):
     """Test export_best_config returns None when no completed trials exist."""
-    # Create study with only failed/pruned trials
     study = MagicMock()
 
     trial1 = MagicMock()
@@ -328,18 +306,14 @@ def test_export_best_config_no_completed_trials_integration(minimal_config, path
 
     with patch("orchard.optimization.orchestrator.exporters.logger") as mock_logger:
         result = export_best_config(study, minimal_config, paths)
-
-        # Should return None
         assert result is None
 
-        # Should log warning about no completed trials
         mock_logger.warning.assert_called_once()
 
 
 @pytest.mark.unit
 def test_export_best_config_success_path(minimal_config, paths, tmp_path):
     """Test export_best_config creates YAML when trials exist."""
-    # Create study with completed trial
     study = MagicMock()
     study.best_params = {
         "learning_rate": 0.001,
@@ -366,10 +340,8 @@ def test_export_best_config_success_path(minimal_config, paths, tmp_path):
 
                 result = export_best_config(study, minimal_config, paths)
 
-                # Should return path
                 assert result == paths.reports / "best_config.yaml"
 
-                # Should call all helper functions
                 mock_build.assert_called_once_with(study.best_params, minimal_config)
                 mock_save.assert_called_once()
 

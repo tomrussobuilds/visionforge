@@ -13,10 +13,10 @@ from orchard.core.cli import parse_args
 from orchard.core.config import Config
 from orchard.core.metadata import DatasetRegistryWrapper
 from orchard.data_handler.data_explorer import show_samples_for_dataset
-from orchard.data_handler.factory import create_temp_loader
 from orchard.data_handler.fetcher import load_medmnist_health_check
+from orchard.data_handler.loader import create_temp_loader
 
-#                                Logging Setup                                #
+# Logging Setup
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 

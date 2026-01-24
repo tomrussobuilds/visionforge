@@ -155,8 +155,6 @@ def test_momentum_bounds():
     """Test momentum within valid range [0, 1)."""
     config = TrainingConfig(momentum=0.9)
     assert config.momentum == 0.9
-
-    # Minimum
     config = TrainingConfig(momentum=0.0)
     assert config.momentum == 0.0
 
@@ -216,12 +214,12 @@ def test_from_args_basic():
 @pytest.mark.unit
 def test_from_args_ignores_none_values():
     """Test from_args uses defaults for None values."""
-    args = argparse.Namespace(epochs=100, batch_size=None)  # Should use default
+    args = argparse.Namespace(epochs=100, batch_size=None)
 
     config = TrainingConfig.from_args(args)
 
     assert config.epochs == 100
-    assert config.batch_size == 16  # Default
+    assert config.batch_size == 16
 
 
 @pytest.mark.unit

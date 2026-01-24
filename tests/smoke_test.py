@@ -88,7 +88,6 @@ def run_smoke_test(args: argparse.Namespace) -> None:
             if os.getenv("CI"):
                 from orchard.data_handler.synthetic import create_synthetic_dataset
 
-                # create_synthetic_dataset() now returns MedMNISTData directly
                 data = create_synthetic_dataset()
             else:
                 data = load_medmnist(ds_meta)

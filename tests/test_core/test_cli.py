@@ -99,17 +99,14 @@ def test_parse_args_no_amp_flag():
 @pytest.mark.unit
 def test_parse_args_pretrained_flags():
     """Test parse_args handles pretrained flags."""
-    # Default is True
     with patch("sys.argv", ["prog"]):
         args = parse_args()
         assert args.pretrained is True
 
-    # Explicit --pretrained
     with patch("sys.argv", ["prog", "--pretrained"]):
         args = parse_args()
         assert args.pretrained is True
 
-    # --no_pretrained
     with patch("sys.argv", ["prog", "--no_pretrained"]):
         args = parse_args()
         assert args.pretrained is False
@@ -118,12 +115,10 @@ def test_parse_args_pretrained_flags():
 @pytest.mark.unit
 def test_parse_args_tta_flags():
     """Test parse_args handles TTA flags."""
-    # Default
     with patch("sys.argv", ["prog"]):
         args = parse_args()
         assert hasattr(args, "use_tta")
 
-    # --no_tta
     with patch("sys.argv", ["prog", "--no_tta"]):
         args = parse_args()
         assert args.use_tta is False

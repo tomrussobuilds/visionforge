@@ -122,7 +122,7 @@ def basic_args():
         device=None,
         # Paths
         output_root=None,
-        config=None,  # Not loading from YAML
+        config=None,
     )
 
 

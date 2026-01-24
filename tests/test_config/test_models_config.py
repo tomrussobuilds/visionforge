@@ -45,7 +45,7 @@ def test_model_config_custom_values():
 @pytest.mark.unit
 def test_dropout_bounds():
     """Test dropout must be in [0.0, 0.9]."""
-    # Valid
+
     config = ModelConfig(dropout=0.0)
     assert config.dropout == 0.0
 
@@ -55,7 +55,6 @@ def test_dropout_bounds():
     config = ModelConfig(dropout=0.9)
     assert config.dropout == 0.9
 
-    # Invalid
     with pytest.raises(ValidationError):
         ModelConfig(dropout=-0.1)
 
@@ -107,7 +106,6 @@ def test_weight_variant_string():
 @pytest.mark.unit
 def test_weight_variant_with_pretrained_false():
     """Test weight_variant can be set even if pretrained=False."""
-    # This is allowed - validation happens at model loading time
     config = ModelConfig(pretrained=False, weight_variant="imagenet")
 
     assert config.pretrained is False
@@ -141,12 +139,11 @@ def test_from_args():
 @pytest.mark.unit
 def test_from_args_with_defaults():
     """Test from_args() uses defaults for missing arguments."""
-    args = Namespace()  # Empty namespace
+    args = Namespace()
 
     config = ModelConfig.from_args(args)
 
-    # Should use hardcoded defaults from from_args()
-    assert config.name == "resnet18"  # Note: from_args default differs
+    assert config.name == "resnet18"
     assert config.pretrained is True
     assert config.dropout == 0.2
 
@@ -159,8 +156,8 @@ def test_from_args_partial():
     config = ModelConfig.from_args(args)
 
     assert config.name == "efficientnet_b0"
-    assert config.pretrained is True  # Default
-    assert config.dropout == 0.2  # Default
+    assert config.pretrained is True
+    assert config.dropout == 0.2
 
 
 # MODEL CONFIG: DESCRIPTION FIELD
@@ -186,17 +183,15 @@ def test_config_is_frozen():
 def test_config_forbids_extra_fields():
     """Test ModelConfig rejects unknown fields."""
     with pytest.raises(ValidationError):
-        ModelConfig(learning_rate=0.001)  # Wrong config section
+        ModelConfig(learning_rate=0.001)
 
 
 # MODEL CONFIG: EDGE CASES
 @pytest.mark.unit
 def test_empty_name_rejected():
     """Test empty string for name is rejected."""
-    # Pydantic should reject empty strings if Field has min_length constraint
-    # If not explicitly constrained, this test documents current behavior
     config = ModelConfig(name="")
-    assert config.name == ""  # Currently allowed
+    assert config.name == ""
 
 
 @pytest.mark.unit

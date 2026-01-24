@@ -61,11 +61,9 @@ def test_determine_tta_mode_mps_full():
 @pytest.mark.unit
 def test_determine_tta_mode_case_sensitivity():
     """Test device_type case handling (should work with any case)."""
-    # Lowercase
     result = determine_tta_mode(use_tta=True, device_type="cuda")
     assert "CUDA" in result
 
-    # Uppercase (less common but should handle gracefully)
     result = determine_tta_mode(use_tta=True, device_type="CUDA")
     assert "CUDA" in result
 

@@ -31,12 +31,11 @@ def test_run_final_evaluation_returns_tuple(
     mock_evaluate,
 ):
     """Test run_final_evaluation returns (macro_f1, test_acc) tuple."""
-    # Mock evaluate_model to return test data
     mock_evaluate.return_value = (
-        [0, 1, 2],  # all_preds
-        [0, 1, 2],  # all_labels
-        {"accuracy": 0.95, "auc": 0.98},  # test_metrics
-        0.94,  # macro_f1
+        [0, 1, 2],
+        [0, 1, 2],
+        {"accuracy": 0.95, "auc": 0.98},
+        0.94,
     )
 
     # Mock report
@@ -120,7 +119,6 @@ def test_run_final_evaluation_calls_evaluate_model(
         cfg=mock_cfg,
     )
 
-    # Verify evaluate_model was called
     mock_evaluate.assert_called_once()
     call_kwargs = mock_evaluate.call_args.kwargs
     assert call_kwargs["use_tta"] is True
@@ -171,7 +169,6 @@ def test_run_final_evaluation_calls_visualizations(
         cfg=mock_cfg,
     )
 
-    # Verify all visualizations were called
     mock_confusion.assert_called_once()
     mock_curves.assert_called_once()
     mock_show_pred.assert_called_once()
@@ -221,7 +218,6 @@ def test_run_final_evaluation_creates_report(
         cfg=mock_cfg,
     )
 
-    # Verify report was created and saved
     mock_report.assert_called_once()
     mock_report_obj.save.assert_called_once_with(mock_paths.final_report_path)
 

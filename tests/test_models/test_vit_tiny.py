@@ -58,7 +58,6 @@ class TestBuildViTTiny:
         assert model.patch_embed.proj.in_channels == 3
         assert model.head.out_features == num_classes
 
-        # Verify forward pass
         x = torch.randn(1, 3, 224, 224).to(device)
         output = model(x)
         assert output.shape == (1, num_classes)
@@ -74,7 +73,6 @@ class TestBuildViTTiny:
 
         assert model.patch_embed.proj.in_channels == 1
 
-        # Verify forward pass with single channel
         x = torch.randn(1, 1, 224, 224).to(device)
         output = model(x)
         assert output.shape == (1, num_classes)
@@ -114,9 +112,7 @@ class TestBuildViTTiny:
         """
         Confirms that bias is preserved during patch embedding adaptation.
         """
-        # Force a case with 1 channel to trigger Step 4
         model = build_vit_tiny(device, 2, 1, mock_cfg)
 
-        # Check if bias exists and is not None (ViT-Tiny usually has bias in proj)
         assert model.patch_embed.proj.bias is not None
         assert model.patch_embed.proj.weight.shape[1] == 1

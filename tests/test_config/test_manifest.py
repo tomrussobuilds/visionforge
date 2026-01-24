@@ -1,5 +1,5 @@
 """
-Test Suite for Config Engine.
+Test Suite for Config Manifest.
 
 Tests main Config class integration, cross-validation,
 YAML hydration, and from_args factory.
@@ -25,7 +25,6 @@ def test_config_defaults():
     """Test Config with all default sub-configs."""
     config = Config()
 
-    # Sub-configs should be instantiated
     assert config.hardware is not None
     assert config.training is not None
     assert config.dataset is not None
@@ -128,10 +127,10 @@ def test_amp_auto_disabled_on_cpu():
 def test_pretrained_requires_rgb():
     """Test pretrained model validation enforces RGB channels."""
     args = argparse.Namespace(
-        dataset="organcmnist",  # Grayscale
+        dataset="organcmnist",
         model_name="resnet_18_adapted",
         pretrained=True,
-        force_rgb=False,  # This will cause validation error
+        force_rgb=False,
         resolution=28,
     )
 
@@ -145,7 +144,7 @@ def test_min_lr_less_than_lr_validation():
     args = argparse.Namespace(
         dataset="bloodmnist",
         learning_rate=0.001,
-        min_lr=0.01,  # ❌ min_lr > learning_rate
+        min_lr=0.01,
         pretrained=True,
     )
 
@@ -157,7 +156,6 @@ def test_min_lr_less_than_lr_validation():
 @pytest.mark.filterwarnings("ignore:AMP requires GPU.*:UserWarning")
 def test_min_lr_equals_lr_direct_instantiation(mock_metadata_28):
     """Test min_lr == learning_rate validation via direct instantiation."""
-    # This approach ensures the validator runs and line 106 is covered
     with pytest.raises(ValidationError):
         Config(
             dataset=DatasetConfig(
@@ -168,7 +166,7 @@ def test_min_lr_equals_lr_direct_instantiation(mock_metadata_28):
             model=ModelConfig(name="mini_cnn", pretrained=False),
             training=TrainingConfig(
                 learning_rate=0.001,
-                min_lr=0.001,  # ❌ Equal - triggers line 106
+                min_lr=0.001,
             ),
             hardware=HardwareConfig(device="cpu"),
         )
@@ -203,7 +201,6 @@ def test_yaml_optuna_section_loaded(temp_yaml_config, mock_metadata_28):
     """Test YAML with optuna section loads OptunaConfig."""
     config = Config.from_yaml(temp_yaml_config, metadata=mock_metadata_28)
 
-    # Optuna section should be loaded
     assert config.optuna is not None
     assert config.optuna.study_name == "yaml_test_study"
     assert config.optuna.n_trials == 20
@@ -214,17 +211,16 @@ def test_yaml_precedence_over_args(temp_yaml_config):
     """Test YAML values override CLI arguments."""
     args = argparse.Namespace(
         config=str(temp_yaml_config),
-        epochs=999,  # Should be ignored
-        batch_size=999,  # Should be ignored
+        epochs=999,
+        batch_size=999,
         dataset="bloodmnist",
         pretrained=True,
     )
 
     config = Config.from_args(args)
 
-    # YAML values should take precedence
-    assert config.training.epochs == 60  # From YAML
-    assert config.training.batch_size == 128  # From YAML
+    assert config.training.epochs == 60
+    assert config.training.batch_size == 128
 
 
 @pytest.mark.integration
@@ -245,10 +241,9 @@ def test_build_from_yaml_or_args_resolves_dataset(tmp_path, mock_metadata_28):
 
     args = argparse.Namespace(
         config=str(yaml_path),
-        dataset="bloodmnist",  # Different from YAML - will trigger re-resolution
+        dataset="bloodmnist",
     )
 
-    # This will call wrapper.get_dataset() on line 255
     cfg = Config._build_from_yaml_or_args(args, ds_meta=mock_metadata_28)
 
     assert cfg.dataset.dataset_name == "dermamnist"
@@ -264,7 +259,7 @@ def test_yaml_different_dataset_triggers_wrapper_call(tmp_path):
     Using bloodmnist which definitely exists in registry.
     """
     yaml_content = {
-        "dataset": {"name": "bloodmnist", "resolution": 28},  # Use known dataset
+        "dataset": {"name": "bloodmnist", "resolution": 28},
         "model": {"name": "mini_cnn", "pretrained": False},
         "training": {"epochs": 100, "mixup_epochs": 0, "use_amp": False},
         "hardware": {"device": "cpu"},
@@ -275,7 +270,7 @@ def test_yaml_different_dataset_triggers_wrapper_call(tmp_path):
 
     args = argparse.Namespace(
         config=str(yaml_path),
-        dataset="dermamnist",  # Different from YAML to force re-resolution
+        dataset="dermamnist",
         resolution=28,
     )
 
@@ -307,7 +302,6 @@ def test_dump_portable_converts_paths():
 
     portable = config.dump_portable()
 
-    # Paths should be relative or portable
     assert "dataset" in portable
     assert "telemetry" in portable
 
@@ -319,7 +313,6 @@ def test_dump_serialized_json_compatible():
 
     serialized = config.dump_serialized()
 
-    # Should be dict with all sub-configs
     assert isinstance(serialized, dict)
     assert "hardware" in serialized
     assert "training" in serialized
@@ -363,7 +356,6 @@ def test_min_lr_boundary_condition_line_106(mock_metadata_28):
     """
     Lines 106-110: msg creation and raise ValueError(msg) for min_lr >= learning_rate
     """
-    # Test 1: min_lr == learning_rate
     with pytest.raises(ValidationError):
         Config(
             dataset=DatasetConfig(name="bloodmnist", resolution=28, metadata=mock_metadata_28),
@@ -374,7 +366,6 @@ def test_min_lr_boundary_condition_line_106(mock_metadata_28):
             hardware=HardwareConfig(device="cpu"),
         )
 
-    # Test 2: min_lr > learning_rate
     with pytest.raises(ValidationError):
         Config(
             dataset=DatasetConfig(name="bloodmnist", resolution=28, metadata=mock_metadata_28),
@@ -389,7 +380,6 @@ def test_min_lr_boundary_condition_line_106(mock_metadata_28):
 @pytest.mark.integration
 def test_invalid_yaml_raises_error(temp_invalid_yaml):
     """Test invalid YAML raises validation error."""
-    # This YAML has min_lr > learning_rate
     with pytest.raises(ValidationError):
         args = argparse.Namespace(
             config=str(temp_invalid_yaml), dataset="bloodmnist", pretrained=True
@@ -401,12 +391,11 @@ def test_invalid_yaml_raises_error(temp_invalid_yaml):
 def test_config_from_yaml_with_img_size_override():
     """Test that YAML img_size overrides CLI args."""
 
-    # Create a temporary YAML config with img_size specified
     yaml_content = {
         "dataset": {
             "name": "pathmnist",
             "resolution": 28,
-            "img_size": 224,  # This should override CLI args
+            "img_size": 224,
             "force_rgb": True,
         },
         "model": {
@@ -415,31 +404,27 @@ def test_config_from_yaml_with_img_size_override():
         },
         "training": {
             "epochs": 5,
-            "mixup_epochs": 0,  # Must be <= epochs to pass validation
+            "mixup_epochs": 0,
         },
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         yaml_path = Path(tmpdir) / "config.yaml"
 
-        # Write YAML file
         with open(yaml_path, "w") as f:
             yaml.dump(yaml_content, f)
 
-        # Create args with different img_size
         args = argparse.Namespace(
             config=str(yaml_path),
             dataset="pathmnist",
             resolution=28,
-            img_size=32,  # Different from YAML (224)
+            img_size=32,
             device="cpu",
             seed=42,
         )
 
-        # Build config from YAML
         cfg = Config.from_args(args)
 
-        # Verify that YAML value (224) overrides CLI value (32)
         assert cfg.dataset.img_size == 224, "YAML img_size should override CLI img_size"
         assert args.img_size == 224, "args.img_size should be updated from YAML"
 
@@ -452,7 +437,6 @@ def test_config_from_yaml_without_img_size():
         "dataset": {
             "name": "pathmnist",
             "resolution": 28,
-            # No img_size specified
             "force_rgb": True,
         },
         "model": {
@@ -461,7 +445,7 @@ def test_config_from_yaml_without_img_size():
         },
         "training": {
             "epochs": 5,
-            "mixup_epochs": 0,  # Must be <= epochs
+            "mixup_epochs": 0,
         },
     }
 
@@ -471,7 +455,6 @@ def test_config_from_yaml_without_img_size():
         with open(yaml_path, "w") as f:
             yaml.dump(yaml_content, f)
 
-        # Create args with img_size
         args = argparse.Namespace(
             config=str(yaml_path),
             dataset="pathmnist",
@@ -481,11 +464,8 @@ def test_config_from_yaml_without_img_size():
             seed=42,
         )
 
-        # Build config
         cfg = Config.from_args(args)
 
-        # When YAML doesn't specify img_size, it should use the default or CLI value
-        # The exact behavior depends on how DatasetConfig handles missing img_size
         assert cfg.dataset is not None
 
 
@@ -497,7 +477,7 @@ def test_config_yaml_img_size_none_explicit():
         "dataset": {
             "name": "pathmnist",
             "resolution": 28,
-            "img_size": None,  # Explicitly None
+            "img_size": None,
             "force_rgb": True,
         },
         "model": {
@@ -506,7 +486,7 @@ def test_config_yaml_img_size_none_explicit():
         },
         "training": {
             "epochs": 5,
-            "mixup_epochs": 0,  # Must be <= epochs
+            "mixup_epochs": 0,
         },
     }
 
@@ -525,8 +505,6 @@ def test_config_yaml_img_size_none_explicit():
             device="cpu",
             seed=42,
         )
-        # When img_size is explicitly None in YAML, args.img_size should NOT be overridden
-        # (the condition `if yaml_img_size is not None` should be False)
         assert (
             args.img_size == original_img_size
         ), "args.img_size should not change when YAML has img_size: null"

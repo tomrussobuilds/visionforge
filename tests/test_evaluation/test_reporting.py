@@ -92,9 +92,7 @@ def test_report_save_success(mock_mkdir, mock_writer, sample_report_data):
 
     report.save(test_path)
 
-    # Check if directory was created
     mock_mkdir.assert_called_once()
-    # Check if ExcelWriter was instantiated
     mock_writer.assert_called_once()
 
 
@@ -140,7 +138,6 @@ def test_excel_formatting_logic(sample_report_data):
     report = TrainingReport(**sample_report_data)
     df = report.to_vertical_df()
 
-    # Mock XlsxWriter components
     mock_writer = MagicMock()
     mock_workbook = MagicMock()
     mock_worksheet = MagicMock()
@@ -148,10 +145,8 @@ def test_excel_formatting_logic(sample_report_data):
     mock_writer.book = mock_workbook
     mock_writer.sheets = {"Detailed Report": mock_worksheet}
 
-    # Trigger internal method
     report._apply_excel_formatting(mock_writer, df)
 
-    # Verify column setting and header writing
     assert mock_worksheet.write.called
     mock_worksheet.set_column.assert_any_call("A:A", 25, ANY)
     mock_worksheet.set_column.assert_any_call("B:B", 70)
@@ -162,7 +157,6 @@ def test_report_save_creates_xlsx_file(sample_report_data, tmp_path):
     """Test that save() actually creates an .xlsx file with correct suffix."""
     report = TrainingReport(**sample_report_data)
 
-    # Use path without .xlsx extension
     test_path = tmp_path / "report"
 
     report.save(test_path)

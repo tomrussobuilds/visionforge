@@ -217,7 +217,6 @@ def test_save_plot_handles_exception(completed_trial):
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = Path(tmpdir)
 
-        # Should not raise
         save_plot(study, "test", mock_plot_fn, output_dir)
 
 
@@ -227,15 +226,13 @@ def test_generate_visualizations_no_completed_trials():
     from orchard.optimization.orchestrator.visualizers import generate_visualizations
 
     study = MagicMock()
-    study.trials = []  # No completed trials
+    study.trials = []
 
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = Path(tmpdir)
 
-        # Should return early without trying to import plotly
         generate_visualizations(study, output_dir)
 
-        # No HTML files should be created
         html_files = list(output_dir.glob("*.html"))
         assert len(html_files) == 0
 
@@ -253,9 +250,7 @@ def test_generate_visualizations_plotly_not_installed(mock_has_trials, completed
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = Path(tmpdir)
 
-        # Mock the import to raise ImportError
         with patch("builtins.__import__", side_effect=ImportError("No module named 'plotly'")):
-            # Should handle ImportError gracefully
             generate_visualizations(study, output_dir)
 
 
@@ -275,7 +270,6 @@ def test_generate_visualizations_creates_all_plots(
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = Path(tmpdir)
 
-        # Mock the optuna.visualization imports
         with patch.dict(
             "sys.modules",
             {
@@ -289,10 +283,8 @@ def test_generate_visualizations_creates_all_plots(
         ):
             generate_visualizations(study, output_dir)
 
-            # Should call save_plot 4 times (one for each plot type)
             assert mock_save_plot.call_count == 4
 
-            # Verify the plot names
             plot_names = [call[0][1] for call in mock_save_plot.call_args_list]
             assert "optimization_history" in plot_names
             assert "param_importances" in plot_names
@@ -341,7 +333,6 @@ def test_map_param_to_config_path_unknown_defaults_to_training(caplog):
     with caplog.at_level(logging.WARNING):
         section, key = map_param_to_config_path("unknown_param")
 
-        # Should default to training section
         assert section == "training"
         assert key == "unknown_param"
 

@@ -25,7 +25,6 @@ class TestClassificationMetrics:
         """Test behavior with 100% correct predictions."""
         labels = np.array([0, 1, 2])
         preds = np.array([0, 1, 2])
-        # Probabilities for 3 classes: [P(class 0), P(class 1), P(class 2)]
         probs = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 
         results = compute_classification_metrics(labels, preds, probs)
@@ -37,7 +36,7 @@ class TestClassificationMetrics:
     def test_compute_metrics_half_wrong(self):
         """Test accuracy and F1 with partially incorrect predictions."""
         labels = np.array([0, 0, 1, 1])
-        preds = np.array([0, 1, 1, 0])  # 50% accuracy
+        preds = np.array([0, 1, 1, 0])
         probs = np.array([[0.9, 0.1], [0.2, 0.8], [0.1, 0.9], [0.7, 0.3]])
 
         results = compute_classification_metrics(labels, preds, probs)
@@ -52,7 +51,6 @@ class TestClassificationMetrics:
         labels = np.random.randint(0, 2, size=input_size)
         preds = np.random.randint(0, 2, size=input_size)
         probs = np.random.rand(input_size, 2)
-        # Normalize probs to sum to 1
         probs /= probs.sum(axis=1)[:, np.newaxis]
 
         results = compute_classification_metrics(labels, preds, probs)

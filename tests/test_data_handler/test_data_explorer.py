@@ -25,9 +25,8 @@ from orchard.data_handler.data_explorer import (
 @patch("orchard.data_handler.data_explorer.plt")
 def test_show_sample_images_basic(mock_plt, tmp_path):
     """Test show_sample_images creates and saves a figure."""
-    # Mock loader with sample data
     mock_loader = MagicMock()
-    mock_images = torch.rand(16, 3, 28, 28)  # Batch of 16 RGB images
+    mock_images = torch.rand(16, 3, 28, 28)
     mock_labels = torch.zeros(16)
     mock_loader.__iter__ = MagicMock(return_value=iter([(mock_images, mock_labels)]))
 
@@ -40,7 +39,6 @@ def test_show_sample_images_basic(mock_plt, tmp_path):
         num_samples=16,
     )
 
-    # Verify plt methods were called
     assert mock_plt.imshow.called
     assert mock_plt.savefig.called
     assert mock_plt.close.called
@@ -77,7 +75,7 @@ def test_show_sample_images_with_config(mock_plt, tmp_path):
 def test_show_sample_images_grayscale(mock_plt, tmp_path):
     """Test show_sample_images handles grayscale images."""
     mock_loader = MagicMock()
-    mock_images = torch.rand(4, 1, 28, 28)  # Grayscale
+    mock_images = torch.rand(4, 1, 28, 28)
     mock_labels = torch.zeros(4)
     mock_loader.__iter__ = MagicMock(return_value=iter([(mock_images, mock_labels)]))
 
@@ -90,7 +88,6 @@ def test_show_sample_images_grayscale(mock_plt, tmp_path):
         num_samples=4,
     )
 
-    # Should use cmap='gray' for grayscale
     assert mock_plt.imshow.called
 
 
@@ -100,7 +97,7 @@ def test_show_sample_images_grayscale(mock_plt, tmp_path):
 def test_show_sample_images_empty_loader(mock_logger, mock_plt):
     """Test show_sample_images handles empty loader gracefully."""
     mock_loader = MagicMock()
-    mock_loader.__iter__ = MagicMock(return_value=iter([]))  # Empty
+    mock_loader.__iter__ = MagicMock(return_value=iter([]))
 
     save_path = Path("/tmp/test.png")
 
@@ -111,7 +108,6 @@ def test_show_sample_images_empty_loader(mock_logger, mock_plt):
         num_samples=16,
     )
 
-    # Should log error and return early
     assert mock_logger.error.called
     assert not mock_plt.savefig.called
 
@@ -121,7 +117,7 @@ def test_show_sample_images_empty_loader(mock_logger, mock_plt):
 def test_show_sample_images_fewer_samples_than_requested(mock_plt, tmp_path):
     """Test show_sample_images handles fewer samples than requested."""
     mock_loader = MagicMock()
-    mock_images = torch.rand(5, 3, 28, 28)  # Only 5 images
+    mock_images = torch.rand(5, 3, 28, 28)
     mock_labels = torch.zeros(5)
     mock_loader.__iter__ = MagicMock(return_value=iter([(mock_images, mock_labels)]))
 
@@ -131,10 +127,9 @@ def test_show_sample_images_fewer_samples_than_requested(mock_plt, tmp_path):
         loader=mock_loader,
         save_path=save_path,
         cfg=None,
-        num_samples=16,  # Request 16 but only 5 available
+        num_samples=16,
     )
 
-    # Should handle gracefully
     assert mock_plt.savefig.called
 
 
@@ -157,7 +152,6 @@ def test_show_sample_images_with_title_prefix(mock_plt, tmp_path):
         title_prefix="Training Data",
     )
 
-    # Verify title was set with prefix
     assert mock_plt.title.called
 
 
@@ -203,7 +197,6 @@ def test_show_samples_for_dataset_basic(mock_show_images, tmp_path):
         num_samples=16,
     )
 
-    # Verify show_sample_images was called
     mock_show_images.assert_called_once()
 
 
@@ -225,7 +218,6 @@ def test_show_samples_for_dataset_with_resolution(mock_show_images, tmp_path):
         resolution=224,
     )
 
-    # Verify correct filename with resolution
     mock_run_paths.get_fig_path.assert_called_once()
     call_args = mock_run_paths.get_fig_path.call_args[0][0]
     assert "224x224" in call_args
@@ -248,7 +240,6 @@ def test_show_samples_for_dataset_creates_directory(mock_show_images, tmp_path):
         num_samples=4,
     )
 
-    # Directory should be created
     assert save_path.parent.exists()
 
 

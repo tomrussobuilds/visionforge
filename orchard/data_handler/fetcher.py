@@ -108,7 +108,7 @@ def ensure_dataset_npz(
             )
             time.sleep(actual_delay)
 
-    raise RuntimeError("Unexpected error in dataset download logic.")
+    raise RuntimeError("Unexpected error in dataset download logic.") # pragma: no cover
 
 
 # LOADING INTERFACE

@@ -13,7 +13,7 @@ import pytest
 import torch
 from torchvision.transforms import v2
 
-# MODULE UNDER TEST
+# Internal Import
 from orchard.data_handler import (
     get_augmentations_description,
     get_pipeline_transforms,
@@ -135,7 +135,7 @@ def test_normalization_stats_replicated_for_grayscale(base_cfg, grayscale_metada
     assert normalize.std == [0.25, 0.25, 0.25]
 
 
-#                  TEST: PIPELINE EXECUTION (SMOKE TEST)                       #
+# TEST: PIPELINE EXECUTION (SMOKE TEST)
 def test_train_pipeline_executes_on_rgb_image(base_cfg, rgb_metadata, dummy_image_rgb):
     """Training pipeline should run end-to-end on RGB input."""
     train_tf, _ = get_pipeline_transforms(base_cfg, rgb_metadata)

@@ -105,7 +105,7 @@ def test_runpaths_create_invalid_dataset_type():
 
     with pytest.raises(ValueError, match="Expected string for dataset_slug"):
         RunPaths.create(
-            dataset_slug=123,  # Invalid type
+            dataset_slug=123,
             model_name="resnet",
             training_cfg=training_cfg,
         )
@@ -119,7 +119,7 @@ def test_runpaths_create_invalid_model_type():
     with pytest.raises(ValueError, match="Expected string for model_name"):
         RunPaths.create(
             dataset_slug="test",
-            model_name=123,  # Invalid type
+            model_name=123,
             training_cfg=training_cfg,
         )
 
@@ -134,13 +134,12 @@ def test_generate_unique_id_format():
 
     run_id = RunPaths._generate_unique_id(ds_slug, m_slug, cfg)
 
-    # Should match: 20260119_organcmnist_efficientnetb0_a3f7c2
     parts = run_id.split("_")
     assert len(parts) == 4
-    assert len(parts[0]) == 8  # YYYYMMDD
+    assert len(parts[0]) == 8
     assert parts[1] == ds_slug
     assert parts[2] == m_slug
-    assert len(parts[3]) == 6  # 6-char hash
+    assert len(parts[3]) == 6
 
 
 @pytest.mark.unit
@@ -176,13 +175,12 @@ def test_generate_unique_id_filters_non_hashable():
     ds_slug = "test"
     m_slug = "model"
     cfg = {
-        "batch_size": 32,  # Hashable
-        "learning_rate": 0.001,  # Hashable
-        "optimizer": {"type": "adam"},  # Non-hashable dict
-        "callbacks": [{"early_stop": True}],  # List of dicts (non-hashable)
+        "batch_size": 32,
+        "learning_rate": 0.001,
+        "optimizer": {"type": "adam"},
+        "callbacks": [{"early_stop": True}],
     }
 
-    # Should not raise error, only hashes primitives
     run_id = RunPaths._generate_unique_id(ds_slug, m_slug, cfg)
     assert isinstance(run_id, str)
 
@@ -207,7 +205,6 @@ def test_generate_unique_id_uses_blake2b():
     m_slug = "model"
     cfg = {"key": "value"}
 
-    # Manually compute expected hash
     hashable = {k: v for k, v in cfg.items() if isinstance(v, (int, float, str, bool, list))}
     params_json = json.dumps(hashable, sort_keys=True)
     expected_hash = hashlib.blake2b(params_json.encode(), digest_size=3).hexdigest()
@@ -223,7 +220,6 @@ def test_runpaths_create_handles_collision(tmp_path):
     """Test RunPaths.create() appends timestamp if directory already exists."""
     training_cfg = {"batch_size": 32}
 
-    # Create first run
     run1 = RunPaths.create(
         dataset_slug="test",
         model_name="model",
@@ -231,10 +227,8 @@ def test_runpaths_create_handles_collision(tmp_path):
         base_dir=tmp_path,
     )
 
-    # Manually create the directory to simulate collision
     run1.root.mkdir(parents=True, exist_ok=True)
 
-    # Create second run with same config (should append timestamp)
     with patch("time.strftime", return_value="123456"):
         run2 = RunPaths.create(
             dataset_slug="test",
@@ -260,11 +254,9 @@ def test_runpaths_creates_all_subdirectories(tmp_path):
         base_dir=tmp_path,
     )
 
-    # Verify root exists
     assert run_paths.root.exists()
     assert run_paths.root.is_dir()
 
-    # Verify all subdirectories exist
     for subdir_name in RunPaths.SUB_DIRS:
         subdir_path = run_paths.root / subdir_name
         assert subdir_path.exists(), f"Missing subdirectory: {subdir_name}"
@@ -283,15 +275,12 @@ def test_runpaths_path_attributes():
         base_dir=Path("/tmp"),
     )
 
-    # Check all Path attributes
     assert isinstance(run_paths.root, Path)
     assert isinstance(run_paths.figures, Path)
     assert isinstance(run_paths.models, Path)
     assert isinstance(run_paths.reports, Path)
     assert isinstance(run_paths.logs, Path)
     assert isinstance(run_paths.database, Path)
-
-    # Check path relationships
     assert run_paths.figures == run_paths.root / "figures"
     assert run_paths.models == run_paths.root / "models"
     assert run_paths.reports == run_paths.root / "reports"
@@ -396,7 +385,6 @@ def test_runpaths_is_frozen():
         base_dir=Path("/tmp"),
     )
 
-    # Attempt to modify should raise ValidationError
     with pytest.raises(ValidationError):
         run_paths.run_id = "new_id"
 
@@ -452,7 +440,6 @@ def test_runpaths_create_with_empty_model_name():
     """Test empty model_name after sanitization."""
     training_cfg = {"batch_size": 32}
 
-    # Model name with only special characters becomes empty after sanitization
     run_paths = RunPaths.create(
         dataset_slug="test",
         model_name="@#$%",
@@ -498,7 +485,6 @@ def test_runpaths_full_workflow(tmp_path):
         "epochs": 10,
     }
 
-    # Create run paths
     run_paths = RunPaths.create(
         dataset_slug="organcmnist",
         model_name="EfficientNet-B0",
@@ -506,15 +492,12 @@ def test_runpaths_full_workflow(tmp_path):
         base_dir=tmp_path,
     )
 
-    # Verify structure
     assert run_paths.root.exists()
 
-    # Simulate saving artifacts
     (run_paths.models / "checkpoint.pth").touch()
     (run_paths.reports / "metrics.json").touch()
     (run_paths.figures / "plot.png").touch()
 
-    # Verify artifacts exist
     assert (run_paths.models / "checkpoint.pth").exists()
     assert (run_paths.reports / "metrics.json").exists()
     assert (run_paths.figures / "plot.png").exists()
@@ -539,10 +522,8 @@ def test_multiple_runs_different_configs(tmp_path):
         )
         run_ids.append(run_paths.run_id)
 
-    # All run IDs should be unique
     assert len(run_ids) == len(set(run_ids))
 
-    # All directories should exist
     for run_id in run_ids:
         assert (tmp_path / run_id).exists()
 

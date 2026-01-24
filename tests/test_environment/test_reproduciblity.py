@@ -74,11 +74,8 @@ def test_set_seed_strict_mode_with_cuda_available():
     with patch("torch.cuda.is_available", return_value=True):
         with patch("torch.use_deterministic_algorithms") as mock_deterministic:
             set_seed(42, strict=True)
-
-            # Verify deterministic algorithms enabled
             mock_deterministic.assert_called_once_with(True)
 
-            # Verify cudnn flags
             assert torch.backends.cudnn.deterministic is True
             assert torch.backends.cudnn.benchmark is False
 
@@ -89,11 +86,8 @@ def test_set_seed_non_strict_mode_with_cuda_available():
     with patch("torch.cuda.is_available", return_value=True):
         with patch("torch.use_deterministic_algorithms") as mock_deterministic:
             set_seed(42, strict=False)
-
-            # Verify deterministic algorithms NOT called
             mock_deterministic.assert_not_called()
 
-            # Verify cudnn flags still set
             assert torch.backends.cudnn.deterministic is True
             assert torch.backends.cudnn.benchmark is False
 
@@ -109,16 +103,13 @@ def test_set_seed_without_cuda():
 @pytest.mark.unit
 def test_set_seed_cuda_branches_coverage():
     """Ensures all CUDA-related branches are executed in tests."""
-    # Test when CUDA is available
     with patch("torch.cuda.is_available", return_value=True):
-        # Mock cudnn to verify flags are set
         mock_cudnn = MagicMock()
         with patch("torch.backends.cudnn", mock_cudnn):
             set_seed(42, strict=True)
             assert mock_cudnn.deterministic is True
             assert mock_cudnn.benchmark is False
 
-    # Test when CUDA is NOT available
     with patch("torch.cuda.is_available", return_value=False):
         set_seed(42, strict=True)
         set_seed(42, strict=False)
@@ -130,7 +121,6 @@ def test_worker_init_fn_no_worker_info(monkeypatch):
     """worker_init_fn is a no-op outside DataLoader workers."""
     monkeypatch.setattr(torch.utils.data, "get_worker_info", lambda: None)
 
-    # Should not raise
     worker_init_fn(worker_id=0)
 
 
@@ -149,12 +139,10 @@ def test_worker_init_fn_sets_deterministic_state(monkeypatch):
 
     worker_init_fn(worker_id=1)
 
-    # Capture state
     a1 = random.random()
     b1 = np.random.rand()
     c1 = torch.rand(1)
 
-    # Re-run with same worker_id
     worker_init_fn(worker_id=1)
 
     a2 = random.random()
@@ -166,7 +154,7 @@ def test_worker_init_fn_sets_deterministic_state(monkeypatch):
     assert torch.equal(c1, c2)
 
 
-# INTEGRATION TESTS (run on real hardware when available)
+# INTEGRATION TESTS
 @pytest.mark.unit
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_set_seed_strict_mode_real_cuda():

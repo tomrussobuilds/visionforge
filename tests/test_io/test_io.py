@@ -32,7 +32,6 @@ def test_validate_npz_keys_valid_data():
         "test_labels",
     ]
 
-    # Should not raise any errors
     validate_npz_keys(mock_npz)
 
 
@@ -40,7 +39,7 @@ def test_validate_npz_keys_valid_data():
 def test_validate_npz_keys_missing_keys():
     """Test validate_npz_keys raises ValueError for missing keys."""
     mock_npz = MagicMock()
-    mock_npz.files = ["train_images", "train_labels"]  # Missing val and test
+    mock_npz.files = ["train_images", "train_labels"]
 
     with pytest.raises(ValueError, match="Missing keys"):
         validate_npz_keys(mock_npz)
@@ -57,10 +56,9 @@ def test_validate_npz_keys_extra_keys_allowed():
         "val_labels",
         "test_images",
         "test_labels",
-        "extra_metadata",  # Extra key
+        "extra_metadata",
     ]
 
-    # Should not raise errors
     validate_npz_keys(mock_npz)
 
 
@@ -82,7 +80,6 @@ def test_md5_checksum_basic(tmp_path):
     test_content = b"Hello, World!"
     test_file.write_bytes(test_content)
 
-    # Known MD5 hash for "Hello, World!"
     expected_hash = "65a8e27d8879283831b664bd8b7f0ad4"
 
     result = md5_checksum(test_file)
@@ -96,7 +93,6 @@ def test_md5_checksum_empty_file(tmp_path):
     test_file = tmp_path / "empty.txt"
     test_file.write_bytes(b"")
 
-    # MD5 of empty file
     expected_hash = "d41d8cd98f00b204e9800998ecf8427e"
 
     result = md5_checksum(test_file)
@@ -108,15 +104,13 @@ def test_md5_checksum_empty_file(tmp_path):
 def test_md5_checksum_large_file(tmp_path):
     """Test md5_checksum handles file larger than buffer size."""
     test_file = tmp_path / "large.bin"
-    # Create file larger than 8192 bytes (buffer size)
     large_content = b"X" * 10000
     test_file.write_bytes(large_content)
 
     result = md5_checksum(test_file)
 
-    # Should return valid hex string
     assert isinstance(result, str)
-    assert len(result) == 32  # MD5 is 32 hex characters
+    assert len(result) == 32
     assert all(c in "0123456789abcdef" for c in result)
 
 
@@ -149,12 +143,10 @@ def test_load_model_weights_file_not_found():
 @patch("torch.load")
 def test_load_model_weights_success(mock_torch_load, tmp_path):
     """Test load_model_weights loads checkpoint successfully."""
-    # Create a simple model
     model = nn.Linear(10, 5)
     checkpoint_path = tmp_path / "model.pth"
-    checkpoint_path.touch()  # Create file
+    checkpoint_path.touch()
 
-    # Mock state dict
     mock_state_dict = {"weight": torch.randn(5, 10), "bias": torch.randn(5)}
     mock_torch_load.return_value = mock_state_dict
 
@@ -162,7 +154,6 @@ def test_load_model_weights_success(mock_torch_load, tmp_path):
 
     load_model_weights(model, checkpoint_path, device)
 
-    # Verify torch.load was called with correct arguments
     mock_torch_load.assert_called_once_with(checkpoint_path, map_location=device, weights_only=True)
 
 
@@ -181,7 +172,6 @@ def test_load_model_weights_maps_to_device(mock_torch_load, tmp_path):
 
     load_model_weights(model, checkpoint_path, device)
 
-    # Verify device mapping was used
     call_kwargs = mock_torch_load.call_args.kwargs
     assert call_kwargs["map_location"] == device
 
@@ -193,8 +183,6 @@ def test_load_model_weights_uses_weights_only(mock_torch_load, tmp_path):
     model = nn.Linear(10, 5)
     checkpoint_path = tmp_path / "model.pth"
     checkpoint_path.touch()
-
-    # Return actual state dict matching the model
     mock_state_dict = model.state_dict()
     mock_torch_load.return_value = mock_state_dict
 
@@ -202,7 +190,6 @@ def test_load_model_weights_uses_weights_only(mock_torch_load, tmp_path):
 
     load_model_weights(model, checkpoint_path, device)
 
-    # Verify weights_only=True was used
     call_kwargs = mock_torch_load.call_args.kwargs
     assert call_kwargs["weights_only"] is True
 

@@ -221,7 +221,6 @@ class TestOptunaOrchestrator:
         orch = OptunaOrchestrator(cfg=mock_cfg, device="cpu", paths=mock_paths)
         study = orch.create_study()
 
-        # Verify optuna.create_study was called
         mock_create.assert_called_once()
         assert study == mock_study
 
@@ -237,7 +236,6 @@ class TestOptunaOrchestrator:
         orch = OptunaOrchestrator(cfg=mock_cfg, device="cpu", paths=mock_paths)
         orch._post_optimization_processing(study)
 
-        # Summary should still be exported
         mock_export.assert_called_once()
 
     @patch("orchard.optimization.orchestrator.orchestrator.export_study_summary")
@@ -257,7 +255,6 @@ class TestOptunaOrchestrator:
     @patch("orchard.optimization.orchestrator.orchestrator.OptunaObjective")
     def test_optimize_full_flow(self, mock_obj, mock_space, mock_create, mock_cfg, mock_paths):
         """Test full optimize flow."""
-        # Setup mocks
         mock_study = MagicMock()
         mock_study.trials = []
         mock_study.study_name = "test"
@@ -269,13 +266,11 @@ class TestOptunaOrchestrator:
         mock_objective = MagicMock()
         mock_obj.return_value = mock_objective
 
-        # Run optimize
         orch = OptunaOrchestrator(cfg=mock_cfg, device="cpu", paths=mock_paths)
 
         with patch.object(orch, "_post_optimization_processing"):
             result = orch.optimize()
 
-        # Verify calls
         mock_create.assert_called_once()
         mock_space.assert_called_once()
         mock_obj.assert_called_once()
@@ -285,13 +280,11 @@ class TestOptunaOrchestrator:
     @patch("orchard.optimization.orchestrator.orchestrator.OptunaOrchestrator")
     def test_run_optimization(self, mock_orch_class, mock_cfg, mock_paths):
         """Test run_optimization convenience function."""
-        # Patch at the module level where run_optimization is defined
         mock_orch = MagicMock()
         mock_study = MagicMock()
         mock_orch.optimize.return_value = mock_study
         mock_orch_class.return_value = mock_orch
 
-        # Import after patching
         from orchard.optimization.orchestrator.orchestrator import run_optimization as run_opt
 
         result = run_opt(cfg=mock_cfg, device="cpu", paths=mock_paths)
@@ -313,7 +306,6 @@ class TestOptunaOrchestrator:
         mock_paths,
     ):
         """Test post-optimization with save_plots enabled."""
-        # Enable save_plots
         mock_cfg.optuna.save_plots = True
         mock_cfg.optuna.save_best_config = False
 
@@ -337,7 +329,6 @@ class TestOptunaOrchestrator:
         mock_paths,
     ):
         """Test post-optimization with save_best_config enabled."""
-        # Enable save_best_config
         mock_cfg.optuna.save_plots = False
         mock_cfg.optuna.save_best_config = True
 
@@ -355,7 +346,6 @@ class TestOptunaOrchestrator:
         self, mock_create_study, mock_get_search_space, mock_objective_class, mock_cfg, mock_paths
     ):
         """Test optimize handles KeyboardInterrupt."""
-        # Setup mocks
         mock_study = MagicMock()
         mock_study.trials = []
         mock_study.study_name = "test"
