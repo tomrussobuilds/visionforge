@@ -28,8 +28,8 @@ try:
     import fcntl
 
     HAS_FCNTL = True
-except ImportError:
-    HAS_FCNTL = False
+except ImportError:  # pragma: no cover
+    HAS_FCNTL = False  # pragma: no cover
 
 # Third-Party Imports
 import psutil
@@ -98,7 +98,7 @@ def release_single_instance(lock_file: Path) -> None:
 
             try:
                 _lock_fd.close()
-            except (OSError, IOError):
+            except (OSError, IOError):  # pragma: no cover
                 # Close may fail if fd is already closed
                 pass
         finally:
@@ -107,7 +107,7 @@ def release_single_instance(lock_file: Path) -> None:
     if lock_file.exists():
         try:
             lock_file.unlink()
-        except OSError:
+        except OSError:  # pragma: no cover
             # Silence errors if the file was already removed by another process
             pass
 

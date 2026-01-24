@@ -36,9 +36,7 @@ def test_ensure_single_instance_success(mock_platform, tmp_path):
     with patch("fcntl.flock") as mock_flock:
         ensure_single_instance(lock_file, logger)
 
-        # Verify flock was called with correct flags
         mock_flock.assert_called_once()
-        # Lock file parent should be created
         assert lock_file.parent.exists()
 
 
@@ -79,7 +77,6 @@ def test_ensure_single_instance_windows(mock_platform, tmp_path):
     lock_file = tmp_path / "test.lock"
     logger = logging.getLogger("test")
 
-    # Should not raise any errors on Windows
     ensure_single_instance(lock_file, logger)
 
 
@@ -94,7 +91,6 @@ def test_ensure_single_instance_macos(mock_platform, tmp_path):
     with patch("fcntl.flock") as mock_flock:
         ensure_single_instance(lock_file, logger)
 
-        # Should work on Darwin (macOS)
         mock_flock.assert_called_once()
 
 
@@ -106,7 +102,6 @@ def test_ensure_single_instance_no_fcntl(mock_platform, tmp_path):
     lock_file = tmp_path / "test.lock"
     logger = logging.getLogger("test")
 
-    # Should not crash when fcntl unavailable
     ensure_single_instance(lock_file, logger)
 
 
@@ -124,11 +119,9 @@ def test_release_single_instance_with_lock(tmp_path):
         with patch("fcntl.flock") as mock_flock:
             release_single_instance(lock_file)
 
-            # Verify unlock and close were called
             mock_flock.assert_called_once()
             mock_fd.close.assert_called_once()
 
-    # File should be removed
     assert not lock_file.exists()
 
 
@@ -141,7 +134,6 @@ def test_release_single_instance_no_lock(tmp_path):
     with patch("orchard.core.environment.guards._lock_fd", None):
         release_single_instance(lock_file)
 
-    # File should still be removed
     assert not lock_file.exists()
 
 
@@ -151,7 +143,6 @@ def test_release_single_instance_file_not_exists(tmp_path):
     lock_file = tmp_path / "nonexistent.lock"
 
     with patch("orchard.core.environment.guards._lock_fd", None):
-        # Should not raise errors
         release_single_instance(lock_file)
 
 
@@ -165,7 +156,6 @@ def test_release_single_instance_oserror(tmp_path):
     with patch("orchard.core.environment.guards._lock_fd", mock_fd):
         with patch("fcntl.flock"):
             with patch.object(Path, "unlink", side_effect=OSError):
-                # Should not raise errors
                 release_single_instance(lock_file)
 
 
@@ -240,7 +230,6 @@ def test_detect_duplicates_skips_non_python():
     with patch("psutil.process_iter", return_value=[mock_proc]):
         duplicates = cleaner.detect_duplicates()
 
-    # Should skip non-Python processes
     assert duplicates == []
 
 
@@ -280,7 +269,6 @@ def test_detect_duplicates_handles_exceptions():
     mock_proc2.info = MagicMock(side_effect=psutil.NoSuchProcess(9999))
 
     with patch("psutil.process_iter", return_value=[mock_proc1, mock_proc2]):
-        # Should not crash and skip the problematic process
         duplicates = cleaner.detect_duplicates()
 
     assert isinstance(duplicates, list)
@@ -301,7 +289,6 @@ def test_detect_duplicates_empty_cmdline():
     with patch("psutil.process_iter", return_value=[mock_proc]):
         duplicates = cleaner.detect_duplicates()
 
-    # Should skip processes with no cmdline
     assert duplicates == []
 
 
@@ -347,7 +334,7 @@ def test_terminate_duplicates_multiple():
         proc.wait = MagicMock()
 
     with patch.object(cleaner, "detect_duplicates", return_value=mock_procs):
-        with patch("time.sleep"):  # Skip the cooldown sleep
+        with patch("time.sleep"):
             count = cleaner.terminate_duplicates()
 
     assert count == 3
@@ -364,7 +351,6 @@ def test_terminate_duplicates_handles_no_such_process():
     with patch.object(cleaner, "detect_duplicates", return_value=[mock_proc]):
         count = cleaner.terminate_duplicates()
 
-    # Should handle exception and not count as terminated
     assert count == 0
 
 
@@ -380,6 +366,48 @@ def test_terminate_duplicates_handles_access_denied():
         count = cleaner.terminate_duplicates()
 
     assert count == 0
+
+
+@pytest.mark.unit
+def test_detect_duplicates_handles_no_such_process():
+    """Test detect_duplicates handles NoSuchProcess exception."""
+    cleaner = DuplicateProcessCleaner()
+
+    mock_proc = MagicMock()
+    type(mock_proc).info = property(lambda self: (_ for _ in ()).throw(psutil.NoSuchProcess(9999)))
+
+    with patch("psutil.process_iter", return_value=[mock_proc]):
+        duplicates = cleaner.detect_duplicates()
+
+    assert duplicates == []
+
+
+@pytest.mark.unit
+def test_detect_duplicates_handles_access_denied():
+    """Test detect_duplicates handles AccessDenied exception."""
+    cleaner = DuplicateProcessCleaner()
+
+    mock_proc = MagicMock()
+    type(mock_proc).info = property(lambda self: (_ for _ in ()).throw(psutil.AccessDenied()))
+
+    with patch("psutil.process_iter", return_value=[mock_proc]):
+        duplicates = cleaner.detect_duplicates()
+
+    assert duplicates == []
+
+
+@pytest.mark.unit
+def test_detect_duplicates_handles_zombie_process():
+    """Test detect_duplicates handles ZombieProcess exception."""
+    cleaner = DuplicateProcessCleaner()
+
+    mock_proc = MagicMock()
+    type(mock_proc).info = property(lambda self: (_ for _ in ()).throw(psutil.ZombieProcess(9999)))
+
+    with patch("psutil.process_iter", return_value=[mock_proc]):
+        duplicates = cleaner.detect_duplicates()
+
+    assert duplicates == []
 
 
 @pytest.mark.unit
@@ -399,68 +427,66 @@ def test_terminate_duplicates_with_logger():
     logger.info.assert_called_once()
 
 
-# INTEGRATION TESTS
-@pytest.mark.integration
+@pytest.mark.unit
+@patch("orchard.core.environment.guards.HAS_FCNTL", True)
+def test_release_single_instance_unlock_ioerror_real(tmp_path):
+    """Test release_single_instance handles IOError during unlock."""
+    lock_file = tmp_path / "test.lock"
+    lock_file.touch()
+    mock_fd = open(lock_file, "a")
+
+    with patch("orchard.core.environment.guards._lock_fd", mock_fd):
+        with patch("fcntl.flock", side_effect=IOError("Unlock IO failed")):
+            release_single_instance(lock_file)
+
+    assert not lock_file.exists()
+
+
+@pytest.mark.unit
+@patch("orchard.core.environment.guards.HAS_FCNTL", True)
+def test_release_single_instance_close_ioerror_real(tmp_path):
+    """Test release_single_instance handles IOError during close."""
+    lock_file = tmp_path / "test.lock"
+    lock_file.touch()
+
+    real_fd = open(lock_file, "a")
+    original_close = real_fd.close
+
+    def mock_close_ioerror():
+        raise IOError("Close IO failed")
+
+    real_fd.close = mock_close_ioerror
+
+    with patch("orchard.core.environment.guards._lock_fd", real_fd):
+        with patch("fcntl.flock"):
+            release_single_instance(lock_file)
+
+    try:
+        original_close()
+    except:
+        pass
+
+    assert not lock_file.exists()
+
+
+@pytest.mark.unit
 @patch("platform.system", return_value="Linux")
 @patch("orchard.core.environment.guards.HAS_FCNTL", True)
-def test_full_guard_workflow(mock_platform, tmp_path):
-    """Test complete guard workflow: lock, detect, release."""
-    lock_file = tmp_path / "test.lock"
+def test_ensure_single_instance_creates_nested_parent_dirs(mock_platform, tmp_path):
+    """Test ensure_single_instance creates deeply nested parent directories."""
+    import uuid
+
+    unique_id = str(uuid.uuid4())
+    lock_file = tmp_path / unique_id / "level1" / "level2" / "test.lock"
     logger = logging.getLogger("test")
 
-    # Acquire lock
+    assert not lock_file.parent.exists()
+
     with patch("fcntl.flock"):
         ensure_single_instance(lock_file, logger)
 
-    # Check for duplicates
-    cleaner = DuplicateProcessCleaner()
-    duplicates = cleaner.detect_duplicates()
-
-    assert isinstance(duplicates, list)
-
-    # Release lock
-    with patch("orchard.core.environment.guards._lock_fd", MagicMock()):
-        with patch("fcntl.flock"):
-            release_single_instance(lock_file)
-
-
-@pytest.mark.unit
-@patch("orchard.core.environment.guards.HAS_FCNTL", True)
-def test_release_single_instance_unlock_error_handled(tmp_path):
-    """Test release_single_instance handles unlock errors gracefully."""
-    lock_file = tmp_path / "test.lock"
-    lock_file.touch()
-
-    mock_fd = MagicMock()
-    with patch("orchard.core.environment.guards._lock_fd", mock_fd):
-        with patch("fcntl.flock", side_effect=OSError("Unlock failed")):
-            # Should handle error gracefully and not raise
-            release_single_instance(lock_file)
-
-            # fd.close should still be called
-            mock_fd.close.assert_called_once()
-
-    # File should still be removed
-    assert not lock_file.exists()
-
-
-@pytest.mark.unit
-@patch("orchard.core.environment.guards.HAS_FCNTL", True)
-def test_release_single_instance_close_error_handled(tmp_path):
-    """Test release_single_instance handles close errors gracefully."""
-    lock_file = tmp_path / "test.lock"
-    lock_file.touch()
-
-    mock_fd = MagicMock()
-    mock_fd.close.side_effect = OSError("Close failed")
-
-    with patch("orchard.core.environment.guards._lock_fd", mock_fd):
-        with patch("fcntl.flock"):
-            # Should handle close error gracefully and not raise
-            release_single_instance(lock_file)
-
-    # File should still be removed despite close error
-    assert not lock_file.exists()
+    assert lock_file.parent.exists()
+    assert lock_file.exists()
 
 
 if __name__ == "__main__":

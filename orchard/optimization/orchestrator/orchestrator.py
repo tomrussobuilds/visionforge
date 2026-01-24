@@ -115,10 +115,8 @@ class OptunaOrchestrator:
         optuna.logging.set_verbosity(optuna.logging.WARNING)
         log_optimization_header(self.cfg)
 
-        # Pass cfg to build_callbacks
         callbacks = build_callbacks(self.cfg)
 
-        # Run optimization with error handling
         try:
             study.optimize(
                 objective,
@@ -131,7 +129,6 @@ class OptunaOrchestrator:
         except KeyboardInterrupt:
             logger.warning("Optimization interrupted by user. Saving partial results...")
 
-        # Post-optimization processing
         self._post_optimization_processing(study)
 
         return study
@@ -142,20 +139,16 @@ class OptunaOrchestrator:
         Args:
             study: Completed Optuna study
         """
-        # Always log summary (works even without completed trials)
         log_study_summary(study, self.cfg.optuna.metric_name)
 
-        # Only proceed with exports if we have completed trials
         if not has_completed_trials(study):
             logger.warning(
                 "No completed trials. Skipping visualizations, best config, "
                 "and detailed exports."
             )
-            # Still export study summary (contains metadata about failed trials)
             export_study_summary(study, self.paths, self.cfg.optuna.metric_name)
             return
 
-        # Generate artifacts for successful study
         if self.cfg.optuna.save_plots:
             generate_visualizations(study, self.paths.figures)
 
