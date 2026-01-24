@@ -193,3 +193,44 @@ def test_full_search_space_sample_params():
     assert "learning_rate" in sampled_params
     assert "momentum" in sampled_params
     assert "dropout" in sampled_params
+
+
+@pytest.mark.unit
+def test_get_search_space_with_models_resolution_224():
+    """Test get_search_space with include_models=True for 224x224 resolution."""
+    space = get_search_space(preset="quick", resolution=224, include_models=True)
+
+    assert "model_name" in space
+    assert "weight_variant" in space
+    assert "learning_rate" in space
+    assert "batch_size" in space
+
+
+@pytest.mark.unit
+def test_get_search_space_with_models_resolution_28():
+    """Test get_search_space with include_models=True for 28x28 resolution."""
+    space = get_search_space(preset="quick", resolution=28, include_models=True)
+
+    assert "model_name" in space
+    assert "weight_variant" not in space
+    assert "learning_rate" in space
+    assert "batch_size" in space
+
+
+@pytest.mark.unit
+def test_full_search_space_sample_params_high_resolution():
+    """Test FullSearchSpace with 224x224 resolution uses smaller batch choices."""
+    full_space = FullSearchSpace(resolution=224)
+
+    # Mock trial
+    trial_mock = MagicMock(spec=Trial)
+    trial_mock.suggest_float = MagicMock(return_value=0.001)
+    trial_mock.suggest_int = MagicMock(return_value=5)
+    trial_mock.suggest_categorical = MagicMock(return_value=12)
+
+    sampled_params = full_space.sample_params(trial_mock)
+
+    assert sampled_params["batch_size"] in [8, 12, 16]
+    assert sampled_params["batch_size"] == 12
+
+    trial_mock.suggest_categorical.assert_called_with("batch_size", [8, 12, 16])

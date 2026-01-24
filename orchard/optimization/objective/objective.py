@@ -45,7 +45,7 @@ class DatasetLoaderProtocol(Protocol):
 
     def __call__(self, metadata) -> MedMNISTData:
         """Load dataset from metadata."""
-        ...
+        ...  # pragma: no cover
 
 
 class DataloaderFactoryProtocol(Protocol):
@@ -53,7 +53,7 @@ class DataloaderFactoryProtocol(Protocol):
 
     def __call__(self, medmnist_data: MedMNISTData, cfg: Config, is_optuna: bool = False) -> tuple:
         """Create train/val/test dataloaders."""
-        ...
+        ...  # pragma: no cover
 
 
 class ModelFactoryProtocol(Protocol):
@@ -61,7 +61,7 @@ class ModelFactoryProtocol(Protocol):
 
     def __call__(self, device: torch.device, cfg: Config) -> torch.nn.Module:
         """Create and initialize model."""
-        ...
+        ...  # pragma: no cover
 
 
 # MAIN OBJECTIVE
