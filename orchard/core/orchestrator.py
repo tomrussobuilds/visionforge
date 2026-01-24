@@ -46,7 +46,7 @@ from .io import save_config_as_yaml
 from .logger import Logger, Reporter
 from .paths import LOGGER_NAME, RunPaths, setup_static_directories
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .config.manifest import Config
 
 
@@ -62,7 +62,7 @@ class InfraManagerProtocol(Protocol):
             cfg: The configuration to be used for preparing the environment.
             logger: The logger instance for logging preparation details.
         """
-        ...
+        ...  # pragma: no cover
 
     def release_resources(self, cfg: "Config", logger: logging.Logger) -> None:
         """
@@ -72,7 +72,7 @@ class InfraManagerProtocol(Protocol):
             cfg: The configuration that was used during resource allocation.
             logger: The logger instance for logging release details.
         """
-        ...
+        ...  # pragma: no cover
 
 
 class ReporterProtocol(Protocol):
@@ -99,7 +99,7 @@ class ReporterProtocol(Protocol):
             num_workers: The number of worker processes to use.
 
         """
-        ...
+        ...  # pragma: no cover
 
 
 # ROOT ORCHESTRATOR
