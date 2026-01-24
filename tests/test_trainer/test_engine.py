@@ -70,7 +70,7 @@ def test_train_one_epoch_basic(simple_model, simple_loader, criterion, optimizer
 
 @pytest.mark.unit
 def test_train_one_epoch_with_tqdm(simple_model, simple_loader, criterion, optimizer):
-    """Test train_one_epoch with tqdm enabled (line 66)."""
+    """Test train_one_epoch with tqdm enabled."""
     device = torch.device("cpu")
     loss = train_one_epoch(
         model=simple_model,
@@ -105,7 +105,7 @@ def test_train_one_epoch_with_grad_clip(simple_model, simple_loader, criterion, 
 @pytest.mark.unit
 @pytest.mark.filterwarnings("ignore::UserWarning")
 def test_train_one_epoch_with_scaler(simple_model, simple_loader, criterion, optimizer):
-    """Test train_one_epoch with AMP scaler (lines 86-91)."""
+    """Test train_one_epoch with AMP scaler."""
     device = torch.device("cpu")
     scaler = torch.amp.GradScaler()
 
@@ -122,11 +122,57 @@ def test_train_one_epoch_with_scaler(simple_model, simple_loader, criterion, opt
 
 
 @pytest.mark.unit
+def test_train_one_epoch_scaler_grad_clip_branch():
+    """Test scaler + grad_clip branch explicitly."""
+    from unittest.mock import MagicMock, patch
+
+    # Create all mocks
+    mock_model = MagicMock()
+    mock_model.train = MagicMock()
+    mock_model.parameters = MagicMock(return_value=[torch.randn(10, 10, requires_grad=True)])
+    mock_model.return_value = torch.randn(4, 10)
+
+    mock_loader = MagicMock()
+    batch = (torch.randn(4, 1, 28, 28), torch.randint(0, 10, (4,)))
+    mock_loader.__iter__ = MagicMock(return_value=iter([batch]))
+
+    mock_criterion = MagicMock(return_value=torch.tensor(0.5))
+    mock_optimizer = MagicMock()
+
+    mock_scaler = MagicMock()
+    mock_scaler.scale = MagicMock(return_value=MagicMock(backward=MagicMock()))
+    mock_scaler.unscale_ = MagicMock()  # ← Track this
+    mock_scaler.step = MagicMock()
+    mock_scaler.update = MagicMock()
+
+    device = torch.device("cpu")
+
+    # Patch clip_grad_norm_
+    with patch("torch.nn.utils.clip_grad_norm_") as mock_clip:
+        loss = train_one_epoch(
+            model=mock_model,
+            loader=mock_loader,
+            criterion=mock_criterion,
+            optimizer=mock_optimizer,
+            device=device,
+            scaler=mock_scaler,
+            grad_clip=1.0,
+            use_tqdm=False,
+        )
+
+        # Verify the scaler.unscale_ was called before clipping
+        mock_scaler.unscale_.assert_called_once_with(mock_optimizer)
+
+        # Verify clip_grad_norm_ was called
+        mock_clip.assert_called_once()
+
+
+@pytest.mark.unit
 @pytest.mark.filterwarnings("ignore::UserWarning")
 def test_train_one_epoch_with_scaler_and_grad_clip(
     simple_model, simple_loader, criterion, optimizer
 ):
-    """Test train_one_epoch with AMP scaler AND gradient clipping (lines 88-90)."""
+    """Test train_one_epoch with AMP scaler AND gradient clipping."""
     device = torch.device("cpu")
     scaler = torch.amp.GradScaler()
 
@@ -165,7 +211,7 @@ def test_train_one_epoch_with_mixup(simple_model, simple_loader, criterion, opti
 
 @pytest.mark.unit
 def test_train_one_epoch_updates_tqdm_postfix(simple_model, simple_loader, criterion, optimizer):
-    """Test that tqdm postfix is updated with loss (line 105)."""
+    """Test that tqdm postfix is updated with loss."""
     device = torch.device("cpu")
 
     with patch("orchard.trainer.engine.tqdm") as mock_tqdm:
@@ -211,13 +257,13 @@ def test_validate_epoch_basic(simple_model, simple_loader, criterion):
 
 @pytest.mark.unit
 def test_validate_epoch_binary_classification(simple_model, criterion):
-    """Test validate_epoch with binary classification (line 181)."""
+    """Test validate_epoch with binary classification."""
     device = torch.device("cpu")
 
     # Modify model to output 2 classes (binary)
     model = nn.Sequential(
         nn.Flatten(),
-        nn.Linear(28 * 28, 2),  # Binary output
+        nn.Linear(28 * 28, 2),
     )
 
     # Create loader with binary labels
