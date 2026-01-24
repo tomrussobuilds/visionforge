@@ -72,7 +72,7 @@ def completed_trial():
     return trial
 
 
-#                    TESTS: config.py                                         #
+# TESTS: config.py
 @pytest.mark.unit
 def test_sampler_registry_has_tpe():
     """Test SAMPLER_REGISTRY contains TPE."""
@@ -101,7 +101,7 @@ def test_map_param_to_config_path_model():
     assert key == "dropout"
 
 
-#                    TESTS: builders.py                                       #
+# TESTS: builders.py
 @pytest.mark.unit
 def test_build_sampler_tpe(mock_cfg):
     """Test building TPE sampler."""
@@ -132,7 +132,7 @@ def test_build_callbacks(mock_callback_fn, mock_cfg):
     assert isinstance(callbacks, list)
 
 
-#                    TESTS: utils.py                                          #
+# TESTS: utils.py
 @pytest.mark.unit
 def test_get_completed_trials(completed_trial):
     """Test extracting completed trials."""
@@ -161,7 +161,7 @@ def test_has_completed_trials_false():
     assert has_completed_trials(study) is False
 
 
-#                    TESTS: exporters.py                                      #
+# TESTS: exporters.py
 @pytest.mark.unit
 def test_build_trial_data(completed_trial):
     """Test building trial data dict."""
@@ -186,7 +186,7 @@ def test_build_best_config_dict(mock_cfg):
     assert config_dict["training"]["epochs"] == 50
 
 
-#                    TESTS: visualizers.py                                    #
+# TESTS: visualizers.py
 @pytest.mark.unit
 def test_save_plot_success(completed_trial):
     """Test save_plot saves HTML file."""
@@ -298,6 +298,52 @@ def test_generate_visualizations_creates_all_plots(
             assert "param_importances" in plot_names
             assert "slice" in plot_names
             assert "parallel_coordinate" in plot_names
+
+
+# TESTS: config.py
+@pytest.mark.unit
+def test_map_param_to_config_path_augmentation():
+    """Test mapping augmentation parameter."""
+    section, key = map_param_to_config_path("rotation_angle")
+    assert section == "augmentation"
+    assert key == "rotation_angle"
+
+    section, key = map_param_to_config_path("jitter_val")
+    assert section == "augmentation"
+    assert key == "jitter_val"
+
+    section, key = map_param_to_config_path("min_scale")
+    assert section == "augmentation"
+    assert key == "min_scale"
+
+
+@pytest.mark.unit
+def test_map_param_to_config_path_special_model_name():
+    """Test mapping special parameter: model_name."""
+    section, key = map_param_to_config_path("model_name")
+    assert section == "model"
+    assert key == "name"
+
+
+@pytest.mark.unit
+def test_map_param_to_config_path_special_weight_variant():
+    """Test mapping special parameter: weight_variant."""
+    section, key = map_param_to_config_path("weight_variant")
+    assert section == "model"
+    assert key == "weight_variant"
+
+
+@pytest.mark.unit
+def test_map_param_to_config_path_unknown_defaults_to_training(caplog):
+    """Test unknown parameter defaults to training with warning."""
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        section, key = map_param_to_config_path("unknown_param")
+
+        # Should default to training section
+        assert section == "training"
+        assert key == "unknown_param"
 
 
 if __name__ == "__main__":
