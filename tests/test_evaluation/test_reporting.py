@@ -157,6 +157,52 @@ def test_excel_formatting_logic(sample_report_data):
     mock_worksheet.set_column.assert_any_call("B:B", 70)
 
 
+@pytest.mark.unit
+def test_report_save_creates_xlsx_file(sample_report_data, tmp_path):
+    """Test that save() actually creates an .xlsx file with correct suffix."""
+    report = TrainingReport(**sample_report_data)
+
+    # Use path without .xlsx extension
+    test_path = tmp_path / "report"
+
+    report.save(test_path)
+
+    expected_path = tmp_path / "report.xlsx"
+    assert expected_path.exists()
+    assert expected_path.suffix == ".xlsx"
+
+
+@pytest.mark.unit
+def test_report_save_with_existing_xlsx_suffix(sample_report_data, tmp_path):
+    """Test that save() handles path that already has .xlsx suffix."""
+    report = TrainingReport(**sample_report_data)
+
+    test_path = tmp_path / "report.xlsx"
+
+    report.save(test_path)
+
+    assert test_path.exists()
+
+
+@pytest.mark.unit
+def test_create_structured_report_handles_empty_val_metrics(mock_config):
+    """Test create_structured_report with empty validation metrics."""
+    val_metrics = []
+    test_metrics = {"accuracy": 0.88, "auc": 0.91}
+    train_losses = [0.5]
+
+    report = create_structured_report(
+        val_metrics=val_metrics,
+        test_metrics=test_metrics,
+        macro_f1=0.87,
+        train_losses=train_losses,
+        best_path=Path("/models/best.pth"),
+        log_path=Path("/logs/run.log"),
+        cfg=mock_config,
+    )
+    assert isinstance(report, TrainingReport)
+
+
 # ENTRY POINT
 if __name__ == "__main__":
     pytest.main([__file__, "-vv", "-m", "unit"])
