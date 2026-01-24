@@ -94,9 +94,7 @@ def test_log_training_summary_basic():
         logger_instance=mock_logger,
     )
 
-    # Verify logger was called
     assert mock_logger.info.call_count > 5
-    # Verify key information was logged
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
     assert "bloodmnist" in log_output
@@ -152,7 +150,6 @@ def test_log_training_summary_formats_accuracy():
 
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    # Should contain formatted percentage
     assert "87.65%" in log_output or "0.8765" in log_output
 
 
@@ -188,7 +185,7 @@ def test_log_optimization_summary_completed_trials():
     assert mock_logger.info.call_count > 8
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    assert "3" in log_output  # 3 completed trials
+    assert "3" in log_output
 
 
 @pytest.mark.unit
@@ -215,8 +212,6 @@ def test_log_optimization_summary_no_completed_trials():
         paths=mock_paths,
         logger_instance=mock_logger,
     )
-
-    # Should call warning about no completed trials
     assert mock_logger.warning.called
 
 
@@ -275,7 +270,7 @@ def test_log_optimization_header_basic():
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
     assert "pathmnist" in log_output
-    assert "50" in log_output  # n_trials
+    assert "50" in log_output
 
 
 @pytest.mark.unit
@@ -305,12 +300,12 @@ def test_log_optimization_header_with_early_stopping():
 
 @pytest.mark.unit
 def test_log_optimization_header_without_weight_variant():
-    """Test log_optimization_header when weight_variant is None (line 347)."""
+    """Test log_optimization_header when weight_variant is None."""
     mock_logger = MagicMock()
     mock_cfg = MagicMock()
     mock_cfg.dataset.dataset_name = "test"
     mock_cfg.model.name = "resnet18"
-    mock_cfg.model.weight_variant = None  # No weight variant
+    mock_cfg.model.weight_variant = None
     mock_cfg.optuna.search_space_preset = "default"
     mock_cfg.optuna.n_trials = 10
     mock_cfg.optuna.epochs = 5
@@ -323,7 +318,6 @@ def test_log_optimization_header_without_weight_variant():
 
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    # Should NOT log weight variant
     assert "Weight Var" not in log_output
 
 
@@ -342,14 +336,13 @@ def test_log_optimization_header_early_stop_auto_threshold():
     mock_cfg.hardware.device = "cpu"
     mock_cfg.optuna.enable_pruning = False
     mock_cfg.optuna.enable_early_stopping = True
-    mock_cfg.optuna.early_stopping_threshold = None  # Auto threshold
+    mock_cfg.optuna.early_stopping_threshold = None
     mock_cfg.optuna.early_stopping_patience = 3
 
     log_optimization_header(cfg=mock_cfg, logger_instance=mock_logger)
 
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    # Should show "auto" as threshold
     assert "auto" in log_output
 
 
@@ -369,7 +362,7 @@ def test_log_trial_start_basic():
     assert mock_logger.info.call_count > 3
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    assert "5" in log_output  # Trial number
+    assert "5" in log_output
     assert "0.001" in log_output or "1e-03" in log_output
 
 
@@ -388,8 +381,7 @@ def test_log_trial_start_groups_parameters():
 
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    # Should contain category headers
-    assert "[" in log_output  # Category markers
+    assert "[" in log_output
 
 
 @pytest.mark.unit
@@ -397,15 +389,14 @@ def test_log_trial_start_formats_small_floats():
     """Test log_trial_start formats very small floats in scientific notation."""
     mock_logger = MagicMock()
     params = {
-        "learning_rate": 0.0001,  # Should use scientific notation
-        "weight_decay": 0.5,  # Should use regular format
+        "learning_rate": 0.0001,
+        "weight_decay": 0.5,
     }
 
     log_trial_start(trial_number=1, params=params, logger_instance=mock_logger)
 
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    # Very small values should be in scientific notation
     assert "e-" in log_output or "1e-04" in log_output
 
 
@@ -414,16 +405,15 @@ def test_log_trial_start_with_string_params():
     """Test log_trial_start handles string parameters (line 408)."""
     mock_logger = MagicMock()
     params = {
-        "model_name": "resnet18",  # String parameter
+        "model_name": "resnet18",
         "learning_rate": 0.001,
-        "weight_variant": "IMAGENET1K_V1",  # Another string
+        "weight_variant": "IMAGENET1K_V1",
     }
 
     log_trial_start(trial_number=3, params=params, logger_instance=mock_logger)
 
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    # Should log string params without formatting
     assert "resnet18" in log_output
     assert "IMAGENET1K_V1" in log_output
 
@@ -433,7 +423,7 @@ def test_log_trial_start_with_regular_floats():
     """Test log_trial_start with regular floats (not small) - line 400."""
     mock_logger = MagicMock()
     params = {
-        "learning_rate": 0.01,  # Regular float, not < 0.001
+        "learning_rate": 0.01,
         "mixup_alpha": 0.5,
         "dropout": 0.3,
     }
@@ -442,9 +432,7 @@ def test_log_trial_start_with_regular_floats():
 
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    # Should use .4f format, not scientific notation
     assert "0.01" in log_output or "0.0100" in log_output
-    # Should NOT use scientific notation for these values
     assert "e-" not in log_output
 
 
@@ -455,11 +443,7 @@ def test_log_study_summary_value_error_on_best_trial():
     import optuna
 
     mock_logger = MagicMock()
-
-    # Create study that raises ValueError on best_trial access
     mock_study = MagicMock()
-
-    # Create a completed trial with proper state
     mock_trial = MagicMock()
     mock_trial.state = optuna.trial.TrialState.COMPLETE
     mock_study.trials = [mock_trial]
@@ -469,10 +453,7 @@ def test_log_study_summary_value_error_on_best_trial():
 
     # Patch the module logger since the function may fall back to it
     with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
-        # Should handle ValueError gracefully
         log_study_summary(study=mock_study, metric_name="auc", logger_instance=mock_logger)
-
-        # Check both the passed logger and module logger for warning calls
         warning_called = mock_logger.warning.called or mock_module_logger.warning.called
         assert warning_called, "Warning should be called when ValueError is raised"
 
@@ -535,7 +516,6 @@ def test_reporter_log_initial_status():
         num_workers=2,
     )
 
-    # Should log multiple sections
     assert mock_logger.info.call_count > 20
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
@@ -570,7 +550,7 @@ def test_reporter_log_initial_status_cpu_device():
 
     mock_paths = MagicMock()
     mock_paths.root = "/tmp"
-    mock_device = torch.device("cpu")  # CPU device
+    mock_device = torch.device("cpu")
 
     reporter.log_initial_status(
         logger_instance=mock_logger,
@@ -581,11 +561,9 @@ def test_reporter_log_initial_status_cpu_device():
         num_workers=0,
     )
 
-    # Should not log GPU-specific info
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
     assert "CPU" in log_output
-    # Should NOT have GPU model or VRAM
     assert "GPU Model" not in log_output
 
 
@@ -605,7 +583,7 @@ def test_reporter_log_initial_status_with_weight_variant():
     mock_cfg.hardware.use_deterministic_algorithms = False
     mock_cfg.model.name = "vit_tiny"
     mock_cfg.model.pretrained = True
-    mock_cfg.model.weight_variant = "IMAGENET1K_V1"  # Has weight variant
+    mock_cfg.model.weight_variant = "IMAGENET1K_V1"
     mock_cfg.dataset.metadata = MagicMock()
     mock_cfg.dataset.metadata.display_name = "Test"
     mock_cfg.dataset.metadata.num_classes = 3
@@ -629,7 +607,6 @@ def test_reporter_log_initial_status_with_weight_variant():
 
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
-    # Should log weight variant
     assert "IMAGENET1K_V1" in log_output
 
 
@@ -645,7 +622,6 @@ def test_functions_use_module_logger_when_no_instance():
     mock_paths = MagicMock()
     mock_paths.root = "/tmp"
 
-    # Should not raise errors when logger_instance is None
     with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
         log_training_summary(
             cfg=mock_cfg,
@@ -656,8 +632,104 @@ def test_functions_use_module_logger_when_no_instance():
             logger_instance=None,
         )
 
-        # Should use module logger
         assert mock_module_logger.info.called
+
+
+@pytest.mark.unit
+def test_reporter_log_hardware_section_device_fallback():
+    """Test _log_hardware_section logs warning for device fallback."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock()
+    mock_cfg.hardware.device = "cuda"
+    mock_device = torch.device("cpu")
+
+    reporter._log_hardware_section(
+        logger_instance=mock_logger,
+        cfg=mock_cfg,
+        device=mock_device,
+        applied_threads=4,
+        num_workers=2,
+    )
+
+    assert mock_logger.warning.called
+    calls = [str(call) for call in mock_logger.warning.call_args_list]
+    log_output = " ".join(calls)
+    assert "FALLBACK" in log_output or "unavailable" in log_output
+
+
+@pytest.mark.unit
+def test_reporter_log_hardware_section_cuda_device():
+    """Test _log_hardware_section logs GPU info when CUDA available."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock()
+    mock_cfg.hardware.device = "cuda"
+
+    mock_device = torch.device("cuda")
+
+    with patch("orchard.core.logger.reporter.get_cuda_name", return_value="NVIDIA RTX 5070"):
+        with patch("orchard.core.logger.reporter.get_vram_info", return_value="8 GB"):
+            reporter._log_hardware_section(
+                logger_instance=mock_logger,
+                cfg=mock_cfg,
+                device=mock_device,
+                applied_threads=8,
+                num_workers=4,
+            )
+
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+    assert "RTX 5070" in log_output or "GPU" in log_output
+    assert "8 GB" in log_output or "VRAM" in log_output
+
+
+@pytest.mark.unit
+def test_log_study_summary_with_completed_trials():
+    """Test log_study_summary with completed trials."""
+    import optuna
+
+    with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
+        mock_study = MagicMock()
+        mock_trial_complete = MagicMock()
+        mock_trial_complete.state = optuna.trial.TrialState.COMPLETE
+        mock_study.trials = [mock_trial_complete]
+        mock_study.best_value = 0.9876
+        mock_study.best_trial.number = 0
+        mock_study.best_params = {"learning_rate": 0.001, "batch_size": 32}
+
+        log_study_summary(study=mock_study, metric_name="auc", logger_instance=None)
+
+        assert mock_module_logger.info.call_count > 0
+        calls = [str(call) for call in mock_module_logger.info.call_args_list]
+        log_output = " ".join(calls)
+        assert "0.987" in log_output or "Best" in log_output
+
+
+@pytest.mark.unit
+def test_log_study_summary_with_failed_trials():
+    """Test log_study_summary includes failed trials count."""
+    import optuna
+
+    # Patch the module logger
+    with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
+        mock_study = MagicMock()
+        mock_trial_complete = MagicMock()
+        mock_trial_complete.state = optuna.trial.TrialState.COMPLETE
+        mock_trial_failed = MagicMock()
+        mock_trial_failed.state = optuna.trial.TrialState.FAIL
+
+        mock_study.trials = [mock_trial_complete, mock_trial_failed]
+        mock_study.best_value = 0.95
+        mock_study.best_trial.number = 0
+        mock_study.best_params = {}
+
+        log_study_summary(study=mock_study, metric_name="acc", logger_instance=None)
+
+        assert mock_module_logger.info.call_count > 0
+        calls = [str(call) for call in mock_module_logger.info.call_args_list]
+        log_output = " ".join(calls)
+        assert "Failed" in log_output or "FAIL" in log_output
 
 
 if __name__ == "__main__":
