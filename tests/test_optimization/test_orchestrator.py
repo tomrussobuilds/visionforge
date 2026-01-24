@@ -50,12 +50,12 @@ def mock_cfg():
     cfg.optuna.timeout = None
     cfg.optuna.n_jobs = 1
     cfg.optuna.show_progress_bar = False
-    cfg.optuna.save_plots = False  # Disable to avoid plotly
-    cfg.optuna.save_best_config = False  # Disable to avoid file I/O
+    cfg.optuna.save_plots = False
+    cfg.optuna.save_best_config = False
     cfg.optuna.metric_name = "auc"
     cfg.optuna.search_space_preset = "quick"
     cfg.optuna.load_if_exists = False
-    cfg.optuna.get_storage_url = MagicMock(return_value=None)  # Memory storage
+    cfg.optuna.get_storage_url = MagicMock(return_value=None)
     cfg.optuna.enable_early_stopping = False
     cfg.training.epochs = 50
     cfg.dataset.resolution = 28
@@ -107,7 +107,7 @@ def study_with_trials(completed_trial):
     return study
 
 
-#                    UNIT TESTS: config.py                                    #
+# UNIT TESTS: config.py
 @pytest.mark.unit
 class TestConfig:
     """Test config constants and functions."""
@@ -132,7 +132,7 @@ class TestConfig:
         assert key == "learning_rate"
 
 
-#                    UNIT TESTS: builders.py                                  #
+# UNIT TESTS: builders.py
 @pytest.mark.unit
 class TestBuilders:
     """Test builder functions."""
@@ -161,7 +161,7 @@ class TestBuilders:
         assert isinstance(callbacks, list)
 
 
-#                    UNIT TESTS: utils.py                                     #
+# UNIT TESTS: utils.py
 @pytest.mark.unit
 class TestUtils:
     """Test utility functions."""
@@ -182,7 +182,7 @@ class TestUtils:
         assert has_completed_trials(study) is False
 
 
-#                    UNIT TESTS: exporters.py                                 #
+# TESTS: exporters.py
 @pytest.mark.unit
 class TestExporters:
     """Test exporter functions."""
@@ -201,7 +201,7 @@ class TestExporters:
         assert config_dict["training"]["learning_rate"] == 0.001
 
 
-#                    INTEGRATION TESTS: OptunaOrchestrator                    #
+# INTEGRATION TESTS: OptunaOrchestrator
 @pytest.mark.integration
 class TestOptunaOrchestrator:
     """Integration tests for orchestrator."""
