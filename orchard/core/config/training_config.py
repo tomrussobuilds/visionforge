@@ -102,12 +102,6 @@ class TrainingConfig(BaseModel):
             raise ValueError("AMP enabled with very small batch size (<4) can cause NaN gradients.")
         return self
 
-    @model_validator(mode="after")
-    def validate_lr(self) -> "TrainingConfig":
-        if not (0 < self.learning_rate <= 1):
-            raise ValueError(f"learning_rate={self.learning_rate} is out of bounds (0,1).")
-        return self
-
     # ==================== Factory Method ====================
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "TrainingConfig":

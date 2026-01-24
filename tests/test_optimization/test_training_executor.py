@@ -125,7 +125,7 @@ def test_return_if_scheduler_is_none(executor):
     assert result is None
 
 
-#                    TESTS: Validation Error Handling                         #
+# TESTS: VALIDATION ERROR HANDLING
 @pytest.mark.unit
 def test_validate_epoch_returns_fallback_on_exception():
     """Test _validate_epoch returns fallback metrics when exception occurs."""
@@ -210,7 +210,7 @@ def test_validate_epoch_returns_fallback_on_none():
         assert result == {"loss": 999.0, "accuracy": 0.0, "auc": 0.0}
 
 
-#                    TESTS: Execute Method Error Handling                     #
+# TESTS: EXECUTE ERROR HANDLING
 @pytest.mark.unit
 def test_execute_handles_none_validation_result():
     """Test execute returns 0.0 when validation returns None."""
@@ -279,7 +279,7 @@ def test_execute_handles_invalid_validation_type():
             assert result == 0.0
 
 
-#                    TESTS: Full Execution Loop                               #
+# TESTS: FULL EXECUTION LOOP
 @pytest.mark.integration
 @patch("orchard.optimization.objective.training_executor.train_one_epoch")
 @patch("orchard.optimization.objective.training_executor.validate_epoch")

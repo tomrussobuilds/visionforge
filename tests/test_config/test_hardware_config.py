@@ -56,6 +56,18 @@ def test_device_cuda_fallback_to_cpu():
 
 
 @pytest.mark.unit
+def test_device_cuda_fallback_when_unavailable():
+    """Test device='cuda' falls back to CPU when CUDA unavailable (mocked)."""
+    from unittest.mock import patch
+
+    with patch("torch.cuda.is_available", return_value=False):
+        config = HardwareConfig(device="cuda")
+
+        # Should fallback to CPU
+        assert config.device == "cpu"
+
+
+@pytest.mark.unit
 def test_invalid_device_fallback():
     """Test invalid device type falls through validator."""
     # MPS on non-Mac should fallback to CPU

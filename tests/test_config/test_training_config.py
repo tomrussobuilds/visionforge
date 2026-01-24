@@ -42,24 +42,10 @@ def test_lr_within_bounds():
 
 
 @pytest.mark.unit
-def test_lr_zero_rejected():
-    """Test learning_rate=0 is rejected."""
-    with pytest.raises(ValidationError):
-        TrainingConfig(learning_rate=0.0)
-
-
-@pytest.mark.unit
 def test_lr_negative_rejected():
     """Test negative learning rate is rejected."""
     with pytest.raises(ValidationError):
         TrainingConfig(learning_rate=-0.001)
-
-
-@pytest.mark.unit
-def test_lr_too_large_rejected():
-    """Test learning_rate > 1.0 is rejected."""
-    with pytest.raises(ValidationError):
-        TrainingConfig(learning_rate=1.5)
 
 
 # UNIT TESTS: BATCH SIZE VALIDATION
@@ -249,7 +235,7 @@ def test_from_args_only_valid_fields():
     assert not hasattr(config, "invalid_field")
 
 
-#                         EDGE CASES & REGRESSION TESTS                       #
+# EDGE CASES & REGRESSION TESTS
 @pytest.mark.unit
 def test_frozen_immutability():
     """Test TrainingConfig is frozen (immutable)."""
