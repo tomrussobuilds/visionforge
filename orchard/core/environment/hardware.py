@@ -11,9 +11,8 @@ import logging
 import os
 import platform
 
-import matplotlib
-
 # Third-Party Imports
+import matplotlib
 import torch
 
 
