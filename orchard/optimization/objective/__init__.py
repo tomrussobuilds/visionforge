@@ -12,7 +12,7 @@ from .metric_extractor import MetricExtractor
 from .objective import OptunaObjective
 from .training_executor import TrialTrainingExecutor
 
-#                              Public API                                     #
+# Public API
 __all__ = [
     "OptunaObjective",
     "TrialTrainingExecutor",

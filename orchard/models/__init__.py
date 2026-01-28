@@ -7,9 +7,8 @@ definitions and ensures models are correctly adapted to the dataset geometry
 (channels and classes) resolved at runtime.
 """
 
-from .efficientnet_b0 import build_efficientnet_b0
-
 # Internal Imports
+from .efficientnet_b0 import build_efficientnet_b0
 from .factory import get_model
 from .mini_cnn import build_mini_cnn
 from .resnet_18_adapted import build_resnet18_adapted

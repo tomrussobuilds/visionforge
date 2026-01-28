@@ -238,8 +238,6 @@ def get_search_space(preset: str = "quick", resolution: int = 28, include_models
     Raises:
         ValueError: If preset name not recognized
     """
-    # ... existing code ...
-
     # Resolution-dependent presets
     if preset == "quick":
         space = SearchSpaceRegistry.get_quick_space(resolution)

@@ -34,11 +34,11 @@ class MedMNISTData:
     num_classes: int
 
 
-# FETCHING LOGIC
 # Global logger instance
 logger = logging.getLogger("visionforge")
 
 
+# FETCHING LOGIC
 def ensure_dataset_npz(
     metadata: Optional[DatasetMetadata],
     retries: int = 5,

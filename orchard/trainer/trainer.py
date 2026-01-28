@@ -33,14 +33,64 @@ from orchard.core import LOGGER_NAME, Config, load_model_weights
 
 from .engine import mixup_data, train_one_epoch, validate_epoch
 
-# TRAINING LOGIC
 # Global logger instance
 logger = logging.getLogger(LOGGER_NAME)
 
 
+# TRAINING LOGIC
 class ModelTrainer:
     """
     Encapsulates the core training, validation, and scheduling logic.
+
+    Manages the complete training lifecycle including epoch iteration, metric tracking,
+    automated checkpointing based on validation performance, and early stopping with
+    patience-based criteria. Integrates modern training techniques (AMP, Mixup, gradient
+    clipping) and ensures deterministic model restoration to best-performing weights.
+
+    The trainer follows a structured execution flow:
+        1. Training Phase: Forward/backward passes with optional Mixup augmentation
+        2. Validation Phase: Performance evaluation on held-out data
+        3. Scheduling Phase: Learning rate updates (ReduceLROnPlateau or step-based)
+        4. Checkpointing: Save model when validation AUC improves
+        5. Early Stopping: Halt training if no improvement for `patience` epochs
+
+    Attributes:
+        model (nn.Module): Neural network architecture to train
+        train_loader (DataLoader): Training data provider
+        val_loader (DataLoader): Validation data provider
+        optimizer (torch.optim.Optimizer): Gradient descent optimizer
+        scheduler (torch.optim.lr_scheduler._LRScheduler): Learning rate scheduler
+        criterion (nn.Module): Loss function (e.g., CrossEntropyLoss)
+        device (torch.device): Hardware target (CUDA/MPS/CPU)
+        cfg (Config): Global configuration manifest (SSOT)
+        output_path (Path | None): Checkpoint save location (default: ./best_model.pth)
+        epochs (int): Total number of training epochs
+        patience (int): Early stopping patience (epochs without improvement)
+        best_acc (float): Best validation accuracy achieved
+        best_auc (float): Best validation AUC achieved
+        epochs_no_improve (int): Consecutive epochs without AUC improvement
+        scaler (torch.amp.GradScaler): Automatic Mixed Precision scaler
+        mixup_fn (callable | None): Mixup augmentation function (partial of mixup_data)
+        best_path (Path): Filesystem path for best model checkpoint
+        train_losses (List[float]): Training loss history per epoch
+        val_metrics_history (List[dict]): Validation metrics history per epoch
+        val_aucs (List[float]): Validation AUC history per epoch
+
+    Example:
+        >>> from orchard.trainer import ModelTrainer
+        >>> trainer = ModelTrainer(
+        ...     model=model,
+        ...     train_loader=train_loader,
+        ...     val_loader=val_loader,
+        ...     optimizer=optimizer,
+        ...     scheduler=scheduler,
+        ...     criterion=criterion,
+        ...     device=device,
+        ...     cfg=cfg,
+        ...     output_path=paths.models / "best_model.pth"
+        ... )
+        >>> checkpoint_path, losses, metrics = trainer.train()
+        >>> # Model automatically restored to best weights
     """
 
     def __init__(
@@ -55,6 +105,20 @@ class ModelTrainer:
         cfg: Config,
         output_path: Path | None = None,
     ):
+        """
+        Initializes the ModelTrainer with all required training components.
+
+        Args:
+            model: Neural network architecture to train
+            train_loader: DataLoader for training dataset
+            val_loader: DataLoader for validation dataset
+            optimizer: Gradient descent optimizer (e.g., SGD, Adam)
+            scheduler: Learning rate scheduler for training dynamics
+            criterion: Loss function for optimization (e.g., CrossEntropyLoss)
+            device: Compute device (torch.device) for training
+            cfg: Validated global configuration containing training hyperparameters
+            output_path: Optional path for best model checkpoint (default: ./best_model.pth)
+        """
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -93,6 +157,24 @@ class ModelTrainer:
     def train(self) -> Tuple[Path, List[float], List[dict]]:
         """
         Executes the main training loop with checkpointing and early stopping.
+
+        Performs iterative training across configured epochs, executing:
+            - Forward/backward passes with optional Mixup augmentation
+            - Validation metric computation (loss, accuracy, AUC)
+            - Learning rate scheduling (plateau-aware or step-based)
+            - Automated checkpointing on validation AUC improvement
+            - Early stopping with patience-based criteria
+
+        Returns:
+            Tuple containing:
+                - Path: Filesystem path to best model checkpoint
+                - List[float]: Training loss history per epoch
+                - List[dict]: Validation metrics history (loss, accuracy, AUC per epoch)
+
+        Notes:
+            - Model weights are automatically restored to best checkpoint after training
+            - Mixup augmentation is disabled after cosine_fraction × epochs
+            - Early stopping triggers if no AUC improvement for `patience` epochs
         """
         for epoch in range(1, self.epochs + 1):
             logger.info(f" Epoch {epoch:02d}/{self.epochs} ".center(60, "-"))
@@ -176,7 +258,7 @@ class ModelTrainer:
         performs a standard step.
 
         Args:
-            val_loss (float): Current epoch's validation loss.
+            val_loss: Current epoch's validation loss
         """
         if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             self.scheduler.step(val_loss)
@@ -188,14 +270,14 @@ class ModelTrainer:
         """
         Manages model checkpointing and tracks early stopping progress.
 
-        Saves the model state if the current validation accuracy exceeds
+        Saves the model state if the current validation AUC exceeds
         the previous best. Increments the patience counter otherwise.
 
         Args:
-            val_acc (float): Current epoch's validation accuracy.
+            val_metrics: Validation metrics dictionary containing 'accuracy' and 'auc'
 
         Returns:
-            bool: True if early stopping criteria are met, False otherwise.
+            True if early stopping criteria are met, False otherwise
         """
         val_acc = val_metrics["accuracy"]
         val_auc = val_metrics.get("auc", 0.0)
@@ -225,6 +307,9 @@ class ModelTrainer:
 
         The restoration process is device-aware, ensuring weights are mapped
         correctly to the active compute device (CUDA/MPS/CPU).
+
+        Raises:
+            Exception: If weight restoration fails (logged and re-raised)
         """
         try:
             load_model_weights(model=self.model, path=self.best_path, device=self.device)

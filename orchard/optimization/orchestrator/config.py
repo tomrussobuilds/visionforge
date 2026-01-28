@@ -21,7 +21,9 @@ from optuna.samplers import CmaEsSampler, GridSampler, RandomSampler, TPESampler
 # Internal Imports
 from orchard.core import LOGGER_NAME
 
+# Global logger instance
 logger = logging.getLogger(LOGGER_NAME)
+
 
 # Type aliases for clarity
 SamplerFactory = Callable[[], object]

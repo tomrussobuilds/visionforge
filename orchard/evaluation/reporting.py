@@ -20,10 +20,10 @@ from pydantic import BaseModel, ConfigDict, Field
 # Internal Imports
 from orchard.core import LOGGER_NAME, Config
 
-# EXCEL REPORTS
 logger = logging.getLogger(LOGGER_NAME)
 
 
+# EXCEL REPORTS
 class TrainingReport(BaseModel):
     """
     Validated data container for summarizing a complete training experiment.

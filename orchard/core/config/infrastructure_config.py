@@ -13,9 +13,8 @@ Key Tasks:
     * Resource deallocation: GPU/MPS cache flushing and temporary artifact cleanup
 """
 
-import logging
-
 # Standard Imports
+import logging
 import os
 from typing import Any, Optional, Protocol
 

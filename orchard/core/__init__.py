@@ -6,10 +6,10 @@ system management, project constants, and the dynamic dataset registry.
 It also includes the RootOrchestrator to manage experiment lifecycle initialization.
 """
 
-#                                Command Line Interface                       #
+# Command Line Interface
 from .cli import parse_args
 
-#                                Configuration                                #
+# Configuration
 from .config import (
     AugmentationConfig,
     Config,
@@ -22,7 +22,7 @@ from .config import (
     TrainingConfig,
 )
 
-#                                Environment & Hardware                       #
+# Environment & Hardware
 from .environment import (
     apply_cpu_threads,
     configure_system_libraries,
@@ -38,7 +38,7 @@ from .environment import (
     worker_init_fn,
 )
 
-#                                Input/Output Utilities                       #
+# Input/Output Utilities
 from .io import (
     load_config_from_yaml,
     load_model_weights,
@@ -47,7 +47,7 @@ from .io import (
     validate_npz_keys,
 )
 
-#                                Logging                                      #
+# Logging
 from .logger import (
     Logger,
     LogStyle,
@@ -61,13 +61,13 @@ from .logger import (
     log_trial_start,
 )
 
-#                                Dataset Registry                             #
+# Dataset Registry
 from .metadata import DATASET_REGISTRY, DatasetMetadata
 
-#                                Environment Orchestration                    #
+# Environment Orchestration
 from .orchestrator import InfraManagerProtocol, RootOrchestrator
 
-#                                Constants & Paths                            #
+# Constants & Paths
 from .paths import (
     DATASET_DIR,
     LOGGER_NAME,
@@ -79,7 +79,7 @@ from .paths import (
     setup_static_directories,
 )
 
-#                                Public Interface                             #
+# Public Interface
 __all__ = [
     # Configuration
     "Config",

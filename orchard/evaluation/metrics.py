@@ -15,10 +15,10 @@ from sklearn.metrics import f1_score, roc_auc_score
 # Internal Imports
 from orchard.core import LOGGER_NAME
 
-# METRIC LOGIC
 logger = logging.getLogger(LOGGER_NAME)
 
 
+# METRIC LOGIC
 def compute_classification_metrics(
     labels: np.ndarray, preds: np.ndarray, probs: np.ndarray
 ) -> dict:
