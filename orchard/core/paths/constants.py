@@ -13,7 +13,7 @@ from typing import Final, List
 
 # GLOBAL CONSTANTS
 # Global logger identity used by all modules to ensure log synchronization
-LOGGER_NAME: Final[str] = "vision_experiment"
+LOGGER_NAME: Final[str] = "VisionForge"
 
 
 # PATH CALCULATIONS
