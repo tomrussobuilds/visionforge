@@ -7,7 +7,7 @@ Handles serialization of Optuna study results to various formats:
     - Top K trials comparison (Excel)
 
 All export functions handle edge cases (no completed trials, missing
-timestamps) and provide informative logging.
+timestamps) and provide informative logging with professional Excel formatting.
 """
 
 # Standard Imports
@@ -18,6 +18,9 @@ from typing import Dict, List, Optional
 # Third-Party Imports
 import optuna
 import pandas as pd
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 # Internal Imports
 from orchard.core import LOGGER_NAME, Config, RunPaths, log_best_config_export, save_config_as_yaml
@@ -42,6 +45,9 @@ def export_best_config(study: optuna.Study, cfg: Config, paths: RunPaths) -> Non
         cfg: Template configuration (used for non-optimized parameters)
         paths: RunPaths instance for output location
 
+    Returns:
+        Path to exported config file, or None if no completed trials
+
     Note:
         Skips export with warning if no completed trials exist.
 
@@ -51,7 +57,7 @@ def export_best_config(study: optuna.Study, cfg: Config, paths: RunPaths) -> Non
     """
     if not has_completed_trials(study):
         logger.warning("No completed trials. Cannot export best config.")
-        return
+        return None
 
     # Build config dict with best parameters
     config_dict = build_best_config_dict(study.best_params, cfg)
@@ -118,10 +124,11 @@ def export_top_trials(
     study: optuna.Study, paths: RunPaths, metric_name: str, top_k: int = 10
 ) -> None:
     """
-    Export top K trials to Excel spreadsheet.
+    Export top K trials to Excel spreadsheet with professional formatting.
 
     Creates human-readable comparison table of best-performing trials
-    with hyperparameters, metric values, and durations.
+    with hyperparameters, metric values, and durations. Applies professional
+    Excel styling matching TrainingReport format.
 
     Args:
         study: Completed Optuna study with at least one successful trial
@@ -145,17 +152,59 @@ def export_top_trials(
         logger.warning("No completed trials. Cannot export top trials.")
         return
 
-    # Sort by value (ascending for minimize, descending for maximize)
     reverse = study.direction == optuna.study.StudyDirection.MAXIMIZE
     sorted_trials = sorted(completed, key=lambda t: t.value, reverse=reverse)[:top_k]
 
-    # Build DataFrame
     df = build_top_trials_dataframe(sorted_trials, metric_name)
 
-    # Save to Excel
     output_path = paths.reports / "top_10_trials.xlsx"
-    df.to_excel(output_path, index=False, engine="openpyxl")
 
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Top Trials"
+
+    # Styling definitions (matching reporting.py green theme)
+    header_fill = PatternFill(start_color="D7E4BC", end_color="D7E4BC", fill_type="solid")
+    header_font = Font(bold=True)
+    border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin"),
+    )
+    alignment_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    alignment_center = Alignment(horizontal="center", vertical="center")
+
+    # Write data
+    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), 1):
+        for c_idx, value in enumerate(row, 1):
+            cell = ws.cell(row=r_idx, column=c_idx, value=value)
+            cell.border = border
+
+            # Header row
+            if r_idx == 1:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = alignment_center
+            else:
+                cell.alignment = alignment_left
+
+                # Apply number formatting based on value type
+                if isinstance(value, float):
+                    cell.number_format = "0.0000"
+                elif isinstance(value, int) and not isinstance(value, bool):
+                    cell.number_format = "0"
+
+    # Auto-adjust column widths
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        ws.column_dimensions[column_letter].width = min(max(max_length + 2, 12), 50)
+
+    wb.save(output_path)
     logger.info(f"Saved top {len(sorted_trials)} trials to {output_path}")
 
 

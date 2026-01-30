@@ -346,5 +346,46 @@ def test_export_best_config_success_path(minimal_config, paths, tmp_path):
                 mock_save.assert_called_once()
 
 
+@pytest.mark.unit
+def test_export_top_trials_all_type_branches(paths, tmp_path):
+    """Test that all formatting branches (float, int, bool, string) are covered."""
+    study = MagicMock(spec=optuna.Study)
+    study.direction = optuna.study.StudyDirection.MAXIMIZE
+
+    trial = MagicMock(spec=optuna.trial.FrozenTrial)
+    trial.state = optuna.trial.TrialState.COMPLETE
+    trial.number = 1
+    trial.value = 0.9567
+    trial.params = {
+        "learning_rate": 0.001234,
+        "batch_size": 32,
+        "dropout": 0.25,
+        "use_amp": True,
+        "optimizer": "adamw",
+    }
+    trial.datetime_start = datetime(2024, 1, 1, 12, 0, 0)
+    trial.datetime_complete = datetime(2024, 1, 1, 12, 5, 30)
+
+    study.trials = [trial]
+
+    paths.reports = tmp_path / "reports"
+    paths.reports.mkdir(parents=True, exist_ok=True)
+
+    export_top_trials(study, paths, metric_name="auc", top_k=1)
+
+    output_path = paths.reports / "top_10_trials.xlsx"
+    assert output_path.exists()
+
+    df = pd.read_excel(output_path)
+    assert len(df) == 1
+
+    assert df.loc[0, "Rank"] == 1
+    assert df.loc[0, "Trial"] == 1
+    assert df.loc[0, "AUC"] == 0.9567
+    assert df.loc[0, "learning_rate"] == 0.001234
+    assert df.loc[0, "batch_size"] == 32
+    assert df.loc[0, "Duration (s)"] == 330
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
