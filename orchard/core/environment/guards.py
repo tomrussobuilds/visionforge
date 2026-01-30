@@ -29,7 +29,7 @@ try:
 
     HAS_FCNTL = True
 except ImportError:  # pragma: no cover
-    HAS_FCNTL = False  # pragma: no cover
+    HAS_FCNTL = False
 
 # Third-Party Imports
 import psutil
