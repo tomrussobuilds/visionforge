@@ -5,16 +5,13 @@ Tests logger configuration, file rotation, reconfiguration,
 and singleton-like behavior.
 """
 
-# Standard Imports
 import logging
 import os
 from pathlib import Path
 from unittest.mock import patch
 
-# Third-Party Imports
 import pytest
 
-# Internal Imports
 from orchard.core.logger import Logger
 from orchard.core.paths import LOGGER_NAME
 

@@ -5,14 +5,11 @@ requiring any external downloads or network access. It generates random image
 data and labels that match the MedMNIST format specifications.
 """
 
-# Standard Imports
 import tempfile
 from pathlib import Path
 
-# Third-Party Imports
 import numpy as np
 
-# Internal Imports
 from .fetcher import MedMNISTData
 
 

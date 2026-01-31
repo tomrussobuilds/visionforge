@@ -1,21 +1,27 @@
 """
-Evaluation Engine Module
+Evaluation Engine Module.
 
 Orchestrates the model inference lifecycle on test datasets.
 Handles batch processing, TTA integration, and results consolidation.
+
+Key Functions:
+    evaluate_model: Full-dataset inference with optional TTA and metric computation
+
+Example:
+    >>> preds, labels, metrics, f1 = evaluate_model(
+    ...     model, test_loader, device, use_tta=True, cfg=cfg
+    ... )
+    >>> print(f"Test AUC: {metrics['auc']:.4f}")
 """
 
-# Standard Imports
 import logging
 from typing import List, Tuple
 
-# Third-Party Imports
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-# Internal Imports
 from orchard.core import LOGGER_NAME, Config
 
 from .metrics import compute_classification_metrics
@@ -63,7 +69,7 @@ def evaluate_model(
                     model, inputs, device, is_anatomical, is_texture_based, cfg
                 )
             else:
-                # Standard Imports
+                # Standard forward pass
                 inputs = inputs.to(device)
                 logits = model(inputs)
                 probs = torch.softmax(logits, dim=1)

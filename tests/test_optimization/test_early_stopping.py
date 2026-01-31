@@ -6,14 +6,11 @@ They ensure that early stopping occurs under appropriate conditions and that all
 states, such as patience and threshold checks, are correctly handled.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock
 
-# Third-Party Imports
 import pytest
 from optuna.trial import Trial, TrialState
 
-# Internal Imports
 from orchard.optimization import StudyEarlyStoppingCallback, get_early_stopping_callback
 
 

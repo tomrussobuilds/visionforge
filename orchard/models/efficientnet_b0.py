@@ -12,12 +12,10 @@ Key Features:
     - Channel Compression: Weight morphing for 1→3 channel promotion
 """
 
-# Third-Party Imports
 import torch
 import torch.nn as nn
 from torchvision import models
 
-# Internal Imports
 from orchard.core import Config
 
 

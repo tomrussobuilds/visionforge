@@ -5,15 +5,12 @@ Quick coverage tests to validate visualization utilities.
 These are minimal tests to boost coverage from 0% to ~15%.
 """
 
-# Standard Imports
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import pytest
 import torch
 
-# Internal Imports
 from orchard.data_handler.data_explorer import (
     show_sample_images,
     show_samples_for_dataset,

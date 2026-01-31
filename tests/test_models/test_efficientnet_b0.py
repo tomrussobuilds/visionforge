@@ -4,14 +4,11 @@ This module verifies the forward pass logic and validates output tensor shapes
 for medical imaging datasets.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import pytest
 import torch
 
-# Internal Imports
 from orchard.models import build_efficientnet_b0
 
 

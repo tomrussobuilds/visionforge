@@ -4,10 +4,8 @@ MedMNIST v2 Registry Definitions (28x28 Resolution).
 Contains DatasetMetadata instances for the MedMNIST v2 collection at 28x28 resolution.
 """
 
-# Standard Imports
 from typing import Dict, Final
 
-# Internal Imports
 from ..paths import DATASET_DIR
 from .base import DatasetMetadata
 

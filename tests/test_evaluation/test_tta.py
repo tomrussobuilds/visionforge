@@ -6,16 +6,13 @@ under anatomical, texture-based, and hardware-dependent constraints.
 Forced to CPU for consistent testing.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock
 
-# Third-Party Imports
 import pytest
 import torch
 import torch.nn as nn
 from torch.testing import assert_close
 
-# Internal Imports
 from orchard.core import Config
 from orchard.evaluation import _get_tta_transforms, adaptive_tta_predict
 

@@ -1,21 +1,30 @@
 """
 OptunaOrchestrator Core Implementation.
 
-Primary orchestration class that coordinates study lifecycle:
-creation, optimization, and post-processing. Delegates specific
-tasks to specialized modules (builders, exporters, visualizers).
+Coordinates hyperparameter optimization lifecycle through Optuna integration.
+Manages study creation, trial execution, and artifact generation while
+delegating specialized tasks to focused submodules (builders, exporters, visualizers).
 
-This module contains only high-level coordination logic. All
-implementation details are delegated to focused submodules.
+Architecture:
+    - High-level coordination: OptunaOrchestrator manages study lifecycle
+    - Delegation pattern: Specialized modules handle samplers, pruners, callbacks
+    - Config integration: Seamless override of base Config per trial
+    - Artifact generation: Automated visualization and results export
+
+Key Components:
+    OptunaOrchestrator: Study lifecycle manager
+    run_optimization: Convenience function for full pipeline execution
+
+Typical Usage:
+    >>> from orchard.optimization.orchestrator import run_optimization
+    >>> study = run_optimization(cfg=config, device=device, paths=paths)
+    >>> print(f"Best trial: {study.best_trial.number}")
 """
 
-# Standard Imports
 import logging
 
-# Third-Party Imports
 import optuna
 
-# Internal Imports
 from orchard.core import (
     LOGGER_NAME,
     Config,
@@ -25,7 +34,6 @@ from orchard.core import (
     log_study_summary,
 )
 
-# Relative Imports
 from ..objective.objective import OptunaObjective
 from ..search_spaces import get_search_space
 from .builders import build_callbacks, build_pruner, build_sampler
@@ -39,19 +47,26 @@ logger = logging.getLogger(LOGGER_NAME)
 # STUDY ORCHESTRATOR
 class OptunaOrchestrator:
     """
-    High-level manager for Optuna optimization studies.
+    High-level manager for Optuna hyperparameter optimization studies.
 
-    Coordinates study creation, execution, and artifact generation
-    while integrating with existing Config and logging infrastructure.
+    Coordinates the complete optimization lifecycle: study creation, trial execution,
+    and post-processing artifact generation. Integrates with VisionForge's Config
+    and RunPaths infrastructure, delegating specialized tasks (sampler/pruner building,
+    visualization, export) to focused submodules.
+
+    This orchestrator serves as the entry point for hyperparameter tuning, wrapping
+    Optuna's API with VisionForge-specific configuration and output management.
 
     Attributes:
-        cfg: Template configuration for trials
-        device: Computation device (CPU/CUDA/MPS)
-        paths: RunPaths instance for output management
+        cfg (Config): Template configuration that will be overridden per trial
+        device (torch.device): Hardware target for training (CPU/CUDA/MPS)
+        paths (RunPaths): Output directory structure for artifacts and results
 
-    Methods:
-        create_study: Create or load Optuna study
-        optimize: Execute full optimization pipeline
+    Example:
+        >>> orchestrator = OptunaOrchestrator(cfg=config, device=device, paths=paths)
+        >>> study = orchestrator.optimize()
+        >>> print(f"Best AUC: {study.best_value:.3f}")
+        >>> # Artifacts saved to paths.figures/ and paths.exports/
     """
 
     def __init__(self, cfg: Config, device, paths: RunPaths):

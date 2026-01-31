@@ -5,14 +5,11 @@ Tests model architecture selection, pretrained weight variants,
 and dropout regularization configuration.
 """
 
-# Standard Imports
 from argparse import Namespace
 
-# Third-Party Imports
 import pytest
 from pydantic import ValidationError
 
-# Internal Imports
 from orchard.core.config import ModelConfig
 
 

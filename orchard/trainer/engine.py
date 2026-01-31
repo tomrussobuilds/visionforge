@@ -4,12 +4,15 @@ Core Training and Validation Engines.
 High-performance implementation of training and validation loops with modern
 PyTorch features: Automatic Mixed Precision (AMP), Gradient Clipping, and
 MixUp augmentation for improved numerical stability and hardware utilization.
+
+Key Functions:
+    train_one_epoch: Single training pass with AMP and MixUp support
+    validate_epoch: Validation with loss, accuracy, and AUC metrics
+    mixup_data: Beta-distribution sample blending for regularization
 """
 
-# Standard Imports
 from typing import Tuple
 
-# Third-Party Imports
 import numpy as np
 import torch
 import torch.nn as nn

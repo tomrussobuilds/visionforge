@@ -10,10 +10,8 @@ Each search space is defined with:
     - Domain expertise defaults (medical imaging best practices)
 """
 
-# Standard Imports
 from typing import Callable, Dict
 
-# Third-Party Imports
 import optuna
 
 

@@ -5,15 +5,12 @@ Quick coverage tests to validate factory pattern and model instantiation.
 These are minimal tests to boost coverage from 0% to ~20%.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock
 
-# Third-Party Imports
 import pytest
 import torch
 import torch.nn as nn
 
-# Internal Imports
 from orchard.models.factory import get_model
 
 

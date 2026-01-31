@@ -9,18 +9,15 @@ It implements selective RAM loading to balance I/O speed with memory
 efficiency and ensures deterministic subsampling for reproducible research.
 """
 
-# Standard Imports
 from pathlib import Path
 from typing import Final, Tuple
 
-# Third-Party Imports
 import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-# Internal Imports
 from orchard.core import Config
 
 

@@ -4,14 +4,11 @@ This module verifies the architectural modifications for 28x28 low-resolution
 medical imaging and validates output tensor shapes.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import pytest
 import torch
 
-# Internal Imports
 from orchard.models import build_resnet18_adapted
 
 

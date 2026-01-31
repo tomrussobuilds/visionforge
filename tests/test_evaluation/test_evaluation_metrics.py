@@ -6,11 +6,9 @@ ensuring robust calculation of accuracy, F1-score, and ROC-AUC, including
 graceful handling of edge cases such as single-class labels.
 """
 
-# Third-Party Imports
 import numpy as np
 import pytest
 
-# Internal Imports
 from orchard.evaluation import compute_classification_metrics
 
 

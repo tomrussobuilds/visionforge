@@ -11,18 +11,14 @@ All functions handle missing dependencies (plotly) and plot generation
 failures gracefully with informative logging.
 """
 
-# Standard Imports
 import logging
 from pathlib import Path
 from typing import Callable
 
-# Third-Party Imports
 import optuna
 
-# Internal Imports
 from orchard.core import LOGGER_NAME
 
-# Relative Imports
 from .utils import has_completed_trials
 
 logger = logging.getLogger(LOGGER_NAME)

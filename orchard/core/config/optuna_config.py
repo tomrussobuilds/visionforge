@@ -5,15 +5,12 @@ Pydantic v2 schema defining Optuna study parameters, search strategies,
 pruning policies, and storage backend configuration.
 """
 
-# Standard Imports
 import argparse
 import warnings
 from typing import Literal, Optional
 
-# Third-Party Imports
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-# Internal Imports
 from .types import NonNegativeInt, PositiveInt, ValidatedPath
 
 

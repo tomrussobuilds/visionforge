@@ -17,15 +17,12 @@ Key features:
     - Memory-efficient cleanup between trials
 """
 
-# Standard Imports
 import logging
 from typing import Any, Dict, Optional, Protocol
 
-# Third-Party Imports
 import optuna
 import torch
 
-# Internal Imports
 from orchard.core import LOGGER_NAME, Config, log_trial_start
 from orchard.data_handler import MedMNISTData, get_dataloaders, load_medmnist
 from orchard.models import get_model

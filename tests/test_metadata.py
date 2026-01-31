@@ -5,14 +5,11 @@ Tests DatasetMetadata base model and DatasetRegistryWrapper
 for validation, property methods, and error handling.
 """
 
-# Standard Imports
 from pathlib import Path
 from unittest.mock import patch
 
-# Third-Party Imports
 import pytest
 
-# Internal Imports
 from orchard.core.metadata import DatasetMetadata, DatasetRegistryWrapper
 
 

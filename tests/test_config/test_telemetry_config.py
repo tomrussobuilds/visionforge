@@ -5,15 +5,12 @@ Tests filesystem resolution, logging configuration,
 and portable path serialization.
 """
 
-# Standard Imports
 from argparse import Namespace
 from pathlib import Path
 
-# Third-Party Imports
 import pytest
 from pydantic import ValidationError
 
-# Internal Imports
 from orchard.core.config import TelemetryConfig
 from orchard.core.paths import PROJECT_ROOT
 

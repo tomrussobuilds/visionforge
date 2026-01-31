@@ -1,8 +1,17 @@
 """
 Execution & Optimization Policies.
 
-Defines decision-making logic for runtime strategy based on
+Defines decision-making logic for runtime strategy selection based on
 hardware availability and configuration constraints.
+
+This module contains policy functions that determine optimal execution
+strategies (e.g., TTA mode complexity) by analyzing available resources
+and user configuration. Policies ensure the framework adapts intelligently
+to heterogeneous deployment environments (CPU, CUDA, MPS).
+
+Key Policies:
+    * TTA Mode Selection: Balances augmentation ensemble size with hardware
+      acceleration to prevent CPU bottlenecks while maximizing GPU throughput
 """
 
 

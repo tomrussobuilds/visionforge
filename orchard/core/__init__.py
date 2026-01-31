@@ -79,7 +79,6 @@ from .paths import (
     setup_static_directories,
 )
 
-# Public Interface
 __all__ = [
     # Configuration
     "Config",

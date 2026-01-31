@@ -17,15 +17,12 @@ Pretrained Weight Options:
     - 'vit_tiny_patch16_224': ImageNet-1k baseline
 """
 
-# Standard Imports
 import logging
 
-# Third-Party Imports
 import timm
 import torch
 import torch.nn as nn
 
-# Internal Imports
 from orchard.core import LOGGER_NAME, Config
 
 # LOGGER CONFIGURATION

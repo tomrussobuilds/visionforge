@@ -5,10 +5,8 @@ Tests TTA mode determination logic based on hardware
 availability and configuration constraints.
 """
 
-# Third-Party Imports
 import pytest
 
-# Internal Imports
 from orchard.core.environment import determine_tta_mode
 
 

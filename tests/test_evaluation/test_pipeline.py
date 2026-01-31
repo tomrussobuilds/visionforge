@@ -5,14 +5,11 @@ Quick coverage tests to validate pipeline orchestration.
 These are minimal tests to boost coverage from 0% to ~20%.
 """
 
-# Standard Imports
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import pytest
 
-# Internal Imports
 from orchard.evaluation.pipeline import run_final_evaluation
 
 

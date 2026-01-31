@@ -6,15 +6,12 @@ confusion matrices, and prediction grids.
 These are essential smoke tests to boost coverage from 0% to ~30%.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import numpy as np
 import pytest
 import torch
 
-# Internal Imports
 from orchard.evaluation.visualization import (
     _denormalize_image,
     _prepare_for_plt,

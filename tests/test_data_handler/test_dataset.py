@@ -5,17 +5,14 @@ Covers dataset initialization, deterministic subsampling,
 RGB vs grayscale handling, and __getitem__ behavior.
 """
 
-# Standard Imports
 from pathlib import Path
 from types import SimpleNamespace
 
-# Third-Party Imports
 import numpy as np
 import pytest
 import torch
 from torchvision import transforms
 
-# Internal Imports
 from orchard.data_handler.dataset import MedMNISTDataset
 
 

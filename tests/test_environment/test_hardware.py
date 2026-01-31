@@ -5,16 +5,13 @@ Tests hardware detection, device configuration, CUDA utilities,
 and CPU thread management.
 """
 
-# Standard Imports
 import os
 from unittest.mock import patch
 
-# Third-Party Imports
 import matplotlib
 import pytest
 import torch
 
-# Internal Imports
 from orchard.core.environment import (
     apply_cpu_threads,
     configure_system_libraries,

@@ -6,14 +6,11 @@ Supports both RGB and Grayscale datasets with automatic channel promotion.
 Optimized for both CPU and GPU execution (torchvision v2).
 """
 
-# Standard Imports
 from typing import Tuple
 
-# Third-Party Imports
 import torch
 from torchvision.transforms import v2
 
-# Internal Imports
 from orchard.core import Config, DatasetMetadata
 
 

@@ -5,13 +5,10 @@ Covers creation of RGB and grayscale synthetic datasets,
 NPZ file structure, metadata correctness, and data integrity.
 """
 
-# Standard Imports
 from pathlib import Path
 
-# Third-Party Imports
 import numpy as np
 
-# Internal Imports
 from orchard.data_handler import (
     MedMNISTData,
     create_synthetic_dataset,

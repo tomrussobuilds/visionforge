@@ -6,16 +6,13 @@ It provides an ensemble-based prediction mechanism that respects
 anatomical constraints and texture preservation requirements of medical imaging.
 """
 
-# Standard Imports
 from typing import List
 
-# Third-Party Imports
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 
-# Internal Imports
 from orchard.core import Config
 
 
@@ -38,7 +35,7 @@ def _get_tta_transforms(
         # Subtle shift: only 1px if image is small, to avoid losing detail
         t_list.append(lambda x: TF.affine(x, angle=0, translate=(1, 1), scale=1.0, shear=0))
     else:
-        # Standard Imports
+        # Additional transforms for non-texture datasets
         t_list.extend(
             [
                 (

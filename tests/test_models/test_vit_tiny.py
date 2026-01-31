@@ -4,15 +4,12 @@ This module validates model initialization, forward pass consistency,
 and output tensor shapes across various configurations.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import pytest
 import torch
 import torch.nn as nn
 
-# Internal Imports
 from orchard.models.vit_tiny import build_vit_tiny
 
 

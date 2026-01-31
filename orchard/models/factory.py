@@ -1,20 +1,30 @@
 """
-Models Factory Module
+Models Factory Module.
 
-This module implements the Factory Pattern using a registry-based approach
-to decouple model instantiation from the main execution logic.
-It ensures that architectures are dynamically adapted to the geometric
-constraints (channels, classes) resolved at runtime.
+Implements the Factory Pattern using a registry-based approach to decouple
+model instantiation from execution logic. Architectures are dynamically
+adapted to geometric constraints (channels, classes) resolved at runtime.
+
+Architecture:
+    - Registry Pattern: Internal _MODEL_REGISTRY maps names to builders
+    - Dynamic Adaptation: Structural parameters derived from DatasetConfig
+    - Device Management: Automatic model transfer to target accelerator
+
+Key Components:
+    get_model: Factory function for architecture resolution and instantiation
+    _MODEL_REGISTRY: Internal mapping of architecture names to builders
+
+Example:
+    >>> from orchard.models.factory import get_model
+    >>> model = get_model(device=device, cfg=cfg)
+    >>> print(f"Parameters: {sum(p.numel() for p in model.parameters()):,}")
 """
 
-# Standard Imports
 import logging
 
-# Third-Party Imports
 import torch
 import torch.nn as nn
 
-# Internal Imports
 from orchard.core import LOGGER_NAME, Config
 
 from .efficientnet_b0 import build_efficientnet_b0
@@ -42,6 +52,12 @@ def get_model(device: torch.device, cfg: Config) -> nn.Module:
 
     Returns:
         nn.Module: The instantiated model synchronized with the target device.
+
+    Example:
+        >>> model = get_model(device=device, cfg=cfg)
+        >>> batch = torch.randn(8, cfg.dataset.effective_in_channels,
+        ...                     cfg.dataset.img_size, cfg.dataset.img_size).to(device)
+        >>> logits = model(batch)
 
     Raises:
         ValueError: If the requested architecture is not found in the registry.

@@ -5,16 +5,13 @@ Tests cover initialization, Optuna integration (reporting/pruning),
 scheduler stepping, and error handling during validation.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import optuna
 import pytest
 import torch
 import torch.nn as nn
 
-# Internal Imports
 from orchard.optimization import MetricExtractor, TrialTrainingExecutor
 
 

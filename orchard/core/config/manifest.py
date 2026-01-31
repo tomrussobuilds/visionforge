@@ -19,15 +19,12 @@ Strict validation during initialization guarantees logically sound and
 reproducible execution context for the RootOrchestrator.
 """
 
-# Standard Imports
 import argparse
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-# Third-Party Imports
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-# Relative Imports
 from ..io import load_config_from_yaml
 from ..metadata.wrapper import DatasetRegistryWrapper
 from ..paths import PROJECT_ROOT
@@ -46,7 +43,26 @@ class Config(BaseModel):
     """
     Main experiment manifest aggregating specialized sub-configurations.
 
-    Provides the validated blueprint for RootOrchestrator to execute experiments.
+    Serves as the Single Source of Truth (SSOT) for all experiment parameters.
+    Validates cross-domain logic (AMP/device compatibility, resolution/model pairing)
+    and provides factory methods for YAML and CLI instantiation.
+
+    Attributes:
+        hardware: Device selection, threading, reproducibility settings
+        telemetry: Logging, paths, experiment naming
+        training: Optimizer, scheduler, epochs, regularization
+        augmentation: Data augmentation and TTA parameters
+        dataset: Dataset selection, resolution, normalization
+        evaluation: Metrics, visualization, reporting settings
+        model: Architecture selection, pretrained weights
+        optuna: Hyperparameter optimization configuration (optional)
+
+    Example:
+        >>> cfg = Config.from_yaml(Path("recipes/config_mini_cnn.yaml"), metadata)
+        >>> cfg.model.name
+        'mini_cnn'
+        >>> cfg.training.learning_rate
+        0.001
     """
 
     model_config = ConfigDict(extra="allow", validate_assignment=True, frozen=True)
@@ -62,24 +78,40 @@ class Config(BaseModel):
 
     @model_validator(mode="after")
     def validate_logic(self) -> "Config":
-        # Use object.__setattr__ to bypass frozen restriction
+        """
+        Cross-domain validation enforcing consistency across sub-configs.
+
+        Validates:
+            - Model/resolution compatibility (ResNet-18 → 28x28)
+            - Training epochs bounds (mixup_epochs ≤ epochs)
+            - Hardware/feature alignment (AMP requires GPU)
+            - Pretrained/channel consistency (pretrained → RGB)
+            - Optimizer bounds (min_lr < learning_rate)
+
+        Returns:
+            Validated Config instance with auto-corrections applied
+
+        Raises:
+            ValueError: On irrecoverable validation failures
+        """
+        # 1. Use object.__setattr__ to bypass frozen restriction
         if self.dataset.metadata is None:
             object.__setattr__(self, "metadata", {})
 
-        # 1. Model-specific resolution constraints
+        # 2. Model-specific resolution constraints
         if "resnet_18_adapted" in self.model.name.lower() and self.dataset.resolution != 28:
             raise ValueError(
                 f"resnet_18_adapted requires resolution=28, got {self.dataset.resolution}"
             )
 
-        # 2. Training logic
+        # 3. Training logic
         if self.training.mixup_epochs > self.training.epochs:
             raise ValueError(
                 f"mixup_epochs ({self.training.mixup_epochs}) exceeds "
                 f"total epochs ({self.training.epochs})"
             )
 
-        # 3. Hardware-feature alignment (auto-disable AMP on CPU)
+        # 4. Hardware-feature alignment (auto-disable AMP on CPU)
         if self.hardware.device == "cpu" and self.training.use_amp:
             import warnings
 
@@ -90,7 +122,7 @@ class Config(BaseModel):
             )
             object.__setattr__(self.training, "use_amp", False)
 
-        # 4. Model-dataset consistency
+        # 5. Model-dataset consistency
         if self.model.pretrained and self.dataset.effective_in_channels != 3:
             raise ValueError(
                 f"Pretrained {self.model.name} requires RGB (3 channels), "
@@ -98,7 +130,7 @@ class Config(BaseModel):
                 f"Set 'force_rgb: true' in dataset config or disable pretraining"
             )
 
-        # 5. Optimizer bounds
+        # 6. Optimizer bounds
         if self.training.min_lr >= self.training.learning_rate:
             msg = (
                 f"min_lr ({self.training.min_lr}) must be less than "

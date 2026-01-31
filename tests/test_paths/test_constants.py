@@ -5,15 +5,12 @@ Tests project root discovery, static directory constants,
 and filesystem initialization logic.
 """
 
-# Standard Imports
 import os
 from pathlib import Path
 from unittest.mock import patch
 
-# Third-Party Imports
 import pytest
 
-# Internal Imports
 from orchard.core.paths import (
     DATASET_DIR,
     LOGGER_NAME,

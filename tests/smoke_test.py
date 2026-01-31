@@ -15,11 +15,9 @@ Usage:
 Expected Runtime: ~30 seconds on GPU, ~2 minutes on CPU
 """
 
-# Standard Imports
 import argparse
 import os
 
-# Internal Imports
 from orchard.core import DATASET_REGISTRY, Config, LogStyle, RootOrchestrator, parse_args
 from orchard.data_handler import get_augmentations_description, get_dataloaders, load_medmnist
 from orchard.evaluation import run_final_evaluation

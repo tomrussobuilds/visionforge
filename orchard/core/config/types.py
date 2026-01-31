@@ -20,17 +20,27 @@ Catches invalid states at application edge during schema initialization,
 preventing runtime failures in deeper orchestration layers.
 """
 
-# Standard Imports
 from pathlib import Path
 from typing import Annotated, Literal
 
-# Third-Party Imports
 from pydantic import AfterValidator, Field, PlainSerializer
 
 
 # VALIDATORS
 def _sanitize_path(v: Path) -> Path:
-    """Resolve path to absolute form without disk side-effects."""
+    """
+    Resolve path to absolute form without disk side-effects.
+
+    Expands user home directory (~) and converts to absolute path
+    for consistency across environments. No filesystem validation
+    is performed to avoid I/O during schema initialization.
+
+    Args:
+        v: Path object to sanitize
+
+    Returns:
+        Absolute Path with home directory expanded
+    """
     return v.expanduser().resolve()
 
 

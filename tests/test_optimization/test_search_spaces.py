@@ -5,14 +5,11 @@ These tests validate the functionality of the hyperparameter search space defini
 They ensure that search spaces are correctly defined and resolved for different configurations.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock
 
-# Third-Party Imports
 import pytest
 from optuna.trial import Trial
 
-# Internal Imports
 from orchard.optimization import FullSearchSpace, SearchSpaceRegistry, get_search_space
 
 

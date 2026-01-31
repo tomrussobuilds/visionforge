@@ -1,22 +1,36 @@
-"""Data Loader Orchestration Module.
+"""
+Data Loader Orchestration Module.
 
-This module provides the DataLoaderFactory class, which encapsulates the
-logic for building PyTorch DataLoaders. It handles dataset instantiation,
-class balancing via WeightedRandomSampler, and hardware-aware infrastructure
-setup (seeding, workers, memory pinning).
+Provides the DataLoaderFactory for building PyTorch DataLoaders with advanced
+features: class balancing via WeightedRandomSampler, hardware-aware configuration
+(workers, pinned memory), and Optuna-compatible resource management.
+
+Architecture:
+    - Factory Pattern: Centralizes DataLoader construction logic
+    - Hardware Optimization: Adaptive workers and memory pinning (CUDA/MPS)
+    - Class Balancing: WeightedRandomSampler for imbalanced datasets
+    - Optuna Integration: Resource-conservative settings for hyperparameter tuning
+
+Key Components:
+    DataLoaderFactory: Main orchestrator for train/val/test loader creation
+    get_dataloaders: Convenience function for direct loader retrieval
+    LazyNPZDataset: Memory-mapped dataset for large-scale health checks
+
+Example:
+    >>> from orchard.data_handler import get_dataloaders, load_medmnist
+    >>> data = load_medmnist(ds_meta)
+    >>> train_loader, val_loader, test_loader = get_dataloaders(data, cfg)
+    >>> print(f"Batches: {len(train_loader)}")
 """
 
-# Standard Imports
 import logging
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-# Third-Party Imports
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
-# Internal Imports
 from orchard.core import DATASET_REGISTRY, Config, worker_init_fn
 
 from .dataset import MedMNISTDataset
@@ -199,7 +213,23 @@ class DataLoaderFactory:
 
 def get_dataloaders(metadata, cfg, is_optuna: bool = False):
     """
-    Convenience method for direct DataLoader retrieval.
+    Convenience function for creating train/val/test DataLoaders.
+
+    Wraps DataLoaderFactory for streamlined loader construction with
+    automatic class balancing, hardware optimization, and Optuna support.
+
+    Args:
+        metadata: Dataset metadata from load_medmnist (paths, splits)
+        cfg: Global configuration with batch size, workers, and augmentation settings
+        is_optuna: If True, use memory-conservative settings for hyperparameter tuning
+
+    Returns:
+        Tuple of (train_loader, val_loader, test_loader)
+
+    Example:
+        >>> data = load_medmnist(ds_meta)
+        >>> loaders = get_dataloaders(data, cfg, is_optuna=False)
+        >>> train_loader, val_loader, test_loader = loaders
     """
     factory = DataLoaderFactory(cfg, metadata)
     return factory.build(is_optuna=is_optuna)

@@ -6,12 +6,10 @@ configuration serialization (YAML), model checkpoint restoration, and dataset
 integrity verification via MD5 checksums and schema validation.
 """
 
-# Exposed Interface
 from .checkpoints import load_model_weights
 from .data_io import md5_checksum, validate_npz_keys
 from .serialization import load_config_from_yaml, save_config_as_yaml
 
-# Exports
 __all__ = [
     # Serialization
     "save_config_as_yaml",

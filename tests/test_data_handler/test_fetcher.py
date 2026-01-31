@@ -5,15 +5,12 @@ Covers download logic, retry behavior, NPZ validation,
 and metadata extraction without performing real network calls.
 """
 
-# Standard Imports
 from types import SimpleNamespace
 
-# Third-Party Imports
 import numpy as np
 import pytest
 import requests
 
-# Internal Imports
 from orchard.data_handler.fetcher import (
     _is_valid_npz,
     _stream_download,

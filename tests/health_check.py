@@ -3,11 +3,9 @@ Health Check and Integrity Module (Multi-Resolution with Visualization)
 Performs integrity checks across MedMNIST datasets, supports 28x28 and 224x224 resolutions.
 """
 
-# Standard Imports
 import argparse
 import logging
 
-# Internal Imports
 from orchard.core import RootOrchestrator
 from orchard.core.config import Config
 from orchard.core.metadata import DatasetRegistryWrapper

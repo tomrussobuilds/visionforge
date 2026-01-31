@@ -4,16 +4,30 @@ Configuration Package Initialization.
 Provides a unified, flat public API for configuration components while
 avoiding eager imports of heavy or optional dependencies (e.g. torch).
 
-All heavy modules are imported lazily via __getattr__ (PEP 562).
+Architecture:
+    - Lazy Import Pattern (PEP 562): Uses __getattr__ for on-demand loading
+    - Deferred Dependencies: torch and pydantic loaded only when needed
+    - Flat API: All configs accessible from orchard.core.config namespace
+    - Caching: Loaded modules cached in globals() for performance
+
+Implementation:
+    1. __all__: Public API contract listing all available configs
+    2. _LAZY_IMPORTS: Mapping from config names to module paths
+    3. __getattr__: Dynamic loader triggered on first access
+    4. __dir__: IDE/introspection support for auto-completion
+
+Example:
+    >>> from orchard.core.config import Config, HardwareConfig
+    >>> # torch is NOT imported yet (lazy loading)
+    >>> cfg = Config.from_args(args)
+    >>> # NOW torch is imported (triggered by Config access)
 """
 
-# Standard Imports
 from __future__ import annotations
 
 from importlib import import_module
 from typing import Any
 
-# PUBLIC API
 __all__ = [
     "Config",
     "HardwareConfig",
@@ -65,4 +79,10 @@ def __getattr__(name: str) -> Any:
 
 # DIR SUPPORT
 def __dir__() -> list[str]:
+    """
+    Support for dir() and IDE auto-completion.
+
+    Returns:
+        Sorted list of public configuration class names
+    """
     return sorted(__all__)

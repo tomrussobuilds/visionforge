@@ -4,14 +4,11 @@ This module verifies the forward pass logic using mocking and validates
 output tensor shapes for the orchard model suite.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import pytest
 import torch
 
-# Internal Imports
 from orchard.models import build_mini_cnn
 
 

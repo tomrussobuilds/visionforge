@@ -13,7 +13,6 @@ Key Features:
     - Timestamp-based Files: Unique log files per experiment session
 """
 
-# Standard Imports
 import logging
 import os
 import sys
@@ -22,7 +21,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Dict, Final, Optional
 
-# Internal Imports
 from ..paths import LOGGER_NAME
 
 

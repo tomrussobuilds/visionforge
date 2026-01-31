@@ -16,14 +16,11 @@ Architecture:
                    → AdaptiveAvgPool [1×1×128] → Dropout → FC [num_classes]
 """
 
-# Standard Imports
 import logging
 
-# Third-Party Imports
 import torch
 import torch.nn as nn
 
-# Internal Imports
 from orchard.core import LOGGER_NAME, Config
 
 # LOGGER CONFIGURATION

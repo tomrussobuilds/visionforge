@@ -6,15 +6,12 @@ supporting components using dependency injection, enabling high
 coverage through isolated and deterministic unit tests.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import optuna
 import pytest
 import torch
 
-# Internal Imports
 from orchard.optimization.objective import (
     MetricExtractor,
     OptunaObjective,

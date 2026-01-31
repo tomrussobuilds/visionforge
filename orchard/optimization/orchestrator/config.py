@@ -10,15 +10,12 @@ These registries enable the factory pattern in builders.py and
 provide a single point of maintenance for supported algorithms.
 """
 
-# Standard Imports
 import logging
 from typing import Callable, Dict, Set, Tuple
 
-# Third-Party Imports
 from optuna.pruners import HyperbandPruner, MedianPruner, NopPruner, PercentilePruner
 from optuna.samplers import CmaEsSampler, GridSampler, RandomSampler, TPESampler
 
-# Internal Imports
 from orchard.core import LOGGER_NAME
 
 # Global logger instance

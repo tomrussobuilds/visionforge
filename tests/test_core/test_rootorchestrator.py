@@ -4,14 +4,11 @@ Tests all 7 phases, __enter__, __exit__, and edge cases.
 Achieves high coverage through dependency injection and mocking.
 """
 
-# Standard Imports
 from unittest.mock import MagicMock
 
-# Third-Party Imports
 import pytest
 import torch
 
-# Internal Imports
 from orchard.core import LOGGER_NAME, RootOrchestrator
 
 

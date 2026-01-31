@@ -5,15 +5,12 @@ Terminates optimization when a satisfactory metric threshold is reached,
 preventing wasteful computation when near-perfect performance is achieved.
 """
 
-# Standard Imports
 import logging
 from typing import Optional
 
-# Third-Party Imports
 from optuna.study import Study
 from optuna.trial import FrozenTrial, TrialState
 
-# Internal Imports
 from orchard.core import LOGGER_NAME, LogStyle
 
 logger = logging.getLogger(LOGGER_NAME)

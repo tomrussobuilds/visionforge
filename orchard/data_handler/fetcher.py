@@ -5,18 +5,15 @@ This module handles the physical retrieval of any MedMNIST dataset, including
 robust download logic, MD5 verification, and metadata preparation for lazy loading.
 """
 
-# Standard Imports
 import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-# Third-Party Imports
 import numpy as np
 import requests
 
-# Internal Imports
 from orchard.core import DatasetMetadata, md5_checksum, validate_npz_keys
 
 

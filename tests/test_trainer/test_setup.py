@@ -4,16 +4,13 @@ Test Suite for Optimization Setup Module.
 Covers get_criterion, get_optimizer, and get_scheduler factories.
 """
 
-# Standard Imports
 from types import SimpleNamespace
 
-# Third-Party Imports
 import pytest
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 
-# Internal Imports
 from orchard.trainer import setup
 
 

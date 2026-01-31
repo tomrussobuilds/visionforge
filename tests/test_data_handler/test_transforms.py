@@ -5,10 +5,8 @@ Tests augmentation description generation and torchvision v2
 training/validation pipelines for both RGB and Grayscale datasets.
 """
 
-# Standard Imports
 from types import SimpleNamespace
 
-# Third-Party Imports
 import pytest
 import torch
 from torchvision.transforms import v2

@@ -4,7 +4,6 @@ This package manages the end-to-end data pipeline, from downloading raw NPZ file
 using the Dataset Registry to providing fully configured PyTorch DataLoaders.
 """
 
-# Internal Imports
 from .data_explorer import show_sample_images, show_samples_for_dataset
 from .dataset import MedMNISTDataset
 from .fetcher import MedMNISTData, ensure_dataset_npz, load_medmnist
@@ -17,7 +16,6 @@ from .loader import (
 from .synthetic import create_synthetic_dataset, create_synthetic_grayscale_dataset
 from .transforms import get_augmentations_description, get_pipeline_transforms
 
-# PUBLIC API
 __all__ = [
     "load_medmnist",
     "MedMNISTData",

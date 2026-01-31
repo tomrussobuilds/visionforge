@@ -5,18 +5,15 @@ Tests filesystem locking, duplicate process detection,
 and process termination utilities.
 """
 
-# Standard Imports
 import logging
 import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Third-Party Imports
 import psutil
 import pytest
 
-# Internal Imports
 from orchard.core.environment import (
     DuplicateProcessCleaner,
     ensure_single_instance,

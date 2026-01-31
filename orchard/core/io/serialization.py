@@ -6,7 +6,6 @@ models and Path objects) into YAML format, ensuring thread-safe and
 environment-agnostic persistence to the filesystem.
 """
 
-# Standard Imports
 import logging
 import os
 from pathlib import Path
@@ -14,7 +13,6 @@ from typing import Any, Dict
 
 import yaml
 
-# Internal Imports
 from ..paths import LOGGER_NAME
 
 

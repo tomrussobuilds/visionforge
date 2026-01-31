@@ -12,20 +12,15 @@ Functions:
     - build_callbacks: Construct optimization callbacks list
 """
 
-# Standard Imports
 import logging
 from typing import List
 
-# Third-Party Imports
 import optuna
 from optuna.pruners import NopPruner
 
-# Internal Imports
 from orchard.core import LOGGER_NAME, Config
 
 from ..early_stopping import get_early_stopping_callback
-
-# Relative Imports
 from .config import PRUNER_REGISTRY, SAMPLER_REGISTRY
 
 logger = logging.getLogger(LOGGER_NAME)
