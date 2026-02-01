@@ -76,6 +76,89 @@ def test_config_builder_applies_param_overrides():
     assert test_dict["training"]["epochs"] == 20
 
 
+@pytest.mark.unit
+def test_config_builder_handles_model_name():
+    """Test TrialConfigBuilder maps model_name to model.name."""
+    mock_cfg = MagicMock()
+    config_dict = {
+        "dataset": {"resolution": 224, "metadata": None},
+        "training": {"epochs": 60},
+        "model": {"name": "efficientnet_b0", "dropout": 0.3},
+        "augmentation": {},
+    }
+    mock_cfg.model_dump.return_value = config_dict.copy()
+    mock_cfg.dataset.resolution = 224
+    mock_cfg.dataset._ensure_metadata = MagicMock()
+    mock_cfg.optuna.epochs = 15
+
+    builder = TrialConfigBuilder(mock_cfg)
+
+    trial_params = {"model_name": "vit_tiny"}
+
+    test_dict = config_dict.copy()
+    test_dict["dataset"]["metadata"] = builder.base_metadata
+    test_dict["training"]["epochs"] = builder.optuna_epochs
+    builder._apply_param_overrides(test_dict, trial_params)
+
+    assert test_dict["model"]["name"] == "vit_tiny"
+
+
+@pytest.mark.unit
+def test_config_builder_handles_weight_variant():
+    """Test TrialConfigBuilder applies weight_variant."""
+    mock_cfg = MagicMock()
+    config_dict = {
+        "dataset": {"resolution": 224, "metadata": None},
+        "training": {"epochs": 60},
+        "model": {"name": "vit_tiny", "weight_variant": None},
+        "augmentation": {},
+    }
+    mock_cfg.model_dump.return_value = config_dict.copy()
+    mock_cfg.dataset.resolution = 224
+    mock_cfg.dataset._ensure_metadata = MagicMock()
+    mock_cfg.optuna.epochs = 15
+
+    builder = TrialConfigBuilder(mock_cfg)
+
+    trial_params = {"weight_variant": "vit_tiny_patch16_224.augreg_in21k_ft_in1k"}
+
+    test_dict = config_dict.copy()
+    test_dict["dataset"]["metadata"] = builder.base_metadata
+    test_dict["training"]["epochs"] = builder.optuna_epochs
+    builder._apply_param_overrides(test_dict, trial_params)
+
+    assert test_dict["model"]["weight_variant"] == "vit_tiny_patch16_224.augreg_in21k_ft_in1k"
+
+
+@pytest.mark.unit
+def test_config_builder_skips_none_weight_variant():
+    """Test TrialConfigBuilder skips None weight_variant (for non-ViT models)."""
+    mock_cfg = MagicMock()
+    config_dict = {
+        "dataset": {"resolution": 224, "metadata": None},
+        "training": {"epochs": 60},
+        "model": {"name": "efficientnet_b0", "weight_variant": "original_value"},
+        "augmentation": {},
+    }
+    mock_cfg.model_dump.return_value = config_dict.copy()
+    mock_cfg.dataset.resolution = 224
+    mock_cfg.dataset._ensure_metadata = MagicMock()
+    mock_cfg.optuna.epochs = 15
+
+    builder = TrialConfigBuilder(mock_cfg)
+
+    # Simulate None from search space for non-ViT model
+    trial_params = {"weight_variant": None}
+
+    test_dict = config_dict.copy()
+    test_dict["dataset"]["metadata"] = builder.base_metadata
+    test_dict["training"]["epochs"] = builder.optuna_epochs
+    builder._apply_param_overrides(test_dict, trial_params)
+
+    # Should preserve original value and not overwrite with None
+    assert test_dict["model"]["weight_variant"] == "original_value"
+
+
 # METRIC EXTRACTOR TESTS
 @pytest.mark.unit
 def test_metric_extractor_extracts_correct_metric():

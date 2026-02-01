@@ -5,7 +5,29 @@
 # Usage: python optimize.py --config recipes/optuna_vit_tiny.yaml
 # Estimated Time: ~3-5 hours (20 trials × 15 epochs)
 # Memory Usage: ~4GB VRAM per trial with AMP
-# Search Space: Includes weight variant selection
+#
+# OPTUNA SEARCH SPACE (orchard/optimization/search_spaces.py):
+#   OPTIMIZED PARAMETERS (ranges):
+#     - Learning rate: 1e-5 to 1e-2 (log scale)
+#     - Weight decay: 1e-6 to 1e-3 (log scale)
+#     - Momentum: 0.85 to 0.95
+#     - Batch size: [16, 32, 48, 64] (28px) | [8, 12, 16] (224px)
+#     - Dropout: 0.1 to 0.5
+#     - MixUp alpha: 0.0 to 0.4
+#     - Label smoothing: 0.0 to 0.2
+#     - Cosine fraction: 0.3 to 0.7
+#     - Scheduler patience: 3 to 10
+#     - Augmentation: rotation (0-15°), jitter (0-0.15), scale (0.9-1.0)
+#     - Model architecture (if enable_model_search: true):
+#         - 28px: mini_cnn vs resnet_18_adapted
+#         - 224px: efficientnet_b0 vs vit_tiny (+ ViT weight variants)
+#
+#   FIXED PARAMETERS (not optimized):
+#     - epochs, patience, grad_clip, scheduler_type
+#     - use_amp, use_tta
+#     - criterion_type (options: "cross_entropy" | "focal")
+#     - focal_gamma (only used if criterion_type: "focal")
+#     - weighted_loss
 
 dataset:
   name: "retinamnist"
@@ -54,7 +76,7 @@ training:
   use_tta: false
   criterion_type: "cross_entropy"
   weighted_loss: false
-  focal_gamma: 2.0
+  focal_gamma: 2.0              # Only used if criterion_type: "focal"
 
 augmentation:
   hflip: 0.5
@@ -102,8 +124,9 @@ optuna:
   
   # Search strategy
   sampler_type: "tpe"
-  search_space_preset: "full"   # Includes model_space_224
-  
+  search_space_preset: "full"
+  enable_model_search: true     # Compare efficientnet_b0 vs vit_tiny + weight variants
+
   # Pruning
   enable_pruning: true
   pruner_type: "median"

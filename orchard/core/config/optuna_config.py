@@ -55,6 +55,14 @@ class OptunaConfig(BaseModel):
         Field(default="full", description="Predefined search space configuration")
     )
 
+    enable_model_search: bool = Field(
+        default=False,
+        description=(
+            "Include model architecture in search space (resolution-aware: "
+            "28px → mini_cnn/resnet_18, 224px → efficientnet_b0/vit_tiny + weight variants)"
+        ),
+    )
+
     # ==================== Early Stopping ====================
     enable_early_stopping: bool = Field(
         default=True, description="Stop study when target performance is reached"

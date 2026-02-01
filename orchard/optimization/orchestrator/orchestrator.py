@@ -117,7 +117,9 @@ class OptunaOrchestrator:
         """
         study = self.create_study()
         search_space = get_search_space(
-            self.cfg.optuna.search_space_preset, resolution=self.cfg.dataset.resolution
+            self.cfg.optuna.search_space_preset,
+            resolution=self.cfg.dataset.resolution,
+            include_models=self.cfg.optuna.enable_model_search,
         )
 
         objective = OptunaObjective(

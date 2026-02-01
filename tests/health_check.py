@@ -9,12 +9,13 @@ import logging
 from orchard.core import RootOrchestrator
 from orchard.core.config import Config
 from orchard.core.metadata import DatasetRegistryWrapper
+from orchard.core.paths import HEALTHCHECK_LOGGER_NAME
 from orchard.data_handler.data_explorer import show_samples_for_dataset
 from orchard.data_handler.fetcher import load_dataset_health_check
 from orchard.data_handler.loader import create_temp_loader
 
 # Logging Setup
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(HEALTHCHECK_LOGGER_NAME)
 logging.basicConfig(level=logging.INFO)
 
 

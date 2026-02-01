@@ -44,7 +44,7 @@ class TrialConfigBuilder:
             "cosine_fraction",
             "scheduler_patience",
         ],
-        "model": ["dropout"],
+        "model": ["dropout", "weight_variant"],
         "augmentation": ["rotation_angle", "jitter_val", "min_scale"],
     }
 
@@ -93,13 +93,24 @@ class TrialConfigBuilder:
         Apply parameter overrides to config dict (in-place).
 
         Maps flat parameter names to hierarchical config structure
-        using PARAM_MAPPING.
+        using PARAM_MAPPING. Handles special cases for model_name → model.name
+        and skips None values for weight_variant (used for non-ViT models).
 
         Args:
             config_dict: Config dictionary to modify
             trial_params: Parameters to apply
         """
         for param_name, value in trial_params.items():
+            # Skip None values for weight_variant (returned for non-ViT models)
+            if param_name == "weight_variant" and value is None:
+                continue
+
+            # Special case: model_name maps to model.name
+            if param_name == "model_name":
+                config_dict["model"]["name"] = value
+                continue
+
+            # Standard mapping
             for section, params in self.PARAM_MAPPING.items():
                 if param_name in params:
                     config_dict[section][param_name] = value

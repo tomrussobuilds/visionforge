@@ -1,18 +1,18 @@
 # ==============================================================================
-# FILE: recipes/config_vit_tiny.yaml
-# Vision Transformer Tiny Training Configuration (224x224)
+# FILE: recipes/config_galaxy10_vit_tiny.yaml
+# Vision Transformer Tiny Training on Galaxy10 (224x224)
 # ==============================================================================
-# Usage: python main.py --config recipes/config_vit_tiny.yaml
+# Usage: python main.py --config recipes/config_galaxy10_vit_tiny.yaml
 # Estimated Time: ~25-35 minutes (30 epochs, RTX 5070)
 # Memory Usage: ~3.5GB VRAM with AMP
 # Architecture: ViT-Tiny (5M parameters, patch-based attention)
 
 dataset:
-  name: "organcmnist"
+  name: "galaxy10"
   data_root: ./dataset
   resolution: 224
   force_rgb: true
-  use_weighted_sampler: true
+  use_weighted_sampler: false
   max_samples: null
 
 model:
@@ -24,31 +24,31 @@ model:
 training:
   seed: 42
   reproducible: false
-  
+
   # Optimization (ViT benefits from lower LR than CNNs)
   batch_size: 16                # Conservative for 224x224
   learning_rate: 0.0003         # Lower than CNN defaults
   weight_decay: 0.0001          # Light regularization
   momentum: 0.9
   min_lr: 1e-7
-  
+
   # Regularization
   mixup_alpha: 0.2              # Moderate mixup for ViT
   label_smoothing: 0.1
-  
+
   # Training loop
   epochs: 30
   patience: 10
   grad_clip: 1.0
   mixup_epochs: 0               # 0 = apply throughout training
-  
+
   # Scheduler
   scheduler_type: "cosine"
   cosine_fraction: 0.8
   scheduler_patience: 5
   scheduler_factor: 0.1
   step_size: 20
-  
+
   # Performance
   use_amp: true                 # REQUIRED for 224x224
   use_tta: true

@@ -14,6 +14,9 @@ from typing import Final, List
 # Global logger identity used by all modules to ensure log synchronization
 LOGGER_NAME: Final[str] = "VisionForge"
 
+# Health check logger identity for dataset validation utilities
+HEALTHCHECK_LOGGER_NAME: Final[str] = "healthcheck"
+
 
 # PATH CALCULATIONS
 def get_project_root() -> Path:

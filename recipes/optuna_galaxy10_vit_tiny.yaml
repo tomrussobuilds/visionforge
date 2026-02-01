@@ -1,17 +1,17 @@
 # ==============================================================================
-# FILE: recipes/optuna_galaxy10_efficientnet_b0.yaml
-# Hyperparameter Optimization for EfficientNet-B0 on Galaxy10 (224x224)
+# FILE: recipes/optuna_galaxy10_vit_tiny.yaml
+# Hyperparameter Optimization for ViT-Tiny on Galaxy10 (224x224)
 # ==============================================================================
-# Usage: python optimize.py --config recipes/optuna_galaxy10_efficientnet_b0.yaml
+# Usage: python optimize.py --config recipes/optuna_galaxy10_vit_tiny.yaml
 # Estimated Time: ~3-5 hours (20 trials × 15 epochs)
-# Memory Usage: ~4.5GB VRAM per trial with AMP
+# Memory Usage: ~4GB VRAM per trial with AMP
 #
 # OPTUNA SEARCH SPACE (orchard/optimization/search_spaces.py):
 #   OPTIMIZED PARAMETERS (ranges):
 #     - Learning rate: 1e-5 to 1e-2 (log scale)
 #     - Weight decay: 1e-6 to 1e-3 (log scale)
 #     - Momentum: 0.85 to 0.95
-#     - Batch size: [16, 32, 48, 64] (28px) | [8, 12, 16] (224px)
+#     - Batch size: [8, 12, 16] (224px resolution)
 #     - Dropout: 0.1 to 0.5
 #     - MixUp alpha: 0.0 to 0.4
 #     - Label smoothing: 0.0 to 0.2
@@ -28,7 +28,6 @@
 #     - criterion_type (options: "cross_entropy" | "focal")
 #     - focal_gamma (only used if criterion_type: "focal")
 #     - weighted_loss
-# Search Space: Learning rate, weight decay, dropout, augmentation
 
 dataset:
   name: "galaxy10"
@@ -39,9 +38,10 @@ dataset:
   max_samples: null
 
 model:
-  name: "efficientnet_b0"
+  name: "vit_tiny"
   pretrained: true
-  dropout: 0.3                  # Will be optimized
+  weight_variant: "vit_tiny_patch16_224.augreg_in21k_ft_in1k"
+  dropout: 0.1                  # Will be optimized
 
 training:
   seed: 42
@@ -49,8 +49,8 @@ training:
 
   # Base values (WILL BE OPTIMIZED BY OPTUNA)
   batch_size: 16                # Conservative for optimization
-  learning_rate: 0.0001
-  weight_decay: 0.0005
+  learning_rate: 0.0003         # ViT baseline
+  weight_decay: 0.0001
   momentum: 0.9
   min_lr: 1e-7
 
@@ -60,11 +60,11 @@ training:
 
   # Training loop
   epochs: 60                    # Final training only
-  patience: 15
+  patience: 12
   grad_clip: 1.0
   mixup_epochs: 0
 
-  # Scheduler
+  # Scheduler (PARTIALLY OPTIMIZED)
   scheduler_type: "cosine"
   cosine_fraction: 0.5
   scheduler_patience: 5
@@ -79,9 +79,9 @@ training:
   focal_gamma: 2.0              # Only used if criterion_type: "focal"
 
 augmentation:
-  hflip: 0.3                    # Will be optimized
-  rotation_angle: 3             # Will be optimized
-  jitter_val: 0.05              # Will be optimized
+  hflip: 0.5
+  rotation_angle: 5             # Will be optimized
+  jitter_val: 0.1               # Will be optimized
   min_scale: 0.97               # Will be optimized
   tta_translate: 0.5
   tta_scale: 1.02
@@ -108,7 +108,7 @@ evaluation:
   save_predictions_grid: false
 
 optuna:
-  study_name: "galaxy10_efficientnet_b0_optimized"
+  study_name: "galaxy10_vit_tiny_optimized"
   n_trials: 20                  # Balanced exploration
   epochs: 15                    # Shorter for speed
   timeout: null
@@ -125,7 +125,7 @@ optuna:
   # Search strategy
   sampler_type: "tpe"
   search_space_preset: "full"
-  enable_model_search: false    # Optimize EfficientNet-B0 only
+  enable_model_search: true     # Compare efficientnet_b0 vs vit_tiny + weight variants
 
   # Pruning
   enable_pruning: true

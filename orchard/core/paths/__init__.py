@@ -9,6 +9,7 @@ It provides a dual-layer approach:
 
 from .constants import (
     DATASET_DIR,
+    HEALTHCHECK_LOGGER_NAME,
     LOGGER_NAME,
     OUTPUTS_ROOT,
     PROJECT_ROOT,
@@ -23,6 +24,7 @@ __all__ = [
     "DATASET_DIR",
     "OUTPUTS_ROOT",
     "LOGGER_NAME",
+    "HEALTHCHECK_LOGGER_NAME",
     "STATIC_DIRS",
     "get_project_root",
     "setup_static_directories",

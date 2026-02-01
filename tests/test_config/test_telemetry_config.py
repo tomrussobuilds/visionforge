@@ -23,7 +23,6 @@ def test_telemetry_config_defaults():
 
     assert str(config.data_dir) == "./dataset"
     assert str(config.output_dir) == "./outputs"
-    assert config.health_name == "healthcheck"
     assert config.save_model is True
     assert config.log_interval == 10
     assert config.log_level == "INFO"

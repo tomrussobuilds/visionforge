@@ -43,7 +43,6 @@ class TelemetryConfig(BaseModel):
     # Filesystem
     data_dir: ValidatedPath = Field(default="./dataset")
     output_dir: ValidatedPath = Field(default="./outputs")
-    health_name: str = Field(default="healthcheck")
 
     # Telemetry
     save_model: bool = True

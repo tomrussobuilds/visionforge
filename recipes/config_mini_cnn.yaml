@@ -54,7 +54,7 @@ training:
   use_tta: true
   criterion_type: "cross_entropy"
   weighted_loss: false
-  focal_gamma: 2.0
+  focal_gamma: 2.0              # Only used if criterion_type: "focal"
 
 augmentation:
   hflip: 0.5

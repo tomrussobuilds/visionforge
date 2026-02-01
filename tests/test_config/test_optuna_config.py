@@ -313,6 +313,21 @@ def test_from_args_partial():
     assert config.study_name == "vision_optimization"
 
 
+# OPTUNA CONFIG: MODEL SEARCH
+@pytest.mark.unit
+def test_enable_model_search_default():
+    """Test enable_model_search defaults to False."""
+    config = OptunaConfig()
+    assert config.enable_model_search is False
+
+
+@pytest.mark.unit
+def test_enable_model_search_can_be_enabled():
+    """Test enable_model_search can be set to True."""
+    config = OptunaConfig(enable_model_search=True)
+    assert config.enable_model_search is True
+
+
 # OPTUNA CONFIG: IMMUTABILITY
 @pytest.mark.unit
 def test_config_is_frozen():
