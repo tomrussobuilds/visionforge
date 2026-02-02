@@ -73,6 +73,7 @@ addopts = [
 ]
 filterwarnings = [
     "ignore:AMP requires GPU.*:UserWarning",
+    "ignore:`isinstance\\(treespec, LeafSpec\\)` is deprecated.*:FutureWarning",
 ]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
