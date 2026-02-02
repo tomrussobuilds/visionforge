@@ -9,7 +9,7 @@
 ```
 orchard/
 ├── core/                       # Framework nucleus
-│   ├── config/                 # Pydantic V2 schemas (8 modules)
+│   ├── config/                 # Pydantic V2 schemas (13 modules)
 │   │   ├── manifest.py         # Main Config (SSOT)
 │   │   ├── hardware_config.py  # Device, threading, determinism
 │   │   ├── training_config.py  # Optimizer, scheduler, regularization
@@ -67,6 +67,9 @@ orchard/
 │   ├── tta.py                  # Test-time augmentation
 │   ├── visualization.py        # Confusion matrix, curves
 │   └── reporting.py            # Excel report generation
+├── export/                     # Model export for production
+│   ├── onnx_exporter.py        # ONNX export with quantization
+│   └── validation.py           # PyTorch vs ONNX validation
 └── optimization/               # Optuna integration
     ├── objective/              # Trial execution logic
     │   ├── objective.py        # OptunaObjective
