@@ -5,8 +5,7 @@ Tests infrastructure resource management, lock file handling,
 and compute cache flushing.
 """
 
-import os
-import sys
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -453,21 +452,17 @@ def test_flush_compute_cache_mps_failure(monkeypatch):
     assert any("MPS cache cleanup failed" in msg for msg in logger.debug_messages)
 
 
-@pytest.mark.integration
-@pytest.mark.skipif(
-    sys.version_info >= (3, 14),
-    reason="Lock release behavior differs in Python 3.14-dev (fcntl implementation changes)",
-)
+@pytest.mark.unit
 def test_release_resources_lock_failure(tmp_path):
-    """Test release_resources() handles lock release failures."""
+    """Test release_resources() handles lock release failures.
+
+    Uses mock to simulate release_single_instance raising an exception,
+    since the real function catches exceptions internally (correct cleanup behavior).
+    This approach works across all Python versions without platform-specific issues.
+    """
     manager = InfrastructureManager()
 
-    lock_path = tmp_path / "readonly_dir" / "test.lock"
-    lock_path.parent.mkdir()
-    lock_path.touch()
-
-    if os.name != "nt":
-        lock_path.parent.chmod(0o444)
+    lock_path = tmp_path / "test.lock"
 
     class MockHardware:
         allow_process_kill = False
@@ -492,12 +487,14 @@ def test_release_resources_lock_failure(tmp_path):
     logger = MockLogger()
     config = MockConfig()
 
-    manager.release_resources(config, logger=logger)
+    # Mock release_single_instance to raise an exception
+    with patch(
+        "orchard.core.config.infrastructure_config.release_single_instance",
+        side_effect=PermissionError("Cannot release lock: permission denied"),
+    ):
+        manager.release_resources(config, logger=logger)
 
     assert any("Failed to release lock" in msg for msg in logger.warnings)
-
-    if os.name != "nt":
-        lock_path.parent.chmod(0o755)
 
 
 if __name__ == "__main__":

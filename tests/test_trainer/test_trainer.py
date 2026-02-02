@@ -401,5 +401,52 @@ def test_smart_step_scheduler_with_non_gradscaler(
     assert call_count[0] == 1, "scheduler.step() should be called when scaler is not GradScaler"
 
 
+@pytest.mark.integration
+@patch("orchard.trainer.trainer.train_one_epoch")
+@patch("orchard.trainer.trainer.validate_epoch")
+def test_train_loads_existing_checkpoint_when_no_improvement(
+    mock_validate, mock_train, simple_model, mock_loaders, optimizer, scheduler, criterion, mock_cfg
+):
+    """Test training loads existing checkpoint when model never improves.
+
+    This covers the case where best_path exists (from previous run) but
+    _checkpoint_saved is False (model never improved during current training).
+    """
+    train_loader, val_loader = mock_loaders
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_path = Path(tmpdir) / "best_model.pth"
+
+        # Pre-create a checkpoint file (simulating previous run)
+        torch.save(simple_model.state_dict(), output_path)
+
+        trainer = ModelTrainer(
+            model=simple_model,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            criterion=criterion,
+            device=torch.device("cpu"),
+            cfg=mock_cfg,
+            output_path=output_path,
+        )
+
+        # Set best_auc very high so model never improves
+        trainer.best_auc = 0.9999
+
+        mock_train.return_value = 0.5
+        # Return constant metrics that won't improve best_auc
+        mock_validate.return_value = {"loss": 0.3, "accuracy": 0.9, "auc": 0.5}
+
+        trainer.optimizer.step = MagicMock()
+
+        best_path, _, _ = trainer.train()
+
+        # Verify checkpoint was loaded (not saved during training)
+        assert trainer._checkpoint_saved is False
+        assert best_path.exists()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

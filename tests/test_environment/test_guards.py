@@ -477,5 +477,63 @@ def test_ensure_single_instance_creates_nested_parent_dirs(mock_platform, tmp_pa
     assert lock_file.exists()
 
 
+@pytest.mark.unit
+def test_terminate_duplicates_timeout_then_kill_success():
+    """Test terminate_duplicates falls back to kill() after TimeoutExpired."""
+    cleaner = DuplicateProcessCleaner()
+
+    mock_proc = MagicMock()
+    mock_proc.terminate = MagicMock()
+    # First wait() raises TimeoutExpired, second wait() (after kill) succeeds
+    mock_proc.wait = MagicMock(side_effect=[psutil.TimeoutExpired(1), None])
+    mock_proc.kill = MagicMock()
+
+    with patch.object(cleaner, "detect_duplicates", return_value=[mock_proc]):
+        with patch("time.sleep"):
+            count = cleaner.terminate_duplicates()
+
+    assert count == 1
+    mock_proc.terminate.assert_called_once()
+    mock_proc.kill.assert_called_once()
+    assert mock_proc.wait.call_count == 2
+
+
+@pytest.mark.unit
+def test_terminate_duplicates_timeout_then_kill_fails():
+    """Test terminate_duplicates handles exception after kill()."""
+    cleaner = DuplicateProcessCleaner()
+
+    mock_proc = MagicMock()
+    mock_proc.terminate = MagicMock()
+    # First wait() raises TimeoutExpired, second wait() also raises TimeoutExpired
+    mock_proc.wait = MagicMock(side_effect=[psutil.TimeoutExpired(1), psutil.TimeoutExpired(1)])
+    mock_proc.kill = MagicMock()
+
+    with patch.object(cleaner, "detect_duplicates", return_value=[mock_proc]):
+        count = cleaner.terminate_duplicates()
+
+    # Process couldn't be terminated, count stays 0
+    assert count == 0
+    mock_proc.terminate.assert_called_once()
+    mock_proc.kill.assert_called_once()
+
+
+@pytest.mark.unit
+def test_terminate_duplicates_timeout_kill_no_such_process():
+    """Test terminate_duplicates handles NoSuchProcess after kill()."""
+    cleaner = DuplicateProcessCleaner()
+
+    mock_proc = MagicMock()
+    mock_proc.terminate = MagicMock()
+    mock_proc.wait = MagicMock(side_effect=psutil.TimeoutExpired(1))
+    mock_proc.kill = MagicMock(side_effect=psutil.NoSuchProcess(9999))
+
+    with patch.object(cleaner, "detect_duplicates", return_value=[mock_proc]):
+        count = cleaner.terminate_duplicates()
+
+    assert count == 0
+    mock_proc.kill.assert_called_once()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

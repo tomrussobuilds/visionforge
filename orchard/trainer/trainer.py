@@ -149,6 +149,9 @@ class ModelTrainer:
         self.val_metrics_history: List[dict] = []
         self.val_aucs: List[float] = []
 
+        # Track if we saved at least one valid checkpoint during training
+        self._checkpoint_saved: bool = False
+
         logger.info(f"Trainer initialized. Best model checkpoint: {self.best_path.name}")
 
     def train(self) -> Tuple[Path, List[float], List[dict]]:
@@ -238,10 +241,22 @@ class ModelTrainer:
             f"| Acc: {self.best_acc:.4f}"
         )
 
-        if self.best_path.exists():
+        if self._checkpoint_saved and self.best_path.exists():
+            self.load_best_weights()
+        elif self.best_path.exists():
+            # Checkpoint exists but wasn't saved during this training run
+            # (could be from a previous run or manual placement)
+            logger.warning(
+                "No checkpoint was saved during training (model never improved). "
+                "Loading existing checkpoint file."
+            )
             self.load_best_weights()
         else:
-            logger.warning("Forcing checkpoint save for smoke test integrity.")
+            # No checkpoint exists - save current weights as fallback
+            logger.warning(
+                "No checkpoint was saved during training (model never improved). "
+                "Saving current model state as fallback."
+            )
             torch.save(self.model.state_dict(), self.best_path)
 
         return self.best_path, self.train_losses, self.val_metrics_history
@@ -287,6 +302,7 @@ class ModelTrainer:
             self.best_auc = val_auc
             self.epochs_no_improve = 0
             torch.save(self.model.state_dict(), self.best_path)
+            self._checkpoint_saved = True
         else:
             self.epochs_no_improve += 1
 

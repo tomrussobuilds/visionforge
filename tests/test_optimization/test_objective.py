@@ -289,8 +289,9 @@ def test_training_executor_validate_epoch_error_handling():
         metric_extractor=MetricExtractor("auc"),
     )
 
+    # Patch where validate_epoch is used, not where it's defined
     with patch(
-        "orchard.trainer.validate_epoch",
+        "orchard.optimization.objective.training_executor.validate_epoch",
         side_effect=RuntimeError("Validation failed"),
     ):
         result = executor._validate_epoch()

@@ -102,12 +102,16 @@ def release_single_instance(lock_file: Path) -> None:
         finally:
             _lock_fd = None
 
-    if lock_file.exists():
-        try:
-            lock_file.unlink()
-        except OSError:  # pragma: no cover
-            # Silence errors if the file was already removed by another process
-            pass
+    # Attempt unlink directly to avoid TOCTOU race condition
+    # (file could be deleted between exists() check and unlink() call)
+    try:
+        lock_file.unlink()
+    except FileNotFoundError:
+        # File was already removed by another process - expected in race conditions
+        pass
+    except OSError:  # pragma: no cover
+        # Other OS errors (permissions, etc.) - safe to ignore during cleanup
+        pass
 
 
 class DuplicateProcessCleaner:
@@ -171,6 +175,20 @@ class DuplicateProcessCleaner:
                 proc.terminate()
                 proc.wait(timeout=1)
                 count += 1
+            except psutil.TimeoutExpired:
+                # Process didn't terminate gracefully, force kill
+                try:
+                    proc.kill()
+                    proc.wait(timeout=1)
+                    count += 1
+                except (
+                    psutil.NoSuchProcess,
+                    psutil.AccessDenied,
+                    psutil.ZombieProcess,
+                    psutil.TimeoutExpired,
+                ):
+                    # Process is stuck or already gone, skip
+                    continue
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
 

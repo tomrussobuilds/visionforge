@@ -354,5 +354,47 @@ def test_mixup_data_cuda_aware():
     assert y_a.device == y.device
 
 
+# TESTS: EMPTY LOADER GUARDS
+@pytest.mark.unit
+def test_train_one_epoch_empty_loader(simple_model, criterion, optimizer):
+    """Test train_one_epoch handles empty loader gracefully."""
+    device = torch.device("cpu")
+
+    # Empty loader (returns no batches)
+    empty_loader = MagicMock()
+    empty_loader.__iter__ = MagicMock(return_value=iter([]))
+    empty_loader.__len__ = MagicMock(return_value=0)
+
+    loss = train_one_epoch(
+        model=simple_model,
+        loader=empty_loader,
+        criterion=criterion,
+        optimizer=optimizer,
+        device=device,
+        use_tqdm=False,
+    )
+
+    assert loss == 0.0
+
+
+@pytest.mark.unit
+def test_validate_epoch_empty_loader(simple_model, criterion):
+    """Test validate_epoch handles empty loader gracefully."""
+    device = torch.device("cpu")
+
+    # Empty loader (returns no batches)
+    empty_loader = MagicMock()
+    empty_loader.__iter__ = MagicMock(return_value=iter([]))
+
+    metrics = validate_epoch(
+        model=simple_model,
+        val_loader=empty_loader,
+        criterion=criterion,
+        device=device,
+    )
+
+    assert metrics == {"loss": 0.0, "accuracy": 0.0, "auc": 0.0}
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -11,6 +11,7 @@ Key Functions:
     mixup_data: Beta-distribution sample blending for regularization
 """
 
+import logging
 from typing import Tuple
 
 import numpy as np
@@ -18,6 +19,11 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import roc_auc_score
 from tqdm.auto import tqdm
+
+from orchard.core import LOGGER_NAME
+
+# Module-level logger (avoid dynamic imports in exception handlers)
+logger = logging.getLogger(LOGGER_NAME)
 
 
 # TRAINING ENGINE
@@ -100,6 +106,11 @@ def train_one_epoch(
         if use_tqdm:
             iterator.set_postfix({"loss": f"{loss.item():.4f}"})
 
+    # Handle empty training set (defensive guard)
+    if total_samples == 0:
+        logger.warning("Empty training set: no samples processed. Returning zero loss.")
+        return 0.0
+
     return running_loss / total_samples
 
 
@@ -159,12 +170,16 @@ def validate_epoch(
             total += targets.size(0)
             correct += (predicted == targets).sum().item()
 
+    # Handle empty validation set (defensive guard)
+    if total == 0 or len(all_targets) == 0:
+        logger.warning("Empty validation set: no samples processed. Returning zero metrics.")
+        return {"loss": 0.0, "accuracy": 0.0, "auc": 0.0}
+
     # Global metric computation
     y_true = torch.cat(all_targets).numpy()
     y_score = torch.cat(all_probs).numpy()
 
     num_classes = y_score.shape[1]
-    np.arange(num_classes)
 
     # Compute ROC-AUC
     try:
@@ -175,14 +190,9 @@ def validate_epoch(
             # Multi-class: use macro-averaged One-vs-Rest
             auc = roc_auc_score(y_true, y_score, multi_class="ovr", average="macro")
     except (ValueError, IndexError) as e:
-        # Log error for debugging
-        import logging
-
-        logger = logging.getLogger("VisionForge")
         logger.warning(f"AUC calculation failed: {e}. Setting auc=0.0")
         auc = 0.0
 
-    # Ensure we always return a dict
     return {"loss": val_loss / total, "accuracy": correct / total, "auc": auc}
 
 
