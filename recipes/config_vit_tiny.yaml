@@ -2,7 +2,7 @@
 # FILE: recipes/config_vit_tiny.yaml
 # Vision Transformer Tiny Training Configuration (224x224)
 # ==============================================================================
-# Usage: python main.py --config recipes/config_vit_tiny.yaml
+# Usage: python forge.py --config recipes/config_vit_tiny.yaml
 # Estimated Time: ~25-35 minutes (30 epochs, RTX 5070)
 # Memory Usage: ~3.5GB VRAM with AMP
 # Architecture: ViT-Tiny (5M parameters, patch-based attention)

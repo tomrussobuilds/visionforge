@@ -2,7 +2,7 @@
 # FILE: recipes/optuna_vit_tiny.yaml
 # Hyperparameter Optimization for Vision Transformer Tiny (224x224)
 # ==============================================================================
-# Usage: python optimize.py --config recipes/optuna_vit_tiny.yaml
+# Usage: python forge.py --config recipes/optuna_vit_tiny.yaml
 # Estimated Time: ~3-5 hours (20 trials × 15 epochs)
 # Memory Usage: ~4GB VRAM per trial with AMP
 #
@@ -30,7 +30,7 @@
 #     - weighted_loss
 
 dataset:
-  name: "retinamnist"
+  name: "dermamnist"
   data_root: ./dataset
   resolution: 224
   force_rgb: true
@@ -108,7 +108,7 @@ evaluation:
   save_predictions_grid: false
 
 optuna:
-  study_name: "retinamnist_vit_tiny_optimized"
+  study_name: "dermamnist_vit_tiny_optimized"
   n_trials: 20                  # Balanced exploration
   epochs: 15                    # Shorter for speed
   timeout: null

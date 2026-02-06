@@ -10,12 +10,13 @@ from unittest.mock import MagicMock, PropertyMock, patch
 import pytest
 import torch
 
-from orchard.core.logger.reporter import (
+from orchard.core.logger import (
     LogStyle,
     Reporter,
     log_best_config_export,
     log_optimization_header,
     log_optimization_summary,
+    log_pipeline_summary,
     log_study_summary,
     log_training_summary,
     log_trial_start,
@@ -441,7 +442,7 @@ def test_log_study_summary_value_error_on_best_trial():
 
     type(mock_study).best_value = PropertyMock(side_effect=ValueError("No best trial"))
 
-    with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
+    with patch("orchard.core.logger.progress.logger") as mock_module_logger:
         log_study_summary(study=mock_study, metric_name="auc", logger_instance=mock_logger)
         warning_called = mock_logger.warning.called or mock_module_logger.warning.called
         assert warning_called, "Warning should be called when ValueError is raised"
@@ -455,7 +456,7 @@ def test_log_best_config_export():
     config_path.__str__ = lambda x: "/tmp/best_config.yaml"
     config_path.parent.parent = MagicMock()
 
-    with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
+    with patch("orchard.core.logger.progress.logger") as mock_module_logger:
         log_best_config_export(config_path=config_path, logger_instance=None)
 
         assert mock_module_logger.info.call_count > 5
@@ -610,7 +611,7 @@ def test_functions_use_module_logger_when_no_instance():
     mock_paths = MagicMock()
     mock_paths.root = "/tmp"
 
-    with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
+    with patch("orchard.core.logger.progress.logger") as mock_module_logger:
         log_training_summary(
             cfg=mock_cfg,
             test_acc=0.9,
@@ -677,7 +678,7 @@ def test_log_study_summary_with_completed_trials():
     """Test log_study_summary with completed trials."""
     import optuna
 
-    with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
+    with patch("orchard.core.logger.progress.logger") as mock_module_logger:
         mock_study = MagicMock()
         mock_trial_complete = MagicMock()
         mock_trial_complete.state = optuna.trial.TrialState.COMPLETE
@@ -699,7 +700,7 @@ def test_log_study_summary_with_failed_trials():
     """Test log_study_summary includes failed trials count."""
     import optuna
 
-    with patch("orchard.core.logger.reporter.logger") as mock_module_logger:
+    with patch("orchard.core.logger.progress.logger") as mock_module_logger:
         mock_study = MagicMock()
         mock_trial_complete = MagicMock()
         mock_trial_complete.state = optuna.trial.TrialState.COMPLETE
@@ -717,6 +718,110 @@ def test_log_study_summary_with_failed_trials():
         calls = [str(call) for call in mock_module_logger.info.call_args_list]
         log_output = " ".join(calls)
         assert "Failed" in log_output or "FAIL" in log_output
+
+
+@pytest.mark.unit
+def test_log_study_summary_no_completed_trials():
+    """Test log_study_summary when no trials completed (lines 354-355)."""
+    import optuna
+
+    with patch("orchard.core.logger.progress.logger") as mock_module_logger:
+        mock_study = MagicMock()
+        mock_trial_pruned = MagicMock()
+        mock_trial_pruned.state = optuna.trial.TrialState.PRUNED
+
+        mock_study.trials = [mock_trial_pruned]
+
+        log_study_summary(study=mock_study, metric_name="auc", logger_instance=None)
+
+        assert mock_module_logger.warning.called
+        warning_calls = [str(call) for call in mock_module_logger.warning.call_args_list]
+        warning_output = " ".join(warning_calls)
+        assert "No trials completed successfully" in warning_output
+
+
+# LOG PIPELINE SUMMARY
+@pytest.mark.unit
+def test_log_pipeline_summary_basic():
+    """Test log_pipeline_summary logs basic pipeline completion info."""
+    mock_logger = MagicMock()
+
+    log_pipeline_summary(
+        test_acc=0.9234,
+        macro_f1=0.8765,
+        best_model_path="/tmp/best_model.pth",
+        run_dir="/tmp/outputs/run123",
+        duration="5m 30s",
+        logger_instance=mock_logger,
+    )
+
+    assert mock_logger.info.call_count > 0
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+
+    assert "PIPELINE COMPLETE" in log_output
+    assert "92.34%" in log_output
+    assert "0.8765" in log_output
+    assert "5m 30s" in log_output
+
+
+@pytest.mark.unit
+def test_log_pipeline_summary_with_onnx_path():
+    """Test log_pipeline_summary includes ONNX path when provided."""
+    mock_logger = MagicMock()
+
+    log_pipeline_summary(
+        test_acc=0.85,
+        macro_f1=0.80,
+        best_model_path="/tmp/best.pth",
+        run_dir="/tmp/run",
+        duration="10m 0s",
+        onnx_path="/tmp/model.onnx",
+        logger_instance=mock_logger,
+    )
+
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+
+    assert "ONNX Export" in log_output
+    assert "model.onnx" in log_output
+
+
+@pytest.mark.unit
+def test_log_pipeline_summary_without_onnx_path():
+    """Test log_pipeline_summary omits ONNX line when not provided."""
+    mock_logger = MagicMock()
+
+    log_pipeline_summary(
+        test_acc=0.9,
+        macro_f1=0.85,
+        best_model_path="/tmp/best.pth",
+        run_dir="/tmp/run",
+        duration="2m 15s",
+        onnx_path=None,
+        logger_instance=mock_logger,
+    )
+
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+
+    assert "ONNX" not in log_output
+
+
+@pytest.mark.unit
+def test_log_pipeline_summary_uses_module_logger_when_none():
+    """Test log_pipeline_summary uses module logger when none provided."""
+    with patch("orchard.core.logger.progress.logger") as mock_module_logger:
+        log_pipeline_summary(
+            test_acc=0.9,
+            macro_f1=0.85,
+            best_model_path="/tmp/best.pth",
+            run_dir="/tmp/run",
+            duration="1m 0s",
+            logger_instance=None,
+        )
+
+        assert mock_module_logger.info.call_count > 0
 
 
 if __name__ == "__main__":

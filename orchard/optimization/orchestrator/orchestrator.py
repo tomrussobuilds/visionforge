@@ -31,7 +31,6 @@ from orchard.core import (
     LogStyle,
     RunPaths,
     log_optimization_header,
-    log_study_summary,
 )
 
 from ..objective.objective import OptunaObjective
@@ -156,8 +155,6 @@ class OptunaOrchestrator:
         Args:
             study: Completed Optuna study
         """
-        log_study_summary(study, self.cfg.optuna.metric_name)
-
         if not has_completed_trials(study):
             logger.warning(
                 "No completed trials. Skipping visualizations, best config, "

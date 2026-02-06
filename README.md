@@ -149,76 +149,81 @@ pip install -r requirements.txt
 # Downloads BloodMNIST 28×28 by default
 python -m tests.smoke_test
 
-# Note: You can skip this step - main.py will auto-download datasets as needed
+# Note: You can skip this step - forge.py will auto-download datasets as needed
 ```
 
 ### Step 3: Training Workflow
 
-VisionForge supports a **three-phase workflow** optimized for different hardware configurations:
+VisionForge uses `forge.py` as the **single entry point** for all workflows. The pipeline behavior is controlled entirely by the YAML configuration:
 
-#### **Phase 1: Baseline Training** (Learn the framework)
+- **Training only**: Use a `config_*.yaml` file (no `optuna:` section)
+- **Optimization + Training**: Use an `optuna_*.yaml` file (has `optuna:` section)
+- **With Export**: Add an `export:` section to your config
 
-Start with a quick training run to familiarize yourself with the pipeline:
+#### **Training Only** (Quick start)
+
 ```bash
 # 28×28 resolution (CPU-compatible)
-python main.py --config recipes/config_mini_cnn.yaml              # ~2-3 min GPU, ~5-10 min CPU (faster with best_config)
-
-# or with transfer learning
-python main.py --config recipes/config_resnet_18_adapted.yaml     # ~15 min GPU, ~2.5h CPU
+python forge.py --config recipes/config_mini_cnn.yaml              # ~2-3 min GPU, ~10 min CPU
+python forge.py --config recipes/config_resnet_18_adapted.yaml     # ~15 min GPU, ~2.5h CPU
 
 # 224×224 resolution (GPU required)
-python main.py --config recipes/config_efficientnet_b0.yaml       # ~30 min GPU per trial
-python main.py --config recipes/config_vit_tiny.yaml              # ~25-35 min GPU per trial
+python forge.py --config recipes/config_efficientnet_b0.yaml       # ~30 min GPU
+python forge.py --config recipes/config_vit_tiny.yaml              # ~25-35 min GPU
 ```
 
 **What happens:**
-- Dataset is auto-downloaded to `./dataset/` (cached for future runs)
+- Dataset auto-downloaded to `./dataset/`
 - Training runs for 60 epochs with early stopping
 - Results saved to timestamped directory in `outputs/`
 
 ---
 
-#### **Phase 2: Hyperparameter Optimization** (Find best configuration)
+#### **Hyperparameter Optimization + Training** (Full pipeline)
 
-Use Optuna to automatically search for optimal hyperparameters:
 ```bash
 # 28×28 resolution - fast iteration
-python optimize.py --config recipes/optuna_mini_cnn.yaml              # ~5 min GPU, ~10 min CPU (50 trials with pruning/early_stoppping)
-python optimize.py --config recipes/optuna_resnet_18_adapted.yaml     # ~5-10 min GPU (50 trials with pruning/early_stopping)
+python forge.py --config recipes/optuna_mini_cnn.yaml              # ~5 min GPU, ~10 min CPU
+python forge.py --config recipes/optuna_resnet_18_adapted.yaml     # ~5-10 min GPU
 
 # 224×224 resolution - requires GPU
-python optimize.py --config recipes/optuna_efficientnet_b0.yaml       # ~1.5-5h*, 20 trials, GPU
-python optimize.py --config recipes/optuna_vit_tiny.yaml              # ~3-5h*, 20 trials, GPU
+python forge.py --config recipes/optuna_efficientnet_b0.yaml       # ~1.5-5h*, GPU
+python forge.py --config recipes/optuna_vit_tiny.yaml              # ~3-5h*, GPU
 
-# *Time varies significantly due to early stopping (may finish in 1-3h if target AUC reached)
+# *Time varies due to early stopping (may finish in 1-3h if target AUC reached)
 ```
 
 **What happens:**
-- Explores hyperparameter combinations (learning rate, regularization, augmentation, etc.)
-- Each trial trains for 15 epochs with pruning
-- Stops early if performance threshold met (e.g., AUC ≥ 0.9999)
-- Generates interactive visualization plots and best configuration YAML
+1. **Optimization**: Explores hyperparameter combinations with Optuna
+2. **Training**: Full 60-epoch training with best hyperparameters found
+3. **Artifacts**: Interactive plots, best_config.yaml, model weights
 
 **View optimization results:**
 ```bash
-firefox outputs/*/figures/param_importances.html       # See which hyperparameters matter most
-firefox outputs/*/figures/optimization_history.html    # Track trial progression
+firefox outputs/*/figures/param_importances.html       # Which hyperparameters matter most
+firefox outputs/*/figures/optimization_history.html    # Trial progression
 ```
 
 ---
 
-#### **Phase 3: Production Training** (Train with optimized settings)
+#### **With Model Export** (Production deployment)
 
-Use the best hyperparameters found during optimization for full training:
+Add an `export:` section to your config YAML:
+```yaml
+export:
+  format: onnx
+  opset_version: 18
+```
+
+Then run normally:
 ```bash
-# Train with optimized configuration (60 epochs, full validation)
-python main.py --config outputs/YYYYMMDD_dataset_model_hash/reports/best_config.yaml
+python forge.py --config recipes/my_config_with_export.yaml
 ```
 
 **What happens:**
-- Full 60-epoch training with best hyperparameters
-- Complete evaluation with test-time augmentation
-- Final artifacts: model weights, metrics spreadsheet, visualizations
+- After training, model is exported to ONNX format
+- Numerical validation ensures PyTorch ↔ ONNX consistency
+- Export saved to `outputs/*/exports/model.onnx`
 
 ---
 
@@ -227,7 +232,7 @@ python main.py --config outputs/YYYYMMDD_dataset_model_hash/reports/best_config.
 All outputs are isolated in timestamped directories:
 ```bash
 ls outputs/YYYYMMDD_dataset_model_hash/
-├── figures/          # Confusion matrices, training curves, sample  predictions
+├── figures/          # Confusion matrices, training curves, sample predictions
 ├── reports/          # Excel summaries, best_config.yaml (optimization only)
 ├── models/           # Trained model weights (.pth)
 └── database/         # Optuna study database (optimization only)
@@ -238,40 +243,7 @@ ls outputs/YYYYMMDD_dataset_model_hash/
 - `models/best_*.pth` - Best model weights (by validation AUC)
 - `reports/best_config.yaml` - Optimized configuration (optimization runs only)
 
----
-
-### Step 5: Export Model
-
-Export trained models to ONNX format for production deployment:
-```bash
-# Export to ONNX (opset 18, dynamic batch size)
-python export.py --checkpoint outputs/run_xyz/models/best_efficientnetb0.pth \
-                 --dataset galaxy10 \
-                 --resolution 224 \
-                 --model_name efficientnet_b0 \
-                 --format onnx
-```
-
-**What happens:**
-- Converts PyTorch model to ONNX format
-- Validates numerical consistency between PyTorch and ONNX
-- Generates optimized model for inference
-
-For advanced options (quantization, validation settings), see the [Export Guide](docs/guide/EXPORT.md).
-
----
-
-### Hardware Recommendations
-
-**28×28 Resolution:**
-- ✅ CPU: Functional (~10 min - 2.5h per training run depending on architecture)
-- ✅ GPU: Recommended (~2-5 min per training run)
-- 💡 Best for: Rapid prototyping, learning the framework, limited hardware
-
-**224×224 Resolution:**
-- ❌ CPU: Not recommended (10+ hours per trial)
-- ✅ GPU: Required (~25-35 min per trial)
-- 💡 Best for: Production training, modern architectures (EfficientNet, ViT)
+For advanced export options (quantization, validation settings), see the [Export Guide](docs/guide/EXPORT.md).
 
 ---
 
@@ -365,10 +337,10 @@ outputs/20260123_organcmnist_efficientnetb0_a3f7c2/
 ## 📚 Citation
 
 ```bibtex
-@software{visionforge2025,
+@software{visionforge2026,
   author = {Tommaso Russo},
   title  = {VisionForge: Type-Safe Deep Learning Framework},
-  year   = {2025},
+  year   = {2026},
   url    = {https://github.com/tomrussobuilds/visionforge},
   note   = {PyTorch framework with Pydantic configuration and Optuna optimization}
 }

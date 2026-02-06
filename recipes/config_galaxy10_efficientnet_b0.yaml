@@ -2,7 +2,7 @@
 # FILE: recipes/config_galaxy10_efficientnet_b0.yaml
 # EfficientNet-B0 for Galaxy10 DECals Galaxy Morphology (224x224)
 # ==============================================================================
-# Usage: python main.py --config recipes/config_galaxy10_efficientnet_b0.yaml
+# Usage: python forge.py --config recipes/config_galaxy10_efficientnet_b0.yaml
 # Dataset: Galaxy10 DECals - 10 galaxy morphology classes from DESI Legacy Surveys
 # Estimated Time: ~50 minutes (60 epochs on RTX 5070)
 # Memory Usage: ~4.5GB VRAM with AMP

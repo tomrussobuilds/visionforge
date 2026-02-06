@@ -24,6 +24,7 @@ from typing import List, Tuple
 
 import torch
 import torch.nn as nn
+from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 
 from orchard.core import LOGGER_NAME, Config, load_model_weights
@@ -56,7 +57,7 @@ class ModelTrainer:
         train_loader (DataLoader): Training data provider
         val_loader (DataLoader): Validation data provider
         optimizer (torch.optim.Optimizer): Gradient descent optimizer
-        scheduler (torch.optim.lr_scheduler._LRScheduler): Learning rate scheduler
+        scheduler (LRScheduler): Learning rate scheduler
         criterion (nn.Module): Loss function (e.g., CrossEntropyLoss)
         device (torch.device): Hardware target (CUDA/MPS/CPU)
         cfg (Config): Global configuration manifest (SSOT)
@@ -96,7 +97,7 @@ class ModelTrainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         optimizer: torch.optim.Optimizer,
-        scheduler: torch.optim.lr_scheduler._LRScheduler,
+        scheduler: LRScheduler,
         criterion: nn.Module,
         device: torch.device,
         cfg: Config,

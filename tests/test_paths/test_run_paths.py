@@ -21,8 +21,8 @@ from orchard.core.paths import OUTPUTS_ROOT, RunPaths
 def test_sub_dirs_constant():
     """Test SUB_DIRS class constant contains all required subdirectories."""
     assert hasattr(RunPaths, "SUB_DIRS")
-    assert RunPaths.SUB_DIRS == ("figures", "models", "reports", "logs", "database")
-    assert len(RunPaths.SUB_DIRS) == 5
+    assert RunPaths.SUB_DIRS == ("figures", "models", "reports", "logs", "database", "exports")
+    assert len(RunPaths.SUB_DIRS) == 6
 
 
 # RUNPATHS: CREATION FACTORY

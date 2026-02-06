@@ -13,12 +13,12 @@
 python -m tests.smoke_test
 
 # Train with presets (28×28 resolution, CPU-compatible)
-python main.py --config recipes/config_resnet_18_adapted.yaml     # ~15 min GPU, ~2.5h CPU
-python main.py --config recipes/config_mini_cnn.yaml              # ~2-3 min GPU, ~10 min CPU
+python forge.py --config recipes/config_resnet_18_adapted.yaml     # ~15 min GPU, ~2.5h CPU
+python forge.py --config recipes/config_mini_cnn.yaml              # ~2-3 min GPU, ~10 min CPU
 
 # Train with presets (224×224 resolution, GPU required)
-python main.py --config recipes/config_efficientnet_b0.yaml       # ~30 min each trial
-python main.py --config recipes/config_vit_tiny.yaml              # ~25-35 min each trial
+python forge.py --config recipes/config_efficientnet_b0.yaml       # ~30 min each trial
+python forge.py --config recipes/config_vit_tiny.yaml              # ~25-35 min each trial
 ```
 
 ### CLI Overrides
@@ -27,13 +27,13 @@ For rapid experimentation (not recommended for production):
 
 ```bash
 # Quick test on different dataset
-python main.py --dataset dermamnist --epochs 10 --batch_size 64
+python forge.py --dataset dermamnist --epochs 10 --batch_size 64
 
 # Custom learning rate schedule
-python main.py --lr 0.001 --min_lr 1e-7 --epochs 100
+python forge.py --lr 0.001 --min_lr 1e-7 --epochs 100
 
 # Disable augmentations
-python main.py --mixup_alpha 0 --no_tta
+python forge.py --mixup_alpha 0 --no_tta
 ```
 
 > [!WARNING]
@@ -124,7 +124,7 @@ DATASET_REGISTRY = {
 ### 2. Train Immediately
 
 ```bash
-python main.py --dataset custom_dataset --epochs 30
+python forge.py --dataset custom_dataset --epochs 30
 ```
 
 No code changes required—the configuration engine automatically resolves metadata.

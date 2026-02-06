@@ -7,7 +7,7 @@ resource cleanup, ensuring deterministic and reproducible ML experiments.
 
 Architecture:
     - Dependency Injection: All external dependencies are injectable for testability
-    - 7-Phase Initialization: Sequential setup from seeding to environment reporting
+    - 8-Phase Initialization: Sequential setup from seeding to environment reporting
     - Context Manager: Automatic resource acquisition and cleanup
     - Protocol-Based: Type-safe abstractions for mockability
 
@@ -15,6 +15,7 @@ Key Components:
     RootOrchestrator: Main lifecycle controller
     InfraManagerProtocol: Abstract interface for infrastructure management
     ReporterProtocol: Abstract interface for environment telemetry
+    TimeTrackerProtocol: Abstract interface for pipeline duration tracking
 
 Typical Usage:
     >>> from orchard.core import Config, RootOrchestrator
@@ -23,9 +24,11 @@ Typical Usage:
     ...     device = orchestrator.get_device()
     ...     paths = orchestrator.paths
     ...     # Run training pipeline
+    ...     # Duration automatically tracked and logged on exit
 """
 
 import logging
+import time
 from typing import TYPE_CHECKING, Callable, Literal, Optional, Protocol
 
 import torch
@@ -97,6 +100,68 @@ class ReporterProtocol(Protocol):
         ...  # pragma: no cover
 
 
+class TimeTrackerProtocol(Protocol):
+    """Protocol for pipeline duration tracking."""
+
+    def start(self) -> None:
+        """Record pipeline start time."""
+        ...  # pragma: no cover
+
+    def stop(self) -> float:
+        """Record stop time and return elapsed seconds."""
+        ...  # pragma: no cover
+
+    @property
+    def elapsed_seconds(self) -> float:
+        """Total elapsed time in seconds."""
+        ...  # pragma: no cover
+
+    @property
+    def elapsed_formatted(self) -> str:
+        """Human-readable elapsed time string."""
+        ...  # pragma: no cover
+
+
+class TimeTracker:
+    """Default implementation of TimeTrackerProtocol."""
+
+    def __init__(self) -> None:
+        self._start_time: Optional[float] = None
+        self._end_time: Optional[float] = None
+
+    def start(self) -> None:
+        """Record pipeline start time."""
+        self._start_time = time.time()
+        self._end_time = None
+
+    def stop(self) -> float:
+        """Record stop time and return elapsed seconds."""
+        self._end_time = time.time()
+        return self.elapsed_seconds
+
+    @property
+    def elapsed_seconds(self) -> float:
+        """Total elapsed time in seconds."""
+        if self._start_time is None:
+            return 0.0
+        end = self._end_time if self._end_time else time.time()
+        return end - self._start_time
+
+    @property
+    def elapsed_formatted(self) -> str:
+        """Human-readable elapsed time string (e.g., '1h 23m 45s')."""
+        total_seconds = self.elapsed_seconds
+        hours, remainder = divmod(int(total_seconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        if hours > 0:
+            return f"{hours}h {minutes}m {seconds}s"
+        elif minutes > 0:
+            return f"{minutes}m {seconds}s"
+        else:
+            return f"{total_seconds:.1f}s"
+
+
 # ROOT ORCHESTRATOR
 class RootOrchestrator:
     """
@@ -160,6 +225,7 @@ class RootOrchestrator:
         cfg: "Config",
         infra_manager: Optional[InfraManagerProtocol] = None,
         reporter: Optional[ReporterProtocol] = None,
+        time_tracker: Optional[TimeTrackerProtocol] = None,
         log_initializer: Optional[Callable] = None,
         seed_setter: Optional[Callable] = None,
         thread_applier: Optional[Callable] = None,
@@ -175,6 +241,7 @@ class RootOrchestrator:
             cfg: Validated global configuration (SSOT)
             infra_manager: Infrastructure management handler (default: InfrastructureManager())
             reporter: Environment reporting engine (default: Reporter())
+            time_tracker: Pipeline duration tracker (default: TimeTracker())
             log_initializer: Logging setup function (default: Logger.setup)
             seed_setter: RNG seeding function (default: set_seed)
             thread_applier: CPU thread configuration (default: apply_cpu_threads)
@@ -186,9 +253,9 @@ class RootOrchestrator:
         self.cfg = cfg
 
         # Dependency injection with defaults
-
         self.infra = infra_manager if infra_manager is not None else InfrastructureManager()
         self.reporter = reporter or Reporter()
+        self.time_tracker = time_tracker or TimeTracker()
         self._log_initializer = log_initializer or Logger.setup
         self._seed_setter = seed_setter or set_seed
         self._thread_applier = thread_applier or apply_cpu_threads
@@ -214,6 +281,7 @@ class RootOrchestrator:
             Initialized RootOrchestrator ready for pipeline execution
         """
         try:
+            self.time_tracker.start()
             self.initialize_core_services()
             return self
         except Exception as e:
@@ -224,6 +292,8 @@ class RootOrchestrator:
         """
         Context Manager exit - ensures resource release and lock cleanup.
 
+        Logs pipeline duration before releasing resources.
+
         Args:
             exc_type: Exception type if raised
             exc_val: Exception instance if raised
@@ -232,6 +302,11 @@ class RootOrchestrator:
         Returns:
             False to allow exception propagation
         """
+        # Stop timer and log duration
+        self.time_tracker.stop()
+        if self.run_logger:
+            self.run_logger.info(f"Pipeline duration: {self.time_tracker.elapsed_formatted}")
+
         self.cleanup()
         return False
 

@@ -2,7 +2,7 @@
 # FILE: recipes/optuna_galaxy10_vit_tiny.yaml
 # Hyperparameter Optimization for ViT-Tiny on Galaxy10 (224x224)
 # ==============================================================================
-# Usage: python optimize.py --config recipes/optuna_galaxy10_vit_tiny.yaml
+# Usage: python forge.py --config recipes/optuna_galaxy10_vit_tiny.yaml
 # Estimated Time: ~3-5 hours (20 trials × 15 epochs)
 # Memory Usage: ~4GB VRAM per trial with AMP
 #

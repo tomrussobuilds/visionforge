@@ -2,7 +2,7 @@
 # FILE: recipes/config_mini_cnn.yaml
 # Lightweight CNN Training Configuration (28x28)
 # ==============================================================================
-# Usage: python main.py --config recipes/config_mini_cnn.yaml
+# Usage: python forge.py --config recipes/config_mini_cnn.yaml
 # Estimated Time: ~2-3 minutes (60 epochs, RTX 5070)
 # Memory Usage: ~500MB VRAM
 # Architecture: MiniCNN (~50K parameters, compact baseline)

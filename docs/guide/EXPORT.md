@@ -7,7 +7,7 @@ Convert trained VisionForge models to ONNX format for production deployment.
 Export a trained model by specifying the checkpoint and architecture parameters:
 
 ```bash
-python export.py \
+python forge.py \
     --checkpoint outputs/20260201_galaxy10_efficientnetb0_4a29ea_221107/models/best_efficientnetb0.pth \
     --dataset galaxy10 \
     --resolution 224 \
@@ -53,7 +53,7 @@ For datasets **not** in the registry, use any dataset name with matching resolut
 
 **Mobile deployment:**
 ```bash
-python export.py \
+python forge.py \
     --checkpoint outputs/run_xyz/models/best_model.pth \
     --dataset galaxy10 \
     --resolution 224 \
@@ -65,7 +65,7 @@ python export.py \
 
 **Server deployment:**
 ```bash
-python export.py \
+python forge.py \
     --checkpoint outputs/run_xyz/models/best_model.pth \
     --dataset galaxy10 \
     --resolution 224 \
@@ -78,7 +78,7 @@ python export.py \
 ### Custom output path
 
 ```bash
-python export.py \
+python forge.py \
     --checkpoint outputs/run_xyz/models/best_model.pth \
     --dataset galaxy10 \
     --resolution 224 \
@@ -90,7 +90,7 @@ python export.py \
 ### Strict validation
 
 ```bash
-python export.py \
+python forge.py \
     --checkpoint outputs/run_xyz/models/best_model.pth \
     --dataset galaxy10 \
     --resolution 224 \
@@ -103,7 +103,7 @@ python export.py \
 ### Skip validation (faster export)
 
 ```bash
-python export.py \
+python forge.py \
     --checkpoint outputs/run_xyz/models/best_model.pth \
     --dataset galaxy10 \
     --resolution 224 \

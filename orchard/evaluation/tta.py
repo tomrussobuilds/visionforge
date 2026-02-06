@@ -23,19 +23,39 @@ def _get_tta_transforms(
     """
     Internal factory to resolve the augmentation suite based on
     dataset constraints and hardware capabilities.
+
+    Transform selection logic:
+        - Anatomical datasets: NO flips or rotations (orientation is diagnostic)
+        - Texture-based datasets: Minimal transforms (texture patterns are fragile)
+        - Non-anatomical + Non-texture: Full augmentation suite
+
+    Args:
+        device: Hardware target for optimized transform selection
+        is_anatomical: If True, preserves spatial orientation (no flips/rotations)
+        is_texture_based: If True, avoids destructive pixel operations
+        cfg: Configuration with TTA parameters
+
+    Returns:
+        List of transform functions to apply during TTA inference
     """
-    # 1. BASE TRANSFORMS: Safe for all medical datasets
+    # 1. BASE TRANSFORMS: Always include identity
     t_list = [
-        (lambda x: x),  # Original identity
-        (lambda x: torch.flip(x, dims=[3])),  # Horizontal flip
+        (lambda x: x),  # Original (always first)
     ]
 
-    # 2. TEXTURE-AWARE TRANSFORMS: Geometric vs Pixel-level
+    # 2. FLIP: Only for non-anatomical datasets
+    # Anatomical data (CT scans, X-rays) has fixed orientation - flipping is invalid
+    if not is_anatomical:
+        t_list.append(lambda x: torch.flip(x, dims=[3]))  # Horizontal flip
+
+    # 3. TEXTURE-BASED: Minimal augmentation to preserve pattern integrity
+    # Texture datasets (dermoscopy, histology) rely on fine-grained patterns
     if is_texture_based:
-        # Subtle shift: only 1px if image is small, to avoid losing detail
-        t_list.append(lambda x: TF.affine(x, angle=0, translate=(1, 1), scale=1.0, shear=0))
+        # Skip aggressive transforms - texture patterns are sensitive
+        # Only identity (+ flip if non-anatomical) is applied
+        pass
     else:
-        # Additional transforms for non-texture datasets
+        # Non-texture datasets can tolerate geometric/photometric perturbations
         t_list.extend(
             [
                 (
@@ -52,30 +72,29 @@ def _get_tta_transforms(
                         x, angle=0, translate=(0, 0), scale=cfg.augmentation.tta_scale, shear=0
                     )
                 ),
-                # Gaussian Blur and Noise are the most destructive for texture
                 (
                     lambda x: TF.gaussian_blur(
                         x, kernel_size=3, sigma=cfg.augmentation.tta_blur_sigma
                     )
                 ),
-                # Gaussian Noise addition with clamping to [0, 1]
-                (lambda x: (x + 0.01 * torch.randn_like(x)).clamp(0, 1)),
+                # Removed: Gaussian noise (non-deterministic, breaks reproducibility)
             ]
         )
 
-    # 3. ADVANCED TRANSFORMS: Geometric augmentations
-    # Only enabled for non-anatomical data and non-CPU devices
-    if not is_anatomical and device.type != "cpu":
-        t_list.extend(
-            [
-                (lambda x: torch.rot90(x, k=1, dims=[2, 3])),  # 90 degree rotation
-                (lambda x: torch.rot90(x, k=2, dims=[2, 3])),  # 180 degree rotation
-                (lambda x: torch.rot90(x, k=3, dims=[2, 3])),  # 270 degree rotation
-            ]
-        )
-    elif not is_anatomical and device.type == "cpu":
-        # Light CPU fallback: Additional flip only
-        t_list.append((lambda x: torch.flip(x, dims=[2])))
+    # 4. ADVANCED TRANSFORMS: Rotations for non-anatomical data on GPU
+    # Rotations are valid only when spatial orientation is not diagnostic
+    if not is_anatomical and not is_texture_based:
+        if device.type != "cpu":
+            t_list.extend(
+                [
+                    (lambda x: torch.rot90(x, k=1, dims=[2, 3])),  # 90°
+                    (lambda x: torch.rot90(x, k=2, dims=[2, 3])),  # 180°
+                    (lambda x: torch.rot90(x, k=3, dims=[2, 3])),  # 270°
+                ]
+            )
+        else:
+            # CPU fallback: vertical flip instead of rotations (lighter)
+            t_list.append(lambda x: torch.flip(x, dims=[2]))
 
     return t_list
 

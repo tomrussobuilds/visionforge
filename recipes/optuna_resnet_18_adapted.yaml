@@ -2,7 +2,7 @@
 # FILE: recipes/optuna_resnet_18_adapted.yaml
 # Hyperparameter Optimization for ResNet-18 (28x28)
 # ==============================================================================
-# Usage: python optimize.py --config recipes/optuna_resnet_18_adapted.yaml
+# Usage: python forge.py --config recipes/optuna_resnet_18_adapted.yaml
 # Estimated Time: ~2 hours (25 trials × 15 epochs)
 # Memory Usage: ~2GB VRAM per trial
 #

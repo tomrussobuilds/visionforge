@@ -33,7 +33,8 @@ class RunPaths(BaseModel):
         ├── models/     <- Saved checkpoints (.pth)
         ├── reports/    <- Config mirrors, CSV summaries
         ├── logs/       <- Standard output and training logs
-        └── database/   <- SQLite optimization studies
+        ├── database/   <- SQLite optimization studies
+        └── exports/    <- Production model exports (ONNX, TorchScript)
     """
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
@@ -45,6 +46,7 @@ class RunPaths(BaseModel):
         "reports",
         "logs",
         "database",
+        "exports",
     )
 
     # Core Identifiers
@@ -59,6 +61,7 @@ class RunPaths(BaseModel):
     reports: Path
     logs: Path
     database: Path
+    exports: Path
 
     @classmethod
     def create(
@@ -106,6 +109,7 @@ class RunPaths(BaseModel):
             reports=root_path / "reports",
             logs=root_path / "logs",
             database=root_path / "database",
+            exports=root_path / "exports",
         )
 
         instance._setup_run_directories()

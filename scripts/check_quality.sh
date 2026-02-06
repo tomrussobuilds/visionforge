@@ -9,17 +9,17 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 echo "📝 Black (code formatting)..."
-black --check --diff orchard/ tests/ main.py optimize.py
+black --check --diff orchard/ tests/ forge.py
 echo "✓ Black passed"
 echo ""
 
 echo "📦 isort (import sorting)..."
-isort --check-only --diff orchard/ tests/ main.py optimize.py
+isort --check-only --diff orchard/ tests/ forge.py
 echo "✓ isort passed"
 echo ""
 
 echo "✨ Flake8 (linting)..."
-flake8 orchard/ tests/ main.py optimize.py --max-line-length=100 --extend-ignore=E203,W503
+flake8 orchard/ tests/ forge.py --max-line-length=100 --extend-ignore=E203,W503
 echo "✓ Flake8 passed"
 echo ""
 

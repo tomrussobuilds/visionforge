@@ -1,15 +1,90 @@
 """
-Tests suite for RootOrchestrator.
+Tests suite for RootOrchestrator and TimeTracker.
 Tests all 7 phases, __enter__, __exit__, and edge cases.
 Achieves high coverage through dependency injection and mocking.
 """
 
+import time
 from unittest.mock import MagicMock
 
 import pytest
 import torch
 
-from orchard.core import LOGGER_NAME, RootOrchestrator
+from orchard.core import LOGGER_NAME, RootOrchestrator, TimeTracker
+
+
+# TIMETRACKER TESTS
+@pytest.mark.unit
+def test_timetracker_elapsed_seconds_before_start():
+    """Test elapsed_seconds returns 0 before start() is called."""
+    tracker = TimeTracker()
+    assert tracker.elapsed_seconds == 0.0
+
+
+@pytest.mark.unit
+def test_timetracker_elapsed_formatted_seconds():
+    """Test elapsed_formatted returns seconds format for < 1 minute."""
+    tracker = TimeTracker()
+    tracker._start_time = time.time() - 45.5  # 45.5 seconds ago
+    tracker._end_time = time.time()
+
+    result = tracker.elapsed_formatted
+    assert "s" in result
+    assert "m" not in result
+    assert "h" not in result
+
+
+@pytest.mark.unit
+def test_timetracker_elapsed_formatted_minutes():
+    """Test elapsed_formatted returns minutes format for >= 1 minute."""
+    tracker = TimeTracker()
+    tracker._start_time = time.time() - 125  # 2 minutes 5 seconds ago
+    tracker._end_time = time.time()
+
+    result = tracker.elapsed_formatted
+    assert "m" in result
+    assert "s" in result
+    assert "h" not in result
+    assert result == "2m 5s"
+
+
+@pytest.mark.unit
+def test_timetracker_elapsed_formatted_hours():
+    """Test elapsed_formatted returns hours format for >= 1 hour."""
+    tracker = TimeTracker()
+    tracker._start_time = time.time() - 3725  # 1 hour 2 minutes 5 seconds
+    tracker._end_time = time.time()
+
+    result = tracker.elapsed_formatted
+    assert "h" in result
+    assert "m" in result
+    assert "s" in result
+    assert result == "1h 2m 5s"
+
+
+@pytest.mark.unit
+def test_timetracker_start_resets_end_time():
+    """Test start() resets _end_time to None."""
+    tracker = TimeTracker()
+    tracker._end_time = time.time()
+
+    tracker.start()
+
+    assert tracker._end_time is None
+    assert tracker._start_time is not None
+
+
+@pytest.mark.unit
+def test_timetracker_stop_returns_elapsed():
+    """Test stop() returns elapsed seconds."""
+    tracker = TimeTracker()
+    tracker.start()
+    time.sleep(0.01)  # Small delay
+
+    elapsed = tracker.stop()
+
+    assert elapsed > 0
+    assert tracker._end_time is not None
 
 
 # ORCHESTRATOR: INITIALIZATION
@@ -122,6 +197,28 @@ def test_context_manager_exit_propagates_exception():
     result = orch.__exit__(ValueError, ValueError("test"), None)
 
     assert result is False
+
+
+@pytest.mark.unit
+def test_context_manager_exit_logs_duration():
+    """Test __exit__ logs pipeline duration when run_logger is present."""
+    mock_cfg = MagicMock()
+    mock_cfg.hardware.use_deterministic_algorithms = False
+    mock_cfg.hardware.effective_num_workers = 4
+
+    mock_logger = MagicMock()
+    mock_time_tracker = MagicMock()
+    mock_time_tracker.elapsed_formatted = "5m 30s"
+
+    orch = RootOrchestrator(cfg=mock_cfg, time_tracker=mock_time_tracker)
+    orch.run_logger = mock_logger
+    orch.cleanup = MagicMock()
+
+    orch.__exit__(None, None, None)
+
+    mock_time_tracker.stop.assert_called_once()
+    mock_logger.info.assert_called_once()
+    assert "5m 30s" in mock_logger.info.call_args[0][0]
 
 
 # GET DEVICE

@@ -11,21 +11,21 @@
 pip install optuna plotly timm  # timm required for ViT support
 
 # Run optimization with presets
-python optimize.py --config recipes/optuna_resnet_18_adapted.yaml  # 50 trials, ~3 min GPU, ~2.5h CPU
-python optimize.py --config recipes/optuna_mini_cnn.yaml           # 50 trials, ~1-2 min GPU, ~5 min CPU
+python forge.py --config recipes/optuna_resnet_18_adapted.yaml  # 50 trials, ~3 min GPU, ~2.5h CPU
+python forge.py --config recipes/optuna_mini_cnn.yaml           # 50 trials, ~1-2 min GPU, ~5 min CPU
 
 # 224×224 resolution (includes weight variant search for ViT)
-python optimize.py --config recipes/optuna_efficientnet_b0.yaml    # 20 trials, ~1.5-5h GPU
-python optimize.py --config recipes/optuna_vit_tiny.yaml           # 20 trials, ~3-5h GPU
+python forge.py --config recipes/optuna_efficientnet_b0.yaml    # 20 trials, ~1.5-5h GPU
+python forge.py --config recipes/optuna_vit_tiny.yaml           # 20 trials, ~3-5h GPU
 
 # Custom search (20 trials, 10 epochs each)
-python optimize.py --dataset pathmnist \
+python forge.py --dataset pathmnist \
     --n_trials 20 \
     --epochs 10 \
     --search_space_preset quick
 
 # Resume interrupted study
-python optimize.py --config recipes/optuna_vit_tiny.yaml \
+python forge.py --config recipes/optuna_vit_tiny.yaml \
     --load_if_exists true
 ```
 
@@ -54,14 +54,14 @@ python optimize.py --config recipes/optuna_vit_tiny.yaml \
 
 ```bash
 # Phase 1: Comprehensive search (configurable trials, early stopping enabled)
-python optimize.py --config recipes/optuna_efficientnet_b0.yaml
+python forge.py --config recipes/optuna_efficientnet_b0.yaml
 
 # Phase 2: Review results
 firefox outputs/*/figures/param_importances.html
 firefox outputs/*/figures/optimization_history.html
 
 # Phase 3: Train with best config (60 epochs, full evaluation)
-python main.py --config outputs/*/reports/best_config.yaml
+python forge.py --config outputs/*/reports/best_config.yaml
 ```
 
 ### Artifacts Generated

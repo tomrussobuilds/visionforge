@@ -74,22 +74,58 @@ def test_get_tta_transforms_base(dummy_input, device, mock_cfg):
 
 @pytest.mark.unit
 def test_get_tta_transforms_texture_based(dummy_input, device, mock_cfg):
-    """Test the generation of texture-based transformations."""
+    """Test texture-based datasets get minimal transforms (identity + flip only)."""
     transforms = _get_tta_transforms(
         device, is_anatomical=False, is_texture_based=True, cfg=mock_cfg
     )
 
-    assert len(transforms) > 2, "Texture-based augmentations were not added."
+    # Texture-based: only identity + horizontal flip (no aggressive transforms)
+    assert len(transforms) == 2, "Texture-based should only have identity + flip."
 
-    modified = transforms[-1](dummy_input)
-    assert not torch.equal(
-        modified, dummy_input
-    ), "Texture-based transform did not change the image."
+    # First is identity
+    assert torch.equal(transforms[0](dummy_input), dummy_input)
+    # Second is horizontal flip
+    assert not torch.equal(transforms[1](dummy_input), dummy_input)
+
+
+@pytest.mark.unit
+def test_get_tta_transforms_anatomical_preserves_orientation(dummy_input, device, mock_cfg):
+    """Test anatomical datasets do NOT get flips or rotations."""
+    transforms = _get_tta_transforms(
+        device, is_anatomical=True, is_texture_based=False, cfg=mock_cfg
+    )
+
+    # Anatomical non-texture: identity + translate + scale + blur = 4
+    assert len(transforms) == 4, "Anatomical should not have flip or rotations."
+
+    # First must be identity
+    assert torch.equal(transforms[0](dummy_input), dummy_input)
+
+    # Verify no flip is present (all transforms should preserve left-right orientation)
+    for t in transforms:
+        result = t(dummy_input)
+        # Check that the left side pattern is still on the left
+        # (flip would swap dims[3], i.e., width)
+        if not torch.equal(result, dummy_input):
+            # Non-identity transform - just verify shape is preserved
+            assert result.shape == dummy_input.shape
+
+
+@pytest.mark.unit
+def test_get_tta_transforms_anatomical_texture_minimal(dummy_input, device, mock_cfg):
+    """Test anatomical + texture datasets get only identity (most restrictive)."""
+    transforms = _get_tta_transforms(
+        device, is_anatomical=True, is_texture_based=True, cfg=mock_cfg
+    )
+
+    # Anatomical + texture: only identity (no flip, no aggressive transforms)
+    assert len(transforms) == 1, "Anatomical+texture should only have identity."
+    assert torch.equal(transforms[0](dummy_input), dummy_input)
 
 
 @pytest.mark.unit
 def test_get_tta_transforms_gpu_rotations_mocked():
-    """Test GPU branch adds rotations for non-anatomical datasets (mocked)."""
+    """Test GPU branch adds rotations for non-anatomical, non-texture datasets."""
     mock_cfg = MagicMock()
     mock_cfg.augmentation.tta_translate = 2
     mock_cfg.augmentation.tta_scale = 1.05
@@ -105,12 +141,13 @@ def test_get_tta_transforms_gpu_rotations_mocked():
         cfg=mock_cfg,
     )
 
-    assert len(gpu_transforms) == 9
+    # GPU non-anatomical non-texture: id + flip + translate + scale + blur + 3 rotations = 8
+    assert len(gpu_transforms) == 8
 
 
 @pytest.mark.unit
 def test_get_tta_transforms_cpu_fallback_vertical_flip():
-    """Test CPU fallback adds vertical flip for non-anatomical datasets."""
+    """Test CPU fallback adds vertical flip for non-anatomical, non-texture datasets."""
     mock_cfg = MagicMock()
     mock_cfg.augmentation.tta_translate = 2
     mock_cfg.augmentation.tta_scale = 1.05
@@ -125,7 +162,8 @@ def test_get_tta_transforms_cpu_fallback_vertical_flip():
         cfg=mock_cfg,
     )
 
-    assert len(cpu_transforms) == 7
+    # CPU non-anatomical non-texture: id + flip + translate + scale + blur + vflip = 6
+    assert len(cpu_transforms) == 6
 
     test_tensor = torch.ones(1, 3, 4, 4)
     test_tensor[0, 0, 0, :] = 0
@@ -139,7 +177,7 @@ def test_get_tta_transforms_cpu_fallback_vertical_flip():
 @pytest.mark.unit
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_get_tta_transforms_gpu_rotations():
-    """Test GPU adds 90/180/270 rotations for non-anatomical datasets."""
+    """Test GPU adds 90/180/270 rotations for non-anatomical, non-texture datasets."""
     mock_cfg = MagicMock()
     mock_cfg.augmentation.tta_translate = 2
     mock_cfg.augmentation.tta_scale = 1.05
@@ -152,7 +190,8 @@ def test_get_tta_transforms_gpu_rotations():
         cfg=mock_cfg,
     )
 
-    assert len(gpu_transforms) == 9
+    # GPU non-anatomical non-texture: id + flip + translate + scale + blur + 3 rotations = 8
+    assert len(gpu_transforms) == 8
 
 
 # TEST CASES: ADAPTIVE TTA PREDICT

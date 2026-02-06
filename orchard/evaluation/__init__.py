@@ -8,9 +8,9 @@ Augmentation (TTA), while automating the generation of artifacts
 (plots, reports) for experimental tracking.
 """
 
+from .evaluation_pipeline import run_final_evaluation
 from .evaluator import evaluate_model
 from .metrics import compute_classification_metrics
-from .pipeline import run_final_evaluation
 from .reporting import TrainingReport, create_structured_report
 from .tta import _get_tta_transforms, adaptive_tta_predict
 from .visualization import plot_confusion_matrix, plot_training_curves, show_predictions

@@ -2,7 +2,7 @@
 # FILE: recipes/config_efficientnet_b0.yaml
 # EfficientNet-B0 for 224x224 High-Resolution Images
 # ==============================================================================
-# Usage: python main.py --config recipes/config_efficientnet_b0.yaml
+# Usage: python forge.py --config recipes/config_efficientnet_b0.yaml
 # Estimated Time: ~40 minutes (60 epochs on RTX 5070)
 # Memory Usage: ~4.5GB VRAM with AMP
 

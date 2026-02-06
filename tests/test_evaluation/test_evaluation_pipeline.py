@@ -10,16 +10,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from orchard.evaluation.pipeline import run_final_evaluation
+from orchard.evaluation.evaluation_pipeline import run_final_evaluation
 
 
 # PIPELINE: SMOKE TESTS
 @pytest.mark.unit
-@patch("orchard.evaluation.pipeline.evaluate_model")
-@patch("orchard.evaluation.pipeline.plot_confusion_matrix")
-@patch("orchard.evaluation.pipeline.plot_training_curves")
-@patch("orchard.evaluation.pipeline.show_predictions")
-@patch("orchard.evaluation.pipeline.create_structured_report")
+@patch("orchard.evaluation.evaluation_pipeline.evaluate_model")
+@patch("orchard.evaluation.evaluation_pipeline.plot_confusion_matrix")
+@patch("orchard.evaluation.evaluation_pipeline.plot_training_curves")
+@patch("orchard.evaluation.evaluation_pipeline.show_predictions")
+@patch("orchard.evaluation.evaluation_pipeline.create_structured_report")
 def test_run_final_evaluation_returns_tuple(
     mock_report,
     mock_show_pred,
@@ -74,11 +74,11 @@ def test_run_final_evaluation_returns_tuple(
 
 
 @pytest.mark.unit
-@patch("orchard.evaluation.pipeline.evaluate_model")
-@patch("orchard.evaluation.pipeline.plot_confusion_matrix")
-@patch("orchard.evaluation.pipeline.plot_training_curves")
-@patch("orchard.evaluation.pipeline.show_predictions")
-@patch("orchard.evaluation.pipeline.create_structured_report")
+@patch("orchard.evaluation.evaluation_pipeline.evaluate_model")
+@patch("orchard.evaluation.evaluation_pipeline.plot_confusion_matrix")
+@patch("orchard.evaluation.evaluation_pipeline.plot_training_curves")
+@patch("orchard.evaluation.evaluation_pipeline.show_predictions")
+@patch("orchard.evaluation.evaluation_pipeline.create_structured_report")
 def test_run_final_evaluation_calls_evaluate_model(
     mock_report,
     mock_show_pred,
@@ -124,11 +124,11 @@ def test_run_final_evaluation_calls_evaluate_model(
 
 
 @pytest.mark.unit
-@patch("orchard.evaluation.pipeline.evaluate_model")
-@patch("orchard.evaluation.pipeline.plot_confusion_matrix")
-@patch("orchard.evaluation.pipeline.plot_training_curves")
-@patch("orchard.evaluation.pipeline.show_predictions")
-@patch("orchard.evaluation.pipeline.create_structured_report")
+@patch("orchard.evaluation.evaluation_pipeline.evaluate_model")
+@patch("orchard.evaluation.evaluation_pipeline.plot_confusion_matrix")
+@patch("orchard.evaluation.evaluation_pipeline.plot_training_curves")
+@patch("orchard.evaluation.evaluation_pipeline.show_predictions")
+@patch("orchard.evaluation.evaluation_pipeline.create_structured_report")
 def test_run_final_evaluation_calls_visualizations(
     mock_report,
     mock_show_pred,
@@ -172,11 +172,11 @@ def test_run_final_evaluation_calls_visualizations(
 
 
 @pytest.mark.unit
-@patch("orchard.evaluation.pipeline.evaluate_model")
-@patch("orchard.evaluation.pipeline.plot_confusion_matrix")
-@patch("orchard.evaluation.pipeline.plot_training_curves")
-@patch("orchard.evaluation.pipeline.show_predictions")
-@patch("orchard.evaluation.pipeline.create_structured_report")
+@patch("orchard.evaluation.evaluation_pipeline.evaluate_model")
+@patch("orchard.evaluation.evaluation_pipeline.plot_confusion_matrix")
+@patch("orchard.evaluation.evaluation_pipeline.plot_training_curves")
+@patch("orchard.evaluation.evaluation_pipeline.show_predictions")
+@patch("orchard.evaluation.evaluation_pipeline.create_structured_report")
 def test_run_final_evaluation_creates_report(
     mock_report,
     mock_show_pred,

@@ -73,12 +73,12 @@ bash scripts/check_quality_full.sh
 
 - **Black**: Opinionated code formatter (line length: 100)
   ```bash
-  black orchard/ tests/ main.py optimize.py  # Auto-fix
+  black orchard/ tests/ forge.py  # Auto-fix
   ```
 
 - **isort**: Sorts imports alphabetically and by type
   ```bash
-  isort orchard/ tests/ main.py optimize.py  # Auto-fix
+  isort orchard/ tests/ forge.py  # Auto-fix
   ```
 
 #### 🔍 Linting Tools
@@ -123,13 +123,13 @@ bash scripts/check_quality_full.sh
 
 ```bash
 # Code formatting check
-black --check --diff orchard/ tests/ main.py optimize.py
+black --check --diff orchard/ tests/ forge.py
 
 # Import sorting check
-isort --check-only --diff orchard/ tests/ main.py optimize.py
+isort --check-only --diff orchard/ tests/ forge.py
 
 # Linting
-flake8 orchard/ tests/ main.py optimize.py --max-line-length=100 --extend-ignore=E203,W503
+flake8 orchard/ tests/ forge.py --max-line-length=100 --extend-ignore=E203,W503
 
 # Security scanning
 bandit -r orchard/ -ll -q
