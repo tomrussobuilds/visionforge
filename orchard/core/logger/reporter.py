@@ -6,7 +6,7 @@ Transforms complex configuration states and hardware objects into human-readable
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 import torch
 from pydantic import BaseModel, ConfigDict
@@ -17,6 +17,32 @@ from .styles import LogStyle
 if TYPE_CHECKING:  # pragma: no cover
     from ..config import Config
     from ..paths import RunPaths
+
+
+class ReporterProtocol(Protocol):
+    """Protocol for environment reporting, allowing mocking in tests."""
+
+    def log_initial_status(
+        self,
+        logger_instance: logging.Logger,
+        cfg: "Config",
+        paths: "RunPaths",
+        device: torch.device,
+        applied_threads: int,
+        num_workers: int,
+    ) -> None:
+        """
+        Logs the initial status of the environment.
+
+        Args:
+            logger_instance: The logger instance used to log the status.
+            cfg: The configuration object containing environment settings.
+            paths: The paths object with directories for the run.
+            device: The device (e.g., CPU or GPU) to be used for processing.
+            applied_threads: The number of threads allocated for processing.
+            num_workers: The number of worker processes to use.
+        """
+        ...  # pragma: no cover
 
 
 class Reporter(BaseModel):

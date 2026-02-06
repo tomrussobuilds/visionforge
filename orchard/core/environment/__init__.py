@@ -24,6 +24,9 @@ from .policy import determine_tta_mode
 # Determinism & Seeding (from .reproducibility)
 from .reproducibility import is_repro_mode_requested, set_seed, worker_init_fn
 
+# Timing (from .timing)
+from .timing import TimeTracker, TimeTrackerProtocol
+
 __all__ = [
     # Hardware & Policy
     "configure_system_libraries",
@@ -42,4 +45,7 @@ __all__ = [
     "ensure_single_instance",
     "release_single_instance",
     "DuplicateProcessCleaner",
+    # Timing
+    "TimeTracker",
+    "TimeTrackerProtocol",
 ]

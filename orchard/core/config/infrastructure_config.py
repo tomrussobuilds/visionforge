@@ -23,7 +23,31 @@ from pydantic import BaseModel, ConfigDict
 from ..environment import DuplicateProcessCleaner, ensure_single_instance, release_single_instance
 
 
-# INFRASTRUCTURE MANAGER
+# PROTOCOLS
+class InfraManagerProtocol(Protocol):
+    """Protocol for infrastructure management, allowing mocking in tests."""
+
+    def prepare_environment(self, cfg: "HardwareAwareConfig", logger: logging.Logger) -> None:
+        """
+        Prepares the environment based on the provided configuration and logger.
+
+        Args:
+            cfg: The configuration to be used for preparing the environment.
+            logger: The logger instance for logging preparation details.
+        """
+        ...  # pragma: no cover
+
+    def release_resources(self, cfg: "HardwareAwareConfig", logger: logging.Logger) -> None:
+        """
+        Releases the resources allocated during environment preparation.
+
+        Args:
+            cfg: The configuration that was used during resource allocation.
+            logger: The logger instance for logging release details.
+        """
+        ...  # pragma: no cover
+
+
 class HardwareAwareConfig(Protocol):
     """
     Structural contract for configurations exposing hardware manifest.

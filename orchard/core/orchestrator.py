@@ -7,159 +7,48 @@ resource cleanup, ensuring deterministic and reproducible ML experiments.
 
 Architecture:
     - Dependency Injection: All external dependencies are injectable for testability
-    - 8-Phase Initialization: Sequential setup from seeding to environment reporting
+    - 7-Phase Initialization: Sequential setup from seeding to environment reporting
     - Context Manager: Automatic resource acquisition and cleanup
     - Protocol-Based: Type-safe abstractions for mockability
 
 Key Components:
     RootOrchestrator: Main lifecycle controller
-    InfraManagerProtocol: Abstract interface for infrastructure management
-    ReporterProtocol: Abstract interface for environment telemetry
-    TimeTrackerProtocol: Abstract interface for pipeline duration tracking
+
+Related Protocols (defined in their respective modules):
+    InfraManagerProtocol: config/infrastructure_config.py
+    ReporterProtocol: logger/reporter.py
+    TimeTrackerProtocol: environment/timing.py
 
 Typical Usage:
-    >>> from orchard.core import Config, RootOrchestrator
-    >>> cfg = Config.from_yaml("config.yaml")
+    >>> from orchard.core import Config, RootOrchestrator, parse_args
+    >>> args = parse_args()
+    >>> cfg = Config.from_args(args)
     >>> with RootOrchestrator(cfg) as orchestrator:
     ...     device = orchestrator.get_device()
     ...     paths = orchestrator.paths
-    ...     # Run training pipeline
-    ...     # Duration automatically tracked and logged on exit
+    ...     # Run training pipeline via forge.py phases
 """
 
 import logging
-import time
-from typing import TYPE_CHECKING, Callable, Literal, Optional, Protocol
+from typing import TYPE_CHECKING, Callable, Literal, Optional
 
 import torch
 
-from .config.infrastructure_config import InfrastructureManager
+from .config.infrastructure_config import InfraManagerProtocol, InfrastructureManager
 from .environment import (
     apply_cpu_threads,
     configure_system_libraries,
     set_seed,
     to_device_obj,
 )
+from .environment.timing import TimeTracker, TimeTrackerProtocol
 from .io import save_config_as_yaml
 from .logger import Logger, Reporter
+from .logger.reporter import ReporterProtocol
 from .paths import LOGGER_NAME, RunPaths, setup_static_directories
 
 if TYPE_CHECKING:  # pragma: no cover
     from .config.manifest import Config
-
-
-# PROTOCOLS
-class InfraManagerProtocol(Protocol):
-    """Protocol for infrastructure management, allowing mocking."""
-
-    def prepare_environment(self, cfg: "Config", logger: logging.Logger) -> None:
-        """
-        Prepares the environment based on the provided configuration and logger.
-
-        Args:
-            cfg: The configuration to be used for preparing the environment.
-            logger: The logger instance for logging preparation details.
-        """
-        ...  # pragma: no cover
-
-    def release_resources(self, cfg: "Config", logger: logging.Logger) -> None:
-        """
-        Releases the resources allocated during environment preparation.
-
-        Args:
-            cfg: The configuration that was used during resource allocation.
-            logger: The logger instance for logging release details.
-        """
-        ...  # pragma: no cover
-
-
-class ReporterProtocol(Protocol):
-    """Protocol for environment reporting, allowing mocking."""
-
-    def log_initial_status(
-        self,
-        logger_instance: logging.Logger,
-        cfg: "Config",
-        paths: "RunPaths",
-        device: torch.device,
-        applied_threads: int,
-        num_workers: int,
-    ) -> None:
-        """
-        Logs the initial status of the environment, including configuration and system details.
-
-        Args:
-            logger_instance: The logger instance used to log the status.
-            cfg: The configuration object containing environment settings.
-            paths: The paths object with directories for the run.
-            device: The device (e.g., CPU or GPU) to be used for processing.
-            applied_threads: The number of threads allocated for processing.
-            num_workers: The number of worker processes to use.
-
-        """
-        ...  # pragma: no cover
-
-
-class TimeTrackerProtocol(Protocol):
-    """Protocol for pipeline duration tracking."""
-
-    def start(self) -> None:
-        """Record pipeline start time."""
-        ...  # pragma: no cover
-
-    def stop(self) -> float:
-        """Record stop time and return elapsed seconds."""
-        ...  # pragma: no cover
-
-    @property
-    def elapsed_seconds(self) -> float:
-        """Total elapsed time in seconds."""
-        ...  # pragma: no cover
-
-    @property
-    def elapsed_formatted(self) -> str:
-        """Human-readable elapsed time string."""
-        ...  # pragma: no cover
-
-
-class TimeTracker:
-    """Default implementation of TimeTrackerProtocol."""
-
-    def __init__(self) -> None:
-        self._start_time: Optional[float] = None
-        self._end_time: Optional[float] = None
-
-    def start(self) -> None:
-        """Record pipeline start time."""
-        self._start_time = time.time()
-        self._end_time = None
-
-    def stop(self) -> float:
-        """Record stop time and return elapsed seconds."""
-        self._end_time = time.time()
-        return self.elapsed_seconds
-
-    @property
-    def elapsed_seconds(self) -> float:
-        """Total elapsed time in seconds."""
-        if self._start_time is None:
-            return 0.0
-        end = self._end_time if self._end_time else time.time()
-        return end - self._start_time
-
-    @property
-    def elapsed_formatted(self) -> str:
-        """Human-readable elapsed time string (e.g., '1h 23m 45s')."""
-        total_seconds = self.elapsed_seconds
-        hours, remainder = divmod(int(total_seconds), 3600)
-        minutes, seconds = divmod(remainder, 60)
-
-        if hours > 0:
-            return f"{hours}h {minutes}m {seconds}s"
-        elif minutes > 0:
-            return f"{minutes}m {seconds}s"
-        else:
-            return f"{total_seconds:.1f}s"
 
 
 # ROOT ORCHESTRATOR

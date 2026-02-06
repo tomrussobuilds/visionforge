@@ -23,12 +23,13 @@ from .progress import (
     log_trial_params_compact,
     log_trial_start,
 )
-from .reporter import Reporter
+from .reporter import Reporter, ReporterProtocol
 from .styles import LogStyle
 
 __all__ = [
     "Logger",
     "Reporter",
+    "ReporterProtocol",
     "LogStyle",
     "log_best_config_export",
     "log_optimization_header",
