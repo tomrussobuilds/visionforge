@@ -312,17 +312,21 @@ class RootOrchestrator:
         Guarantees clean state for subsequent runs by unlinking
         InfrastructureManager guards and closing logging handlers.
         """
+        # Release infrastructure resources (locks, caches)
         try:
             if self.infra:
                 self.infra.release_resources(self.cfg, logger=self.run_logger)
         except Exception as e:
-            err_msg = f"Failed to release system lock: {e}"
             if self.run_logger:
-                for handler in self.run_logger.handlers[:]:
-                    handler.close()
-                    self.run_logger.removeHandler(handler)
+                self.run_logger.error(f"Failed to release system lock: {e}")
             else:
-                logging.error(err_msg)
+                logging.error(f"Failed to release system lock: {e}")
+
+        # Always close logging handlers to flush buffers
+        if self.run_logger:
+            for handler in self.run_logger.handlers[:]:
+                handler.close()
+                self.run_logger.removeHandler(handler)
 
     def get_device(self) -> torch.device:
         """

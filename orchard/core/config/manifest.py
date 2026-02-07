@@ -61,11 +61,11 @@ class Config(BaseModel):
         export: Model export configuration for ONNX/TorchScript (optional)
 
     Example:
-        >>> cfg = Config.from_yaml(Path("recipes/config_mini_cnn.yaml"), metadata)
+        >>> from orchard.core import Config, parse_args
+        >>> args = parse_args()  # --config recipes/config_mini_cnn.yaml
+        >>> cfg = Config.from_args(args)
         >>> cfg.model.name
         'mini_cnn'
-        >>> cfg.training.learning_rate
-        0.001
     """
 
     model_config = ConfigDict(extra="allow", validate_assignment=True, frozen=True)
@@ -102,11 +102,8 @@ class Config(BaseModel):
         if self.dataset.metadata is None:
             object.__setattr__(self, "metadata", {})
 
-        # 2. Model-specific resolution constraints
-        if "resnet_18_adapted" in self.model.name.lower() and self.dataset.resolution != 28:
-            raise ValueError(
-                f"resnet_18_adapted requires resolution=28, got {self.dataset.resolution}"
-            )
+        # 2. Architecture-resolution compatibility
+        self._validate_architecture_resolution()
 
         # 3. Training logic
         if self.training.mixup_epochs > self.training.epochs:
@@ -143,6 +140,36 @@ class Config(BaseModel):
             raise ValueError(msg)
 
         return self
+
+    def _validate_architecture_resolution(self) -> None:
+        """
+        Validates architecture-resolution compatibility.
+
+        Enforces that each model is used with its supported resolution:
+            - 28x28: resnet_18_adapted, mini_cnn
+            - 224x224: efficientnet_b0, vit_tiny
+
+        Raises:
+            ValueError: If architecture and resolution are incompatible
+        """
+        model_name = self.model.name.lower()
+        resolution = self.dataset.resolution
+
+        # Architecture -> required resolution mapping
+        resolution_28_models = {"resnet_18_adapted", "mini_cnn"}
+        resolution_224_models = {"efficientnet_b0", "vit_tiny"}
+
+        if model_name in resolution_28_models and resolution != 28:
+            raise ValueError(
+                f"'{self.model.name}' requires resolution=28, got {resolution}. "
+                f"Use a 224x224 architecture (efficientnet_b0, vit_tiny) for high resolution."
+            )
+
+        if model_name in resolution_224_models and resolution != 224:
+            raise ValueError(
+                f"'{self.model.name}' requires resolution=224, got {resolution}. "
+                f"Use a 28x28 architecture (resnet_18_adapted, mini_cnn) for low resolution."
+            )
 
     @property
     def run_slug(self) -> str:

@@ -48,7 +48,7 @@ def test_resnet_18_adapted_requires_resolution_28_direct(device):
     """
     with pytest.raises(
         ValidationError,
-        match="resnet_18_adapted requires resolution=28",
+        match="'resnet_18_adapted' requires resolution=28",
     ):
         Config(
             dataset=DatasetConfig(
@@ -61,6 +61,31 @@ def test_resnet_18_adapted_requires_resolution_28_direct(device):
             ),
             training=TrainingConfig(),
             hardware=HardwareConfig(device=device),
+        )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("model_name", ["efficientnet_b0", "vit_tiny"])
+def test_224_models_require_resolution_224(model_name):
+    """
+    efficientnet_b0 and vit_tiny require 224x224 resolution.
+    Using them with 28x28 should raise ValueError.
+    """
+    with pytest.raises(
+        ValidationError,
+        match=f"'{model_name}' requires resolution=224",
+    ):
+        Config(
+            dataset=DatasetConfig(
+                name="bloodmnist",
+                resolution=28,
+            ),
+            model=ModelConfig(
+                name=model_name,
+                pretrained=False,
+            ),
+            training=TrainingConfig(),
+            hardware=HardwareConfig(device="cpu"),
         )
 
 
