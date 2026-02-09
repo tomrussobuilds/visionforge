@@ -51,6 +51,8 @@ def set_seed(seed: int, strict: bool = False) -> None:
             # Enforce bit-per-bit reproducibility
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
+            # Required for CUDA >= 10.2 deterministic cuBLAS operations
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
             torch.use_deterministic_algorithms(True)
             logging.info("STRICT REPRODUCIBILITY ENABLED: Using deterministic algorithms.")
         else:

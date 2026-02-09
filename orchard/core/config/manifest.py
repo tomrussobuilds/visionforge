@@ -98,21 +98,17 @@ class Config(BaseModel):
         Raises:
             ValueError: On irrecoverable validation failures
         """
-        # 1. Use object.__setattr__ to bypass frozen restriction
-        if self.dataset.metadata is None:
-            object.__setattr__(self, "metadata", {})
-
-        # 2. Architecture-resolution compatibility
+        # 1. Architecture-resolution compatibility
         self._validate_architecture_resolution()
 
-        # 3. Training logic
+        # 2. Training logic
         if self.training.mixup_epochs > self.training.epochs:
             raise ValueError(
                 f"mixup_epochs ({self.training.mixup_epochs}) exceeds "
                 f"total epochs ({self.training.epochs})"
             )
 
-        # 4. Hardware-feature alignment (auto-disable AMP on CPU)
+        # 3. Hardware-feature alignment (auto-disable AMP on CPU)
         if self.hardware.device == "cpu" and self.training.use_amp:
             import warnings
 
@@ -123,7 +119,7 @@ class Config(BaseModel):
             )
             object.__setattr__(self.training, "use_amp", False)
 
-        # 5. Model-dataset consistency
+        # 4. Model-dataset consistency
         if self.architecture.pretrained and self.dataset.effective_in_channels != 3:
             raise ValueError(
                 f"Pretrained {self.architecture.name} requires RGB (3 channels), "
@@ -131,7 +127,7 @@ class Config(BaseModel):
                 f"Set 'force_rgb: true' in dataset config or disable pretraining"
             )
 
-        # 6. Optimizer bounds
+        # 5. Optimizer bounds
         if self.training.min_lr >= self.training.learning_rate:
             msg = (
                 f"min_lr ({self.training.min_lr}) must be less than "

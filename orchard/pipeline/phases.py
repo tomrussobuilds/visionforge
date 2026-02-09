@@ -41,7 +41,6 @@ from orchard.evaluation import run_final_evaluation
 from orchard.export import export_to_onnx
 from orchard.models import get_model
 from orchard.optimization import run_optimization
-from orchard.optimization.orchestrator import export_best_config
 from orchard.trainer import ModelTrainer, get_criterion, get_optimizer, get_scheduler
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -83,11 +82,8 @@ def run_optimization_phase(
     run_logger.info(f"{'HYPERPARAMETER OPTIMIZATION':^80}")
     run_logger.info(LogStyle.DOUBLE)
 
-    # Execute Optuna study
+    # Execute Optuna study (includes post-processing: visualizations, best config export)
     study = run_optimization(cfg=cfg, device=device, paths=paths)
-
-    # Export best config for subsequent training
-    best_config_path = export_best_config(study, cfg, paths)
 
     log_optimization_summary(
         study=study,
@@ -96,8 +92,10 @@ def run_optimization_phase(
         paths=paths,
     )
 
-    if best_config_path:
-        run_logger.info(f"Best config exported to: {best_config_path}")
+    # Best config path is in reports dir (exported by orchestrator if save_best_config=True)
+    best_config_path = paths.reports / "best_config.yaml"
+    if not best_config_path.exists():
+        best_config_path = None
 
     return study, best_config_path
 

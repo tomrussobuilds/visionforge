@@ -9,6 +9,9 @@ Single entry point orchestrating the complete ML lifecycle:
 All behavior is configuration-driven. No CLI flags for pipeline control.
 
 Usage:
+    # Use default recipe (ResNet-18 on PathMNIST 28x28)
+    python forge.py
+
     # Full pipeline (tuning → training) with export
     python forge.py --config recipes/optuna_vit_tiny.yaml
 
@@ -16,15 +19,13 @@ Usage:
     python forge.py --config recipes/config_mini_cnn.yaml
 
     # Training + export (config has export: section)
-    python forge.py --config recipes/config_with_export.yaml
+    python forge.py --config recipes/config_resnet_18_adapted.yaml
 
 Pipeline Logic:
     - If config contains `optuna:` section → runs optimization first
     - If config contains `export:` section → exports model after training
     - Pipeline duration tracked automatically by RootOrchestrator
 """
-
-import sys
 
 from orchard.core import Config, LogStyle, RootOrchestrator, log_pipeline_summary, parse_args
 from orchard.pipeline import run_export_phase, run_optimization_phase, run_training_phase
@@ -65,8 +66,8 @@ def main() -> None:
                 run_logger.info("Skipping optimization (no optuna config)")
 
             # Phase 2: Training
-            best_model_path, train_losses, val_metrics, model, macro_f1, test_acc = (
-                run_training_phase(orchestrator, cfg=training_cfg)
+            best_model_path, _, _, _, macro_f1, test_acc = run_training_phase(
+                orchestrator, cfg=training_cfg
             )
 
             # Phase 3: Export (if export config present)
@@ -93,7 +94,7 @@ def main() -> None:
 
         except KeyboardInterrupt:
             run_logger.warning(f"{LogStyle.WARNING} Interrupted by user.")
-            sys.exit(1)
+            raise SystemExit(1)
 
         except Exception as e:
             run_logger.error(f"{LogStyle.WARNING} Pipeline failed: {e}", exc_info=True)

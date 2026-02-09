@@ -42,36 +42,43 @@ def mock_orchestrator():
 # OPTIMIZATION PHASE TESTS
 @pytest.mark.unit
 @patch("orchard.pipeline.phases.run_optimization")
-@patch("orchard.pipeline.phases.export_best_config")
 @patch("orchard.pipeline.phases.log_optimization_summary")
 def test_run_optimization_phase_returns_study_and_path(
-    mock_log_summary, mock_export_config, mock_run_opt, mock_orchestrator
+    mock_log_summary, mock_run_opt, mock_orchestrator, tmp_path
 ):
     """Test run_optimization_phase returns (study, config_path)."""
     mock_study = MagicMock()
     mock_run_opt.return_value = mock_study
-    mock_export_config.return_value = Path("/tmp/best_config.yaml")
+
+    # Simulate best_config.yaml exists (created by orchestrator)
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+    best_config = reports_dir / "best_config.yaml"
+    best_config.write_text("test: config")
+    mock_orchestrator.paths.reports = reports_dir
 
     study, config_path = run_optimization_phase(mock_orchestrator)
 
     assert study is mock_study
-    assert config_path == Path("/tmp/best_config.yaml")
+    assert config_path == best_config
     mock_run_opt.assert_called_once()
-    mock_export_config.assert_called_once()
 
 
 @pytest.mark.unit
 @patch("orchard.pipeline.phases.run_optimization")
-@patch("orchard.pipeline.phases.export_best_config")
 @patch("orchard.pipeline.phases.log_optimization_summary")
 def test_run_optimization_phase_with_custom_config(
-    mock_log_summary, mock_export_config, mock_run_opt, mock_orchestrator
+    mock_log_summary, mock_run_opt, mock_orchestrator, tmp_path
 ):
     """Test run_optimization_phase uses provided config override."""
     custom_cfg = MagicMock()
     mock_study = MagicMock()
     mock_run_opt.return_value = mock_study
-    mock_export_config.return_value = None
+
+    # No best_config.yaml (not exported)
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+    mock_orchestrator.paths.reports = reports_dir
 
     study, config_path = run_optimization_phase(mock_orchestrator, cfg=custom_cfg)
 
@@ -81,30 +88,35 @@ def test_run_optimization_phase_with_custom_config(
 
 @pytest.mark.unit
 @patch("orchard.pipeline.phases.run_optimization")
-@patch("orchard.pipeline.phases.export_best_config")
 @patch("orchard.pipeline.phases.log_optimization_summary")
-def test_run_optimization_phase_logs_best_config_path(
-    mock_log_summary, mock_export_config, mock_run_opt, mock_orchestrator
+def test_run_optimization_phase_logs_summary(
+    mock_log_summary, mock_run_opt, mock_orchestrator, tmp_path
 ):
-    """Test run_optimization_phase logs best config path when available."""
+    """Test run_optimization_phase calls log_optimization_summary."""
     mock_run_opt.return_value = MagicMock()
-    mock_export_config.return_value = Path("/tmp/best_config.yaml")
+
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+    mock_orchestrator.paths.reports = reports_dir
 
     run_optimization_phase(mock_orchestrator)
 
-    mock_orchestrator.run_logger.info.assert_called()
+    mock_log_summary.assert_called_once()
 
 
 @pytest.mark.unit
 @patch("orchard.pipeline.phases.run_optimization")
-@patch("orchard.pipeline.phases.export_best_config")
 @patch("orchard.pipeline.phases.log_optimization_summary")
 def test_run_optimization_phase_handles_none_config_path(
-    mock_log_summary, mock_export_config, mock_run_opt, mock_orchestrator
+    mock_log_summary, mock_run_opt, mock_orchestrator, tmp_path
 ):
-    """Test run_optimization_phase handles None config path gracefully."""
+    """Test run_optimization_phase returns None when best_config.yaml doesn't exist."""
     mock_run_opt.return_value = MagicMock()
-    mock_export_config.return_value = None
+
+    # No best_config.yaml exists
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+    mock_orchestrator.paths.reports = reports_dir
 
     study, config_path = run_optimization_phase(mock_orchestrator)
 
