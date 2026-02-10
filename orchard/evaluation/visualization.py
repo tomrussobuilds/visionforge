@@ -1,10 +1,8 @@
-"""
-Visualization Utilities Module
+"""Visualization utilities for model evaluation.
 
-This module provides functions for generating visual reports of the model's
-performance, including training loss/accuracy curves, normalized confusion
-matrices, and sample prediction grids. It is fully integrated with the
-Pydantic Configuration Engine for aesthetic and technical consistency.
+Provides formatted visual reports including training loss/accuracy curves,
+normalized confusion matrices, and sample prediction grids. Integrated with
+the Pydantic configuration engine for aesthetic and technical consistency.
 """
 
 import logging
@@ -34,12 +32,20 @@ def show_predictions(
     cfg: Config | None = None,
     n: int | None = None,
 ) -> None:
-    """
-    Orchestrates the visualization of model predictions on a sample batch.
+    """Visualize model predictions on a sample batch.
 
-    This function coordinates data extraction, model inference, grid layout
-    generation, and image post-processing. Highlights correct (green)
-    vs. incorrect (red) predictions.
+    Coordinates data extraction, model inference, grid layout generation,
+    and image post-processing. Highlights correct (green) vs. incorrect
+    (red) predictions.
+
+    Args:
+        model: Trained model to evaluate.
+        loader: DataLoader providing evaluation samples.
+        device: Target device for inference.
+        classes: Human-readable class label names.
+        save_path: Output file path. If None, displays interactively.
+        cfg: Configuration object for layout and normalization settings.
+        n: Number of samples to display. Defaults to ``cfg.evaluation.n_samples``.
     """
     model.eval()
 
@@ -54,52 +60,30 @@ def show_predictions(
     # 3. Plotting Loop
     for i, ax in enumerate(axes):
         if i < len(images):
-            img = _denormalize_image(images[i], cfg) if cfg else images[i]
-            display_img = _prepare_for_plt(img)
-
-            ax.imshow(
-                display_img,
-                cmap="gray" if display_img.ndim == 2 else None,
-            )
-
-            is_correct = labels[i] == preds[i]
-            ax.set_title(
-                f"T:{classes[labels[i]]}\nP:{classes[preds[i]]}",
-                color="green" if is_correct else "red",
-                fontsize=9,
-            )
-
+            _plot_single_prediction(ax, images[i], labels[i], preds[i], classes, cfg)
         ax.axis("off")
 
-    tta_info = f" | TTA: {'ON' if cfg.training.use_tta else 'OFF'}" if cfg else ""
-
-    domain_info = ""
+    # 4. Suptitle
     if cfg:
-        if cfg.dataset.metadata.is_texture_based:
-            domain_info = " | Mode: Texture"
-        elif cfg.dataset.metadata.is_anatomical:
-            domain_info = " | Mode: Anatomical"
-        else:
-            domain_info = " | Mode: Standard"
+        plt.suptitle(_build_suptitle(cfg), fontsize=14)
 
-    if cfg:
-        plt.suptitle(
-            f"Sample Predictions — {cfg.architecture.name} | "
-            f"Resolution: {cfg.dataset.resolution}"
-            f"{domain_info}{tta_info}",
-            fontsize=14,
-        )
-
-    # 4. Export and Cleanup
+    # 5. Export and Cleanup
     _finalize_figure(plt, save_path, cfg)
 
 
 def plot_training_curves(
     train_losses: Sequence[float], val_accuracies: Sequence[float], out_path: Path, cfg: Config
 ) -> None:
-    """
-    Plots training loss and validation accuracy curves on a dual-axis plot.
-    Automatically saves raw numerical data to .npz for reproducibility.
+    """Plot training loss and validation accuracy on a dual-axis chart.
+
+    Saves the figure to disk and exports raw numerical data as ``.npz``
+    for reproducibility.
+
+    Args:
+        train_losses: Per-epoch training loss values.
+        val_accuracies: Per-epoch validation accuracy values.
+        out_path: Destination file path for the saved figure.
+        cfg: Configuration with architecture and evaluation settings.
     """
     fig, ax1 = plt.subplots(figsize=(9, 6))
 
@@ -136,8 +120,14 @@ def plot_training_curves(
 def plot_confusion_matrix(
     all_labels: np.ndarray, all_preds: np.ndarray, classes: List[str], out_path: Path, cfg: Config
 ) -> None:
-    """
-    Generates and saves a normalized confusion matrix plot.
+    """Generate and save a row-normalized confusion matrix plot.
+
+    Args:
+        all_labels: Ground-truth label array.
+        all_preds: Predicted label array.
+        classes: Human-readable class label names.
+        out_path: Destination file path for the saved figure.
+        cfg: Configuration with architecture and evaluation settings.
     """
     cm = confusion_matrix(all_labels, all_preds, labels=np.arange(len(classes)), normalize="true")
     cm = np.nan_to_num(cm)
@@ -159,8 +149,74 @@ def plot_confusion_matrix(
     logger.info(f"Confusion matrix saved → {out_path.name}")
 
 
+def _plot_single_prediction(
+    ax,
+    image: np.ndarray,
+    label: int,
+    pred: int,
+    classes: List[str],
+    cfg: "Config | None",
+) -> None:
+    """Render a single prediction cell with color-coded correctness title.
+
+    Args:
+        ax: Matplotlib axes for this cell.
+        image: Raw image array in ``(C, H, W)`` format.
+        label: Ground-truth class index.
+        pred: Predicted class index.
+        classes: Human-readable class label names.
+        cfg: Configuration for denormalization. If None, skips denorm.
+    """
+    img = _denormalize_image(image, cfg) if cfg else image
+    display_img = _prepare_for_plt(img)
+
+    ax.imshow(display_img, cmap="gray" if display_img.ndim == 2 else None)
+
+    is_correct = label == pred
+    ax.set_title(
+        f"T:{classes[label]}\nP:{classes[pred]}",
+        color="green" if is_correct else "red",
+        fontsize=9,
+    )
+
+
+def _build_suptitle(cfg: "Config") -> str:
+    """Build the figure suptitle with architecture, resolution, domain, and TTA info.
+
+    Args:
+        cfg: Configuration object providing architecture, dataset, and training fields.
+
+    Returns:
+        Formatted suptitle string.
+    """
+    tta_info = f" | TTA: {'ON' if cfg.training.use_tta else 'OFF'}"
+
+    if cfg.dataset.metadata.is_texture_based:
+        domain_info = " | Mode: Texture"
+    elif cfg.dataset.metadata.is_anatomical:
+        domain_info = " | Mode: Anatomical"
+    else:
+        domain_info = " | Mode: Standard"
+
+    return (
+        f"Sample Predictions — {cfg.architecture.name} | "
+        f"Resolution: {cfg.dataset.resolution}"
+        f"{domain_info}{tta_info}"
+    )
+
+
 def _get_predictions_batch(model: nn.Module, loader: DataLoader, device: torch.device, n: int):
-    """Handles data extraction and model forward pass for a small sample."""
+    """Extract a sample batch and run model inference.
+
+    Args:
+        model: Trained model in eval mode.
+        loader: DataLoader to draw the batch from.
+        device: Target device for forward pass.
+        n: Number of samples to extract.
+
+    Returns:
+        Tuple of ``(images, labels, preds)`` as numpy arrays.
+    """
     batch = next(iter(loader))
     images_tensor = batch[0][:n].to(device)
     labels_tensor = batch[1][:n]
@@ -173,7 +229,16 @@ def _get_predictions_batch(model: nn.Module, loader: DataLoader, device: torch.d
 
 
 def _setup_prediction_grid(num_samples: int, cols: int, cfg: Config | None):
-    """Calculates grid dimensions and initializes matplotlib subplots."""
+    """Calculate grid dimensions and initialize matplotlib subplots.
+
+    Args:
+        num_samples: Total number of images to display.
+        cols: Number of columns in the grid.
+        cfg: Configuration for figure size. Falls back to ``(12, 8)`` if None.
+
+    Returns:
+        Tuple of ``(fig, axes)`` where axes is a flat 1-D array.
+    """
     rows = int(np.ceil(num_samples / cols))
     base_w, base_h = cfg.evaluation.fig_size_predictions if cfg else (12, 8)
 
@@ -185,7 +250,13 @@ def _setup_prediction_grid(num_samples: int, cols: int, cfg: Config | None):
 
 
 def _finalize_figure(plt_obj, save_path: Path | None, cfg: Config | None):
-    """Handles saving to disk and cleaning up memory."""
+    """Save the current figure to disk or display interactively, then close.
+
+    Args:
+        plt_obj: The ``matplotlib.pyplot`` module reference.
+        save_path: Output file path. If None, calls ``plt.show()`` instead.
+        cfg: Configuration for DPI. Falls back to 200 if None.
+    """
     if save_path:
         save_path.parent.mkdir(parents=True, exist_ok=True)
         dpi = cfg.evaluation.fig_dpi if cfg else 200
@@ -199,7 +270,15 @@ def _finalize_figure(plt_obj, save_path: Path | None, cfg: Config | None):
 
 
 def _denormalize_image(img: np.ndarray, cfg: Config) -> np.ndarray:
-    """Reverses the normalization transform using dataset-specific stats."""
+    """Reverse channel-wise normalization using dataset-specific statistics.
+
+    Args:
+        img: Normalized image array in ``(C, H, W)`` format.
+        cfg: Configuration providing ``dataset.mean`` and ``dataset.std``.
+
+    Returns:
+        Denormalized image clipped to ``[0, 1]``.
+    """
     mean = np.array(cfg.dataset.mean).reshape(-1, 1, 1)
     std = np.array(cfg.dataset.std).reshape(-1, 1, 1)
     img = (img * std) + mean
@@ -207,7 +286,17 @@ def _denormalize_image(img: np.ndarray, cfg: Config) -> np.ndarray:
 
 
 def _prepare_for_plt(img: np.ndarray) -> np.ndarray:
-    """Converts a deep learning tensor (C, H, W) to (H, W, C) for Matplotlib."""
+    """Convert a deep-learning tensor layout to matplotlib-compatible format.
+
+    Transposes ``(C, H, W)`` to ``(H, W, C)`` and squeezes single-channel
+    images to 2-D for correct grayscale rendering.
+
+    Args:
+        img: Image array, either ``(C, H, W)`` or already ``(H, W)``.
+
+    Returns:
+        Image array in ``(H, W, C)`` or ``(H, W)`` format.
+    """
     if img.ndim == 3:
         img = np.transpose(img, (1, 2, 0))
 
