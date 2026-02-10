@@ -54,7 +54,23 @@ T = TypeVar("T")
 
 
 def _resolve(value: Optional[T], default_factory: Callable[[], T]) -> T:
-    """Resolve optional dependency with lazy default instantiation."""
+    """
+    Resolve optional dependency with lazy default instantiation.
+
+    Centralizes the None-check pattern used across RootOrchestrator.__init__
+    for dependency injection. When the caller provides an explicit value, it
+    is returned as-is; otherwise the default_factory is invoked to create
+    the production default. This avoids mutable default arguments and defers
+    heavy object construction until actually needed.
+
+    Args:
+        value: Caller-supplied dependency, or None to use the default.
+        default_factory: Zero-argument callable that produces the default
+            instance (e.g., ``InfrastructureManager``, ``Reporter``).
+
+    Returns:
+        The resolved dependency — either the provided value or a fresh default.
+    """
     return value if value is not None else default_factory()
 
 
@@ -171,10 +187,20 @@ class RootOrchestrator:
 
     def __enter__(self) -> "RootOrchestrator":
         """
-        Context Manager entry - triggers core service initialization.
+        Context Manager entry — triggers the 7-phase initialization sequence.
+
+        Starts the pipeline timer and delegates to initialize_core_services()
+        for deterministic seeding, filesystem provisioning, logging setup,
+        config persistence, infrastructure locking, and environment reporting.
+
+        If any phase raises, cleanup() is called before re-raising to ensure
+        partial resources (locks, file handles) are released even on failure.
 
         Returns:
-            Initialized RootOrchestrator ready for pipeline execution
+            Fully initialized RootOrchestrator ready for pipeline execution.
+
+        Raises:
+            Exception: Re-raises any initialization error after cleanup.
         """
         try:
             self.time_tracker.start()
@@ -186,17 +212,23 @@ class RootOrchestrator:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> Literal[False]:
         """
-        Context Manager exit - ensures resource release and lock cleanup.
+        Context Manager exit — logs duration and guarantees resource teardown.
 
-        Logs pipeline duration before releasing resources.
+        Invoked automatically when leaving the ``with`` block, whether the
+        pipeline completed normally or raised an exception. Stops the timer,
+        emits the total pipeline duration to the active logger, then delegates
+        to cleanup() for infrastructure lock release and logging handler closure.
+
+        Returns False so that any exception propagates to the caller unchanged;
+        forge.py's top-level handler is responsible for user-facing error reporting.
 
         Args:
-            exc_type: Exception type if raised
-            exc_val: Exception instance if raised
-            exc_tb: Exception traceback if raised
+            exc_type: Exception class if the block raised, else None.
+            exc_val: Exception instance if the block raised, else None.
+            exc_tb: Traceback object if the block raised, else None.
 
         Returns:
-            False to allow exception propagation
+            Always False — exceptions are never suppressed.
         """
         # Stop timer and log duration
         self.time_tracker.stop()
@@ -291,7 +323,26 @@ class RootOrchestrator:
         )
 
     def _close_logging_handlers(self) -> None:
-        """Flush and close all logging handlers to release file resources."""
+        """
+        Flush and close all logging handlers to release file resources.
+
+        This is distinct from Logger._setup_logger() handler cleanup, which serves
+        a different purpose in the lifecycle:
+
+        - Logger._setup_logger(): Removes OLD handlers during RECONFIGURATION
+          (e.g., when transitioning from console-only to console+file logging).
+          This is an idempotency guard that prevents duplicate handlers when the
+          logger is re-initialized with a new log_dir.
+
+        - This method (_close_logging_handlers): Releases ACTIVE handlers at
+          PIPELINE END. Called by cleanup() when the RootOrchestrator context
+          manager exits, ensuring RotatingFileHandler file locks are released
+          and buffered log data is flushed to disk. Without this, log files
+          may remain locked or lose trailing entries on abrupt shutdown.
+
+        Both are necessary: _setup_logger() ensures clean transitions between
+        logging phases, while this method ensures clean resource release at exit.
+        """
         if self.run_logger:
             for handler in self.run_logger.handlers[:]:
                 handler.close()

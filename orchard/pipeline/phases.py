@@ -254,7 +254,7 @@ def run_export_phase(
     onnx_path = paths.exports / "model.onnx"
 
     # Reload model architecture (on CPU for export)
-    export_model = get_model(device=torch.device("cpu"), cfg=cfg)
+    export_model = get_model(device=torch.device("cpu"), cfg=cfg, verbose=False)
 
     export_to_onnx(
         model=export_model,

@@ -37,7 +37,7 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 # MODEL FACTORY LOGIC
-def get_model(device: torch.device, cfg: Config) -> nn.Module:
+def get_model(device: torch.device, cfg: Config, verbose: bool = True) -> nn.Module:
     """
     Factory function to resolve, instantiate, and prepare architectures.
 
@@ -75,11 +75,12 @@ def get_model(device: torch.device, cfg: Config) -> nn.Module:
     num_classes = cfg.dataset.num_classes
     model_name_lower = cfg.architecture.name.lower()
 
-    logger.info(
-        f"Initializing Architecture: {cfg.architecture.name} | "
-        f"Input: {cfg.dataset.img_size}x{cfg.dataset.img_size}x{in_channels} | "
-        f"Output: {num_classes} classes"
-    )
+    if verbose:
+        logger.info(
+            f"Initializing Architecture: {cfg.architecture.name} | "
+            f"Input: {cfg.dataset.img_size}x{cfg.dataset.img_size}x{in_channels} | "
+            f"Output: {num_classes} classes"
+        )
 
     # Architecture resolution via Registry lookup
     builder = _MODEL_REGISTRY.get(model_name_lower)
@@ -89,11 +90,19 @@ def get_model(device: torch.device, cfg: Config) -> nn.Module:
         raise ValueError(error_msg)
 
     # Instance construction and adaptation
-    model = builder(device=device, cfg=cfg, in_channels=in_channels, num_classes=num_classes)
+    # When verbose=False (e.g. export phase), suppress builder-internal logs
+    # to avoid duplicating messages already shown during training
+    if not verbose:
+        logger.disabled = True
+    try:
+        model = builder(device=device, cfg=cfg, in_channels=in_channels, num_classes=num_classes)
+    finally:
+        logger.disabled = False
 
     # Final deployment and parameter telemetry
     model = model.to(device)
-    total_params = sum(p.numel() for p in model.parameters())
-    logger.info(f"Model deployed to {str(device).upper()} | " f"Total Parameters: {total_params:,}")
+    if verbose:
+        total_params = sum(p.numel() for p in model.parameters())
+        logger.info(f"Model deployed to {str(device).upper()} | Total Parameters: {total_params:,}")
 
     return model

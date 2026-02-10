@@ -100,5 +100,24 @@ def test_get_model_all_registered_models(model_name):
     assert isinstance(model, nn.Module)
 
 
+@pytest.mark.unit
+def test_get_model_verbose_false_suppresses_logs(caplog):
+    """Test verbose=False suppresses factory and builder logs."""
+    device = torch.device("cpu")
+    mock_cfg = MagicMock()
+    mock_cfg.architecture.name = "mini_cnn"
+    mock_cfg.architecture.dropout = 0.0
+    mock_cfg.dataset.effective_in_channels = 3
+    mock_cfg.dataset.num_classes = 10
+    mock_cfg.dataset.img_size = 28
+
+    with caplog.at_level("INFO"):
+        model = get_model(device=device, cfg=mock_cfg, verbose=False)
+
+    assert isinstance(model, nn.Module)
+    assert "Initializing Architecture" not in caplog.text
+    assert "Model deployed" not in caplog.text
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -28,7 +28,6 @@ import optuna
 from orchard.core import (
     LOGGER_NAME,
     Config,
-    LogStyle,
     RunPaths,
     log_optimization_header,
 )
@@ -80,8 +79,6 @@ class OptunaOrchestrator:
         self.device = device
         self.paths = paths
 
-        logger.info(f"OptunaOrchestrator initialized. Output: {paths.root}")
-
     def create_study(self) -> optuna.Study:
         """Create or load Optuna study with configured sampler and pruner.
 
@@ -92,10 +89,6 @@ class OptunaOrchestrator:
         sampler = build_sampler(self.cfg.optuna.sampler_type, self.cfg)
         pruner = build_pruner(self.cfg.optuna.enable_pruning, self.cfg.optuna.pruner_type, self.cfg)
         storage_url = self.cfg.optuna.get_storage_url(self.paths)
-
-        logger.info(LogStyle.DOUBLE)
-        logger.info(f"Starting Optuna optimization: {self.cfg.optuna.n_trials} trials")
-        logger.info(LogStyle.DOUBLE)
 
         study = optuna.create_study(
             study_name=self.cfg.optuna.study_name,
@@ -114,6 +107,10 @@ class OptunaOrchestrator:
         Returns:
             Completed study with trial results
         """
+        # Suppress Optuna's internal INFO logs (e.g. "A new study created in RDB")
+        # before create_study(); our own header in phases.py is sufficient
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+
         study = self.create_study()
         search_space = get_search_space(
             self.cfg.optuna.search_space_preset,
@@ -127,8 +124,7 @@ class OptunaOrchestrator:
             device=self.device,
         )
 
-        # Configure logging and callbacks
-        optuna.logging.set_verbosity(optuna.logging.WARNING)
+        # Configure callbacks and log our structured header
         log_optimization_header(self.cfg)
 
         callbacks = build_callbacks(self.cfg)

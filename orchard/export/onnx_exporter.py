@@ -5,6 +5,8 @@ Converts trained PyTorch models to ONNX format for production deployment.
 Supports dynamic batch sizes, optimization, and validation.
 """
 
+import contextlib
+import io
 import logging
 import warnings
 from pathlib import Path
@@ -50,7 +52,7 @@ def export_to_onnx(
         ... )
     """
     logger.info("  [Source]")
-    logger.info(f"    {LogStyle.BULLET} Checkpoint       : {checkpoint_path.name}")
+    logger.info(f"    {LogStyle.BULLET} Checkpoint        : {checkpoint_path.name}")
 
     # Create output directory if needed
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -96,8 +98,11 @@ def export_to_onnx(
         for onnx_logger in onnx_loggers:
             onnx_logger.setLevel(logging.ERROR)
 
-        with warnings.catch_warnings():
-            # Suppress all warnings during export for clean console output
+        with (
+            warnings.catch_warnings(),
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            # Suppress warnings and stdout prints (e.g. ONNX rewrite rules)
             warnings.simplefilter("ignore")
 
             torch.onnx.export(
@@ -110,6 +115,7 @@ def export_to_onnx(
                 input_names=["input"],
                 output_names=["output"],
                 dynamic_axes=dynamic_axes_config,
+                verbose=False,
             )
     finally:
         # Restore original log levels
@@ -141,7 +147,7 @@ def export_to_onnx(
 
     logger.info("")
     logger.info(f"  {LogStyle.SUCCESS} Export completed")
-    logger.info(f"  {LogStyle.ARROW} Output            : {output_path.name}")
+    logger.info(f"    {LogStyle.ARROW} Output            : {output_path.name}")
 
 
 def benchmark_onnx_inference(
