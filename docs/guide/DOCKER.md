@@ -4,6 +4,14 @@
 
 ## 🐳 Containerized Deployment
 
+### Prerequisites
+
+Add your user to the `docker` group to avoid using `sudo` with every command:
+```bash
+sudo usermod -aG docker $USER
+```
+Log out and back in (or run `newgrp docker`) for the change to take effect.
+
 ### Build Image
 
 ```bash
@@ -17,8 +25,6 @@ docker build -t visionforge:latest .
 docker run -it --rm \
   --gpus all \
   -u $(id -u):$(id -g) \
-  -e TORCH_HOME=/tmp/torch_cache \
-  -e MPLCONFIGDIR=/tmp/matplotlib_cache \
   -v $(pwd)/dataset:/app/dataset \
   -v $(pwd)/outputs:/app/outputs \
   visionforge:latest \
@@ -30,12 +36,8 @@ docker run -it --rm \
 docker run -it --rm \
   --gpus all \
   -u $(id -u):$(id -g) \
-  -e IN_DOCKER=TRUE \
   -e DOCKER_REPRODUCIBILITY_MODE=TRUE \
-  -e TORCH_HOME=/tmp/torch_cache \
-  -e MPLCONFIGDIR=/tmp/matplotlib_cache \
   -e PYTHONHASHSEED=42 \
-  -e CUBLAS_WORKSPACE_CONFIG=:4096:8 \
   -v $(pwd)/dataset:/app/dataset \
   -v $(pwd)/outputs:/app/outputs \
   visionforge:latest \
@@ -43,8 +45,8 @@ docker run -it --rm \
 ```
 
 > [!NOTE]
-> - `TORCH_HOME` and `MPLCONFIGDIR` prevent permission errors in containerized environments
-> - `CUBLAS_WORKSPACE_CONFIG` is required for CUDA determinism
+> - `TORCH_HOME`, `MPLCONFIGDIR`, `IN_DOCKER`, and `CUBLAS_WORKSPACE_CONFIG` are pre-set in the image and do not need to be passed at runtime
+> - `PYTHONHASHSEED` must be set at container startup (before the Python interpreter loads) to guarantee hash determinism — the image default is `0`, override with `-e` if a specific seed is needed
 > - `--gpus all` requires NVIDIA Container Toolkit
 
 ---

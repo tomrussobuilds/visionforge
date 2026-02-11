@@ -19,6 +19,13 @@ logs/
 *.log
 *.lock
 
+# Caches
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
 # Metadata & IDE
 .git
 .gitignore

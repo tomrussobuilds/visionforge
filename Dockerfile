@@ -8,7 +8,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 
-# System dependencies
+# Reproducibility defaults (overridable at runtime with -e)
+ENV PYTHONHASHSEED=0
+ENV CUBLAS_WORKSPACE_CONFIG=:4096:8
+
+# Headless rendering (no display server in container)
+ENV IN_DOCKER=TRUE
+ENV MPLCONFIGDIR=/tmp/matplotlib_cache
+ENV TORCH_HOME=/tmp/torch_cache
+
+# System dependencies (rarely changes — cached as base layer)
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -16,17 +25,17 @@ RUN apt-get update && apt-get install -y \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip separately (avoids invalidating requirements layer)
+RUN pip3 install --upgrade pip
+
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first (better Docker cache usage)
+# Install Python dependencies (rebuilds only when requirements.txt changes)
 COPY requirements.txt .
+RUN pip3 install -r requirements.txt
 
-# Upgrade pip and install Python dependencies
-RUN pip3 install --upgrade pip && \
-    pip3 install -r requirements.txt
-
-# Copy project files
+# Copy project files (changes most frequently — last layer)
 COPY . .
 
 # Default command
