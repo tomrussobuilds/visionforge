@@ -467,8 +467,10 @@ def test_cleanup_with_no_infra_manager():
     orch = RootOrchestrator(cfg=mock_cfg, infra_manager=None)
     orch.run_logger = mock_logger
 
-    orch.cleanup()
-    assert True
+    try:
+        orch.cleanup()
+    except Exception as e:
+        pytest.fail(f"cleanup() raised an exception: {e}")
 
 
 @pytest.mark.unit

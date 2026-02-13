@@ -46,9 +46,11 @@ class TestClassificationMetrics:
     @pytest.mark.parametrize("input_size", [10, 50, 100])
     def test_data_types_and_shapes(self, input_size):
         """Parametrized test to ensure consistency across different input sizes."""
-        labels = np.random.randint(0, 2, size=input_size)
-        preds = np.random.randint(0, 2, size=input_size)
-        probs = np.random.rand(input_size, 2)
+        rng = np.random.default_rng(seed=42)
+
+        labels = rng.integers(0, 2, size=input_size)
+        preds = rng.integers(0, 2, size=input_size)
+        probs = rng.random((input_size, 2))
         probs /= probs.sum(axis=1)[:, np.newaxis]
 
         results = compute_classification_metrics(labels, preds, probs)

@@ -181,8 +181,9 @@ def benchmark_onnx_inference(
         # Create inference session
         session = ort.InferenceSession(str(onnx_path))
 
-        # Prepare dummy input
-        dummy_input = np.random.randn(1, *input_shape).astype(np.float32)
+        # Prepare dummy input using random Generator
+        rng = np.random.default_rng(42)
+        dummy_input = rng.integers(0, 256, size=(1, *input_shape), dtype=np.float32)
 
         # Warmup
         for _ in range(10):

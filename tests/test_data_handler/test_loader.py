@@ -124,7 +124,11 @@ def test_build_loaders_without_weighted_sampler(mock_cfg_no_sampler, mock_metada
 
             with patch("orchard.data_handler.loader.VisionDataset", FakeDataset):
                 factory = DataLoaderFactory(mock_cfg_no_sampler, mock_metadata)
-                train, val, test = factory.build()
+                (
+                    train,
+                    _,
+                    _,
+                ) = factory.build()
 
                 from torch.utils.data import WeightedRandomSampler
 
@@ -189,11 +193,12 @@ def test_infra_kwargs_no_pin_memory(monkeypatch, mock_cfg, mock_metadata):
 @pytest.mark.unit
 def test_lazy_npz_dataset():
     """Test LazyNPZDataset loads and returns tensors correctly."""
+    rng = np.random.default_rng(seed=42)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy.npz"
         data = {
-            "train_images": np.random.randint(0, 255, (5, 28, 28), dtype=np.uint8),
-            "train_labels": np.random.randint(0, 2, (5, 1), dtype=np.int64),
+            "train_images": rng.integers(0, 255, (5, 28, 28), dtype=np.uint8),
+            "train_labels": rng.integers(0, 2, (5, 1), dtype=np.int64),
         }
         np.savez(tmp_path, **data)
 
@@ -209,11 +214,12 @@ def test_lazy_npz_dataset():
 @pytest.mark.unit
 def test_lazy_npz_dataset_rgb():
     """Test LazyNPZDataset with RGB images."""
+    rng = np.random.default_rng(seed=42)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy_rgb.npz"
         data = {
-            "train_images": np.random.randint(0, 255, (5, 28, 28, 3), dtype=np.uint8),
-            "train_labels": np.random.randint(0, 2, (5, 1), dtype=np.int64),
+            "train_images": rng.integers(0, 255, (5, 28, 28, 3), dtype=np.uint8),
+            "train_labels": rng.integers(0, 2, (5, 1), dtype=np.int64),
         }
         np.savez(tmp_path, **data)
 
@@ -231,16 +237,17 @@ def test_lazy_npz_dataset_rgb():
 @pytest.mark.unit
 def test_lazy_npz_dataset_grayscale_2d():
     """Test LazyNPZDataset with 2D grayscale images."""
+    rng = np.random.default_rng(seed=42)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy_gray.npz"
         data = {
-            "train_images": np.random.randint(0, 255, (5, 28, 28), dtype=np.uint8),
-            "train_labels": np.random.randint(0, 2, (5, 1), dtype=np.int64),
+            "train_images": rng.integers(0, 255, (5, 28, 28), dtype=np.uint8),
+            "train_labels": rng.integers(0, 2, (5, 1), dtype=np.int64),
         }
         np.savez(tmp_path, **data)
 
         dataset = LazyNPZDataset(tmp_path)
-        img, label = dataset[0]
+        img, _ = dataset[0]
 
         assert img.shape[0] == 1
         assert img.shape[1] == 28
@@ -250,11 +257,12 @@ def test_lazy_npz_dataset_grayscale_2d():
 @pytest.mark.unit
 def test_lazy_npz_dataset_invalid_shape():
     """Test LazyNPZDataset raises error for invalid image shapes."""
+    rng = np.random.default_rng(seed=42)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy_invalid.npz"
         data = {
-            "train_images": np.random.randint(0, 255, (5, 28), dtype=np.uint8),
-            "train_labels": np.random.randint(0, 2, (5, 1), dtype=np.int64),
+            "train_images": rng.integers(0, 255, (5, 28), dtype=np.uint8),
+            "train_labels": rng.integers(0, 2, (5, 1), dtype=np.int64),
         }
         np.savez(tmp_path, **data)
 
@@ -267,16 +275,17 @@ def test_lazy_npz_dataset_invalid_shape():
 @pytest.mark.unit
 def test_create_temp_loader():
     """Test create_temp_loader returns a working DataLoader."""
+    rng = np.random.default_rng(seed=42)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy.npz"
         data = {
-            "train_images": np.random.randint(0, 255, (5, 28, 28), dtype=np.uint8),
-            "train_labels": np.random.randint(0, 2, (5, 1), dtype=np.int64),
+            "train_images": rng.integers(0, 255, (5, 28, 28), dtype=np.uint8),
+            "train_labels": rng.integers(0, 2, (5, 1), dtype=np.int64),
         }
         np.savez(tmp_path, **data)
 
         loader = create_temp_loader(tmp_path, batch_size=2)
-        batch_imgs, batch_labels = next(iter(loader))
+        batch_imgs, _ = next(iter(loader))
         assert batch_imgs.shape[0] <= 2
         assert batch_imgs.shape[1] == 1
 
@@ -284,16 +293,17 @@ def test_create_temp_loader():
 @pytest.mark.unit
 def test_create_temp_loader_rgb():
     """Test create_temp_loader with RGB images."""
+    rng = np.random.default_rng(seed=42)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / "dummy_rgb.npz"
         data = {
-            "train_images": np.random.randint(0, 255, (8, 32, 32, 3), dtype=np.uint8),
-            "train_labels": np.random.randint(0, 3, (8, 1), dtype=np.int64),
+            "train_images": rng.integers(0, 255, (8, 32, 32, 3), dtype=np.uint8),
+            "train_labels": rng.integers(0, 3, (8, 1), dtype=np.int64),
         }
         np.savez(tmp_path, **data)
 
         loader = create_temp_loader(tmp_path, batch_size=4)
-        batch_imgs, batch_labels = next(iter(loader))
+        batch_imgs, _ = next(iter(loader))
 
         assert batch_imgs.shape[0] <= 4
         assert batch_imgs.shape[1] == 3

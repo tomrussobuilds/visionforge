@@ -152,7 +152,7 @@ class DuplicateProcessCleaner:
                 if self.script_path in cmdline_paths:
                     duplicates.append(proc)
 
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
 
         return duplicates

@@ -78,7 +78,7 @@ def test_rotation_angle_bounds():
 def test_jitter_val_non_negative():
     """Test jitter_val must be non-negative."""
 
-    config = AugmentationConfig(jitter_val=0.0)
+    _ = AugmentationConfig(jitter_val=0.0)
 
     with pytest.raises(ValidationError):
         AugmentationConfig(jitter_val=-0.1)

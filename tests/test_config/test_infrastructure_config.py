@@ -150,14 +150,9 @@ def test_prepare_environment_with_logger(tmp_path):
     class MockConfig:
         hardware = MockHardware()
 
-    class MockLogger:
-        def info(self, _):
-            pass
+    mock_logger = SimpleNamespace(info=lambda _: None, warning=lambda _: None)
 
-        def warning(self, _):
-            pass
-
-    manager.prepare_environment(MockConfig(), logger=MockLogger())
+    manager.prepare_environment(MockConfig(), logger=mock_logger)
     manager.release_resources(MockConfig())
 
 
@@ -170,17 +165,11 @@ def test_release_resources_with_logger(tmp_path):
         allow_process_kill = False
         lock_file_path = tmp_path / "test.lock"
 
-    class MockLogger:
-        def info(self, _):
-            pass
-
-        def debug(self, _):
-            pass
+    mock_logger = SimpleNamespace(info=lambda _: None, debug=lambda _: None)
 
     config = SimpleNamespace(hardware=MockHardware())
     manager.prepare_environment(config)
-
-    manager.release_resources(config, logger=MockLogger())
+    manager.release_resources(config, logger=mock_logger)
 
 
 # INFRASTRUCTURE MANAGER: IMMUTABILITY
@@ -295,24 +284,17 @@ def test_prepare_environment_with_pbs_environment(tmp_path, monkeypatch):
         allow_process_kill = True
         lock_file_path = tmp_path / "test.lock"
 
-    class MockLogger:
-        def __init__(self):
-            self.debug_calls = []
+    debug_calls = []
 
-        def info(self, msg):
-            pass
+    mock_logger = SimpleNamespace(
+        info=lambda msg: None, debug=lambda msg: debug_calls.append(msg), warning=lambda msg: None
+    )
 
-        def debug(self, msg):
-            self.debug_calls.append(msg)
-
-        def warning(self, msg):
-            pass
-
-    logger = MockLogger()
     config = SimpleNamespace(hardware=MockHardware())
-    manager.prepare_environment(config, logger=logger)
+    manager.prepare_environment(config, logger=mock_logger)
+    manager.release_resources(config, logger=mock_logger)
 
-    assert any("Shared environment detected" in msg for msg in logger.debug_calls)
+    assert any("Shared environment detected" in msg for msg in debug_calls)
 
     manager.release_resources(config)
 
@@ -444,20 +426,15 @@ def test_release_resources_lock_failure(tmp_path):
         allow_process_kill = False
         lock_file_path = lock_path
 
-    class MockLogger:
-        def __init__(self):
-            self.warnings = []
+    # Capture warnings in a list
+    warnings = []
 
-        def info(self, msg):
-            pass
+    mock_logger = SimpleNamespace(
+        info=lambda msg: None,
+        debug=lambda msg: None,
+        warning=lambda msg: warnings.append(msg),
+    )
 
-        def warning(self, msg):
-            self.warnings.append(msg)
-
-        def debug(self, msg):
-            pass
-
-    logger = MockLogger()
     config = SimpleNamespace(hardware=MockHardware())
 
     # Mock release_single_instance to raise an exception
@@ -465,9 +442,9 @@ def test_release_resources_lock_failure(tmp_path):
         "orchard.core.config.infrastructure_config.release_single_instance",
         side_effect=PermissionError("Cannot release lock: permission denied"),
     ):
-        manager.release_resources(config, logger=logger)
+        manager.release_resources(config, logger=mock_logger)
 
-    assert any("Failed to release lock" in msg for msg in logger.warnings)
+    assert any("Failed to release lock" in msg for msg in warnings)
 
 
 if __name__ == "__main__":

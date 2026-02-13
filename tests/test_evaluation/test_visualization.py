@@ -134,7 +134,8 @@ def test_show_predictions_basic(mock_get_batch, mock_plt, tmp_path):
     mock_axes = [MagicMock() for _ in range(12)]
     mock_plt.subplots.return_value = (mock_fig, np.array(mock_axes))
 
-    images = np.random.rand(12, 3, 28, 28)
+    rng = np.random.default_rng(seed=42)
+    images = rng.random(size=(12, 3, 28, 28))
     labels = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
     preds = np.array([0, 1, 1, 0, 2, 2, 0, 1, 2, 0, 1, 2])
     mock_get_batch.return_value = (images, labels, preds)
@@ -178,7 +179,8 @@ def test_show_predictions_without_config(mock_get_batch, mock_plt):
 
     mock_plt.subplots.return_value = (mock_fig, mock_axes)
 
-    images = np.random.rand(12, 3, 28, 28)
+    rng = np.random.default_rng(seed=42)
+    images = rng.random(size=(12, 3, 28, 28))
     labels = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
     preds = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
     mock_get_batch.return_value = (images, labels, preds)
@@ -215,7 +217,8 @@ def test_show_predictions_without_save_path(mock_get_batch, mock_plt, tmp_path):
     mock_axes = [MagicMock() for _ in range(12)]
     mock_plt.subplots.return_value = (mock_fig, np.array(mock_axes))
 
-    images = np.random.rand(12, 3, 28, 28)
+    rng = np.random.default_rng(seed=42)
+    images = rng.random(size=(12, 3, 28, 28))
     labels = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
     preds = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
     mock_get_batch.return_value = (images, labels, preds)
@@ -252,7 +255,8 @@ def test_show_predictions_standard_mode(mock_get_batch, mock_plt, tmp_path):
     mock_axes = [MagicMock() for _ in range(6)]
     mock_plt.subplots.return_value = (mock_fig, np.array(mock_axes))
 
-    images = np.random.rand(6, 1, 28, 28)
+    rng = np.random.default_rng(seed=42)
+    images = rng.random(size=(6, 1, 28, 28))
     labels = np.array([0, 1, 0, 1, 0, 1])
     preds = np.array([0, 1, 0, 1, 0, 1])
     mock_get_batch.return_value = (images, labels, preds)
@@ -291,7 +295,8 @@ def test_show_predictions_with_custom_n(mock_get_batch, mock_plt, tmp_path):
     mock_axes = [MagicMock() for _ in range(6)]
     mock_plt.subplots.return_value = (mock_fig, np.array(mock_axes))
 
-    images = np.random.rand(6, 3, 28, 28)
+    rng = np.random.default_rng(seed=42)
+    images = rng.random((6, 3, 28, 28))
     labels = np.array([0, 1, 2, 0, 1, 2])
     preds = np.array([0, 1, 1, 0, 2, 2])
     mock_get_batch.return_value = (images, labels, preds)
@@ -361,7 +366,7 @@ def test_setup_prediction_grid_directly():
 
         mock_subplots.return_value = (mock_fig, mock_axes)
 
-        fig, axes = _setup_prediction_grid(12, 4, mock_cfg)
+        _, axes = _setup_prediction_grid(12, 4, mock_cfg)
 
         mock_subplots.assert_called_once()
         assert len(axes) == 12
@@ -449,10 +454,10 @@ def test_denormalize_image_clips_values():
     assert result.max() == pytest.approx(1.0)
 
 
-@pytest.mark.unit
 def test_prepare_for_plt_chw_to_hwc():
     """Test _prepare_for_plt converts (C, H, W) to (H, W, C)."""
-    img = np.random.rand(3, 28, 28)
+    rng = np.random.default_rng(seed=42)
+    img = rng.random(size=(3, 28, 28))
 
     result = _prepare_for_plt(img)
 
@@ -462,7 +467,8 @@ def test_prepare_for_plt_chw_to_hwc():
 @pytest.mark.unit
 def test_prepare_for_plt_grayscale_squeeze():
     """Test _prepare_for_plt squeezes single-channel dimension."""
-    img = np.random.rand(1, 28, 28)
+    rng = np.random.default_rng(seed=42)
+    img = rng.random(size=(1, 28, 28))
 
     result = _prepare_for_plt(img)
 
@@ -472,7 +478,8 @@ def test_prepare_for_plt_grayscale_squeeze():
 @pytest.mark.unit
 def test_prepare_for_plt_already_2d():
     """Test _prepare_for_plt handles already 2D images."""
-    img = np.random.rand(28, 28)
+    rng = np.random.default_rng(seed=42)
+    img = rng.random(size=(28, 28))
 
     result = _prepare_for_plt(img)
 

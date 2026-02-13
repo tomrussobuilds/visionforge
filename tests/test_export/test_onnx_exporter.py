@@ -5,6 +5,11 @@ Tests ONNX export functionality including model conversion,
 dynamic batch sizes, validation, and error handling.
 """
 
+import sys
+from pathlib import Path
+from unittest.mock import MagicMock
+
+import numpy as np
 import pytest
 import torch
 import torch.nn as nn
@@ -389,7 +394,7 @@ def test_export_without_onnx_validation(tmp_path, monkeypatch):
         checkpoint_path=checkpoint_path,
         output_path=output_path,
         input_shape=(3, 28, 28),
-        validate=True,  # Validation will be skipped due to ImportError
+        validate=True,
     )
 
     assert output_path.exists()
@@ -457,6 +462,36 @@ def test_benchmark_with_invalid_onnx(tmp_path):
 
     result = benchmark_onnx_inference(onnx_path, input_shape=(3, 28, 28), num_runs=1)
     assert result == -1.0
+
+
+@pytest.mark.unit
+def test_benchmark_onnx_inference_success(monkeypatch):
+    """Test benchmark_onnx_inference runs full inference loop."""
+
+    mock_session = MagicMock()
+    mock_session.run.return_value = None
+
+    mock_ort = MagicMock()
+    mock_ort.InferenceSession.return_value = mock_session
+    monkeypatch.setitem(sys.modules, "onnxruntime", mock_ort)
+
+    mock_rng = MagicMock()
+    mock_rng.integers.return_value = np.zeros((1, 3, 224, 224), dtype=np.float32)
+
+    mock_np = MagicMock()
+    mock_np.random.default_rng.return_value = mock_rng
+    mock_np.float32 = np.float32
+
+    monkeypatch.setitem(sys.modules, "numpy", mock_np)
+
+    latency = benchmark_onnx_inference(
+        Path("fake_model.onnx"),
+        input_shape=(3, 224, 224),
+        num_runs=5,
+    )
+
+    assert latency >= 0
+    assert mock_session.run.call_count == 10 + 5
 
 
 if __name__ == "__main__":

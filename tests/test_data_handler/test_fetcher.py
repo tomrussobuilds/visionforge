@@ -352,7 +352,7 @@ def test_stream_download_success(tmp_path, monkeypatch):
             return self
 
         def __exit__(self, *args):
-            pass
+            return False
 
     def fake_get(*args, **kwargs):
         return FakeResponse()
@@ -384,7 +384,7 @@ def test_stream_download_html_content_raises_error(tmp_path, monkeypatch):
             return self
 
         def __exit__(self, *args):
-            pass
+            return False
 
     def fake_get(*args, **kwargs):
         return FakeResponse()
@@ -417,7 +417,7 @@ def test_stream_download_skips_empty_chunks(tmp_path, monkeypatch):
             return self
 
         def __exit__(self, *args):
-            pass
+            return False
 
     def fake_get(*args, **kwargs):
         return FakeResponse()
@@ -443,7 +443,7 @@ def test_stream_download_http_error(tmp_path, monkeypatch):
             return self
 
         def __exit__(self, *args):
-            pass
+            return False
 
     def fake_get(*args, **kwargs):
         return FakeResponse()

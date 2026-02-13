@@ -61,7 +61,6 @@ def build_pruner(
     Create Optuna pruner from configuration.
 
     Args:
-        enable_pruning: Whether pruning is enabled
         pruner_type: Pruner algorithm name ("median", "percentile", "hyperband", "none")
 
     Returns:

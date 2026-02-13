@@ -157,7 +157,9 @@ def test_validate_epoch_returns_fallback_on_invalid_type():
         model=nn.Linear(10, 2),
         train_loader=MagicMock(),
         val_loader=MagicMock(),
-        optimizer=torch.optim.SGD(nn.Linear(10, 2).parameters(), lr=0.01),
+        optimizer=torch.optim.SGD(
+            nn.Linear(10, 2).parameters(), lr=0.01, momentum=0.0, weight_decay=0.0
+        ),
         scheduler=MagicMock(),
         criterion=nn.CrossEntropyLoss(),
         cfg=MagicMock(
@@ -271,7 +273,7 @@ def test_execute_handles_invalid_validation_type():
     with patch.object(executor, "_train_epoch", return_value=0.5):
         with patch.object(executor, "_validate_epoch", return_value="invalid"):
             result = executor.execute(mock_trial)
-            assert result == 0.0
+            assert result == pytest.approx(0.0)
 
 
 # TESTS: FULL EXECUTION LOOP

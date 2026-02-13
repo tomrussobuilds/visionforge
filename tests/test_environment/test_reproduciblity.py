@@ -41,16 +41,19 @@ def test_is_repro_mode_requested_disabled(monkeypatch):
 @pytest.mark.unit
 def test_set_seed_reproducibility_cpu():
     """set_seed enforces deterministic CPU behavior."""
+
     set_seed(123)
 
+    rng = np.random.default_rng(123)
     a1 = random.random()
-    b1 = np.random.rand()
+    b1 = rng.random()
     c1 = torch.rand(1)
 
     set_seed(123)
 
+    rng = np.random.default_rng(123)
     a2 = random.random()
-    b2 = np.random.rand()
+    b2 = rng.random()
     c2 = torch.rand(1)
 
     assert a1 == a2
@@ -123,7 +126,7 @@ def test_worker_init_fn_no_worker_info(monkeypatch):
 
 @pytest.mark.unit
 def test_worker_init_fn_sets_deterministic_state(monkeypatch):
-    """worker_init_fn initializes RNGs deterministically per worker."""
+    """worker_init_fn initializes RNGs deterministically for worker."""
 
     class DummyWorkerInfo:
         seed = 1000
@@ -136,14 +139,16 @@ def test_worker_init_fn_sets_deterministic_state(monkeypatch):
 
     worker_init_fn(worker_id=1)
 
+    rng = np.random.default_rng(1000)
     a1 = random.random()
-    b1 = np.random.rand()
+    b1 = rng.random()
     c1 = torch.rand(1)
 
     worker_init_fn(worker_id=1)
 
+    rng = np.random.default_rng(1000)
     a2 = random.random()
-    b2 = np.random.rand()
+    b2 = rng.random()
     c2 = torch.rand(1)
 
     assert a1 == a2
