@@ -51,7 +51,7 @@ orchard/
 │   └── synthetic.py            # Synthetic data generation
 ├── models/                     # Architecture factory
 │   ├── factory.py              # Model registry & builder
-│   ├── resnet_18_adapted.py    # Adapted ResNet for 28×28
+│   ├── resnet_18.py    # Adapted ResNet for 28×28
 │   ├── mini_cnn.py             # Compact CNN (~94K params)
 │   ├── efficientnet_b0.py      # EfficientNet for 224×224
 │   └── vit_tiny.py             # Vision Transformer for 224×224

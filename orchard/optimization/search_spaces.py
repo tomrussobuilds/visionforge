@@ -173,7 +173,7 @@ class SearchSpaceRegistry:
         """Search space for 224×224 architectures with weight variants."""
         return {
             "model_name": lambda trial: trial.suggest_categorical(
-                "model_name", ["efficientnet_b0", "vit_tiny"]
+                "model_name", ["resnet_18", "efficientnet_b0", "vit_tiny", "convnext_tiny"]
             ),
             "weight_variant": lambda trial: (
                 trial.suggest_categorical(
@@ -194,7 +194,7 @@ class SearchSpaceRegistry:
         """Search space for 28×28 architectures."""
         return {
             "model_name": lambda trial: trial.suggest_categorical(
-                "model_name", ["resnet_18_adapted", "mini_cnn"]
+                "model_name", ["resnet_18", "mini_cnn"]
             ),
         }
 

@@ -89,7 +89,7 @@ def basic_args():
         force_rgb=True,
         img_size=None,
         # Model
-        model_name="resnet_18_adapted",
+        model_name="resnet_18",
         pretrained=True,
         # Training
         epochs=60,
@@ -146,7 +146,7 @@ dataset:
   name: bloodmnist
   resolution: 28
 model:
-  name: resnet_18_adapted
+  name: resnet_18
   pretrained: true
 training:
   epochs: 60
@@ -183,7 +183,7 @@ def minimal_config():
 
     return Config(
         dataset={"name": "bloodmnist", "resolution": 28},
-        architecture={"name": "resnet_18_adapted", "pretrained": False},
+        architecture={"name": "resnet_18", "pretrained": False},
         training={
             "epochs": 25,
             "batch_size": 16,

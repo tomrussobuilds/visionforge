@@ -78,7 +78,7 @@ def test_log_training_summary_basic():
     mock_logger = MagicMock()
     mock_cfg = MagicMock()
     mock_cfg.dataset.dataset_name = "bloodmnist"
-    mock_cfg.architecture.name = "resnet_18_adapted"
+    mock_cfg.architecture.name = "resnet_18"
     mock_cfg.architecture.weight_variant = None
     mock_device = torch.device("cpu")
     mock_paths = MagicMock()
@@ -97,7 +97,7 @@ def test_log_training_summary_basic():
     calls = [str(call) for call in mock_logger.info.call_args_list]
     log_output = " ".join(calls)
     assert "bloodmnist" in log_output
-    assert "resnet_18_adapted" in log_output
+    assert "resnet_18" in log_output
 
 
 @pytest.mark.unit
@@ -472,7 +472,7 @@ def test_reporter_log_initial_status():
     mock_cfg.training.use_amp = True
     mock_cfg.training.seed = 42
     mock_cfg.hardware.use_deterministic_algorithms = False
-    mock_cfg.architecture.name = "resnet_18_adapted"
+    mock_cfg.architecture.name = "resnet_18"
     mock_cfg.architecture.pretrained = True
     mock_cfg.architecture.weight_variant = None
     mock_cfg.dataset.metadata = MagicMock()

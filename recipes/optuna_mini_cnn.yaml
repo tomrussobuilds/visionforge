@@ -19,7 +19,7 @@
 #     - Scheduler patience: 3 to 10
 #     - Augmentation: rotation (0-15°), jitter (0-0.15), scale (0.9-1.0)
 #     - Model architecture (if enable_model_search: true):
-#         - 28px: mini_cnn vs resnet_18_adapted
+#         - 28px: mini_cnn vs resnet_18
 #         - 224px: efficientnet_b0 vs vit_tiny (+ ViT weight variants)
 #
 #   FIXED PARAMETERS (not optimized):
@@ -39,7 +39,7 @@ dataset:
   max_samples: null
 
 architecture:
-  name: "mini_cnn"              # Will be optimized vs resnet_18_adapted
+  name: "mini_cnn"              # Will be optimized vs resnet_18
   pretrained: false
   weight_variant: null
   dropout: 0.3                  # Will be optimized
@@ -126,7 +126,7 @@ optuna:
   # Search strategy
   sampler_type: "tpe"
   search_space_preset: "full"
-  enable_model_search: true     # Compare mini_cnn vs resnet_18_adapted
+  enable_model_search: true     # Compare mini_cnn vs resnet_18
 
   # Pruning
   enable_pruning: true

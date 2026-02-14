@@ -35,7 +35,7 @@ class ArchitectureConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, arbitrary_types_allowed=True)
 
     name: str = Field(
-        default="resnet_18_adapted",
+        default="resnet_18",
         description="The unique identifier for the model architecture. E.g., 'efficientnet_b0'.",
     )
 

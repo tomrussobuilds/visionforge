@@ -57,7 +57,7 @@ def paths(tmpdir):
 def config():
     """Fixture for creating a valid Config object with ModelConfig and TrainingConfig."""
     model_config = {
-        "name": "resnet_18_adapted",
+        "name": "resnet_18",
         "pretrained": True,
         "dropout": 0.2,
         "weight_variant": None,

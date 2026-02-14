@@ -19,7 +19,7 @@ def test_architecture_config_defaults():
     """Test ArchitectureConfig with default values."""
     config = ArchitectureConfig()
 
-    assert config.name == "resnet_18_adapted"
+    assert config.name == "resnet_18"
     assert config.pretrained is True
     assert config.dropout == pytest.approx(0.2)
     assert config.weight_variant is None
@@ -113,7 +113,7 @@ def test_weight_variant_with_pretrained_false():
 @pytest.mark.unit
 def test_common_architecture_names():
     """Test ArchitectureConfig accepts common architecture names."""
-    architectures = ["resnet_18_adapted", "efficientnet_b0", "vit_tiny", "mini_cnn"]
+    architectures = ["resnet_18", "efficientnet_b0", "vit_tiny", "mini_cnn"]
 
     for arch in architectures:
         config = ArchitectureConfig(name=arch)

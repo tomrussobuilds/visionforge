@@ -183,7 +183,7 @@ def benchmark_onnx_inference(
 
         # Prepare dummy input using random Generator
         rng = np.random.default_rng(42)
-        dummy_input = rng.integers(0, 256, size=(1, *input_shape), dtype=np.float32)
+        dummy_input = rng.random(size=(1, *input_shape), dtype=np.float32) * 256
 
         # Warmup
         for _ in range(10):

@@ -1,8 +1,8 @@
 # ==============================================================================
-# FILE: recipes/config_resnet_18_adapted.yaml
+# FILE: recipes/config_resnet_18.yaml
 # ResNet-18 Adapted for 28x28 Histopathology Images
 # ==============================================================================
-# Usage: python forge.py --config recipes/config_resnet_18_adapted.yaml
+# Usage: python forge.py --config recipes/config_resnet_18.yaml
 # Estimated Time: ~15 minutes (60 epochs on RTX 5070)
 # Memory Usage: ~2GB VRAM
 
@@ -15,7 +15,7 @@ dataset:
   max_samples: null
 
 architecture:
-  name: "resnet_18_adapted"
+  name: "resnet_18"
   pretrained: false
   dropout: 0.3
 

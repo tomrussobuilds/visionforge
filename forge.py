@@ -19,7 +19,7 @@ Usage:
     python forge.py --config recipes/config_mini_cnn.yaml
 
     # Training + export (config has export: section)
-    python forge.py --config recipes/config_resnet_18_adapted.yaml
+    python forge.py --config recipes/config_resnet_18.yaml
 
 Pipeline Logic:
     - If config contains `optuna:` section → runs optimization first

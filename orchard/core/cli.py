@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     strat_group.add_argument(
         "--config",
         type=str,
-        default="recipes/config_resnet_18_adapted.yaml",
+        default="recipes/config_resnet_18.yaml",
         help="Path to YAML config file (default: ResNet-18 on PathMNIST 28x28)",
     )
     strat_group.add_argument(
@@ -261,7 +261,7 @@ def parse_args() -> argparse.Namespace:
     model_group = parser.add_argument_group("Model Configuration")
 
     model_group.add_argument(
-        "--model_name", type=str, default="resnet_18_adapted", help="Architecture identifier"
+        "--model_name", type=str, default="resnet_18", help="Architecture identifier"
     )
     model_group.add_argument(
         "--pretrained", action="store_true", default=True, help="Load ImageNet weights"

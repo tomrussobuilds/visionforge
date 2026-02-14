@@ -81,7 +81,7 @@ def test_get_model_case_insensitive():
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "model_name",
-    ["mini_cnn", "resnet_18_adapted", "efficientnet_b0", "vit_tiny"],
+    ["mini_cnn", "resnet_18", "efficientnet_b0", "convnext_tiny", "vit_tiny"],
 )
 def test_get_model_all_registered_models(model_name):
     """Test get_model can instantiate all registered models."""
@@ -91,7 +91,10 @@ def test_get_model_all_registered_models(model_name):
     mock_cfg.architecture.dropout = 0.0
     mock_cfg.dataset.effective_in_channels = 3
     mock_cfg.dataset.num_classes = 10
-    mock_cfg.dataset.img_size = 224 if model_name == "vit_tiny" else 28
+    mock_cfg.dataset.img_size = (
+        224 if model_name in ("vit_tiny", "efficientnet_b0", "convnext_tiny") else 28
+    )
+    mock_cfg.dataset.resolution = mock_cfg.dataset.img_size
     mock_cfg.architecture.pretrained = False
     mock_cfg.architecture.weight_variant = None
 

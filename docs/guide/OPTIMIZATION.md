@@ -11,7 +11,7 @@
 pip install optuna plotly timm  # timm required for ViT support
 
 # Run optimization with presets
-python forge.py --config recipes/optuna_resnet_18_adapted.yaml  # 50 trials, ~3 min GPU, ~2.5h CPU
+python forge.py --config recipes/optuna_resnet_18.yaml  # 50 trials, ~3 min GPU, ~2.5h CPU
 python forge.py --config recipes/optuna_mini_cnn.yaml           # 50 trials, ~1-2 min GPU, ~5 min CPU
 
 # 224×224 resolution (includes weight variant search for ViT)
@@ -40,7 +40,7 @@ python forge.py --config recipes/optuna_vit_tiny.yaml \
   - 28×28: [16, 32, 48, 64]
   - 224×224: [8, 12, 16] (OOM-safe for 8GB VRAM)
 - **Architecture** (resolution-specific):
-  - 28×28: [`resnet_18_adapted`, `mini_cnn`]
+  - 28×28: [`resnet_18`, `mini_cnn`]
   - 224×224: [`efficientnet_b0`, `vit_tiny`]
 - **Weight Variants** (ViT only, 224×224):
   - `vit_tiny_patch16_224.augreg_in21k_ft_in1k`

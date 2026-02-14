@@ -114,10 +114,10 @@ def test_get_model_space_28():
     assert "model_name" in space
 
     trial_mock = MagicMock(spec=Trial)
-    trial_mock.suggest_categorical.side_effect = lambda _param, _choices: "resnet_18_adapted"
+    trial_mock.suggest_categorical.side_effect = lambda _param, _choices: "resnet_18"
     model_name = space["model_name"](trial_mock)
-    assert model_name in ["resnet_18_adapted", "mini_cnn"]
-    assert model_name == "resnet_18_adapted"
+    assert model_name in ["resnet_18", "mini_cnn"]
+    assert model_name == "resnet_18"
 
 
 @pytest.mark.unit

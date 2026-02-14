@@ -47,7 +47,7 @@
 <td align="right"><strong>Project</strong></td>
 <td>
   <a href="https://docs.pytest.org/"><img src="https://img.shields.io/badge/tested%20with-pytest-blue?logo=pytest&logoColor=white" alt="Tested with pytest"></a>
-  <img src="https://img.shields.io/badge/tests-~1000-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-1000+-success" alt="Tests">
   <img src="https://img.shields.io/badge/Architecture-Decoupled-blueviolet" alt="Architecture">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <img src="https://img.shields.io/badge/status-Active-success" alt="Status">
@@ -86,9 +86,10 @@
 
 | Resolution | Architectures | Parameters | Use Case |
 |-----------|--------------|-----------|----------|
-| **28×28** | ResNet-18-Adapted | ~11M | Transfer learning baseline |
+| **28×28 / 224×224** | ResNet-18 | ~11M | Multi-resolution baseline, transfer learning |
 | **28×28** | MiniCNN | ~94K | Fast prototyping, ablation studies |
 | **224×224** | EfficientNet-B0 | ~4.0M | Efficient compound scaling |
+| **224×224** | ConvNeXt-Tiny | ~28.6M | Modern ConvNet design |
 | **224×224** | ViT-Tiny | ~5.5M | Patch-based attention, multiple weight variants |
 
 ---
@@ -97,20 +98,20 @@
 
 ### CPU Training (28×28 Only)
 - **Supported Resolution**: 28×28 **only**
-- **Time**: ~2.5 hours (ResNet-18-Adapted, 60 epochs, 16 cores)
+- **Time**: ~2.5 hours (ResNet-18, 60 epochs, 16 cores)
 - **Time**: ~10 minutes (MiniCNN, 60 epochs, 16 cores)
-- **Architectures**: ResNet-18-Adapted, MiniCNN
+- **Architectures**: ResNet-18, MiniCNN
 - **Use Case**: Development, testing, limited hardware environments
 
 ### GPU Training (All Resolutions)
 - **28×28 Resolution**: 
   - MiniCNN: ~2-3 minutes (60 epochs)
-  - ResNet-18-Adapted: ~5 minutes (60 epochs)
+  - ResNet-18: ~5-10 minutes (60 epochs)
 - **224×224 Resolution**: 
   - EfficientNet-B0: ~30 minutes per trial (15 epochs)
   - ViT-Tiny: ~25-35 minutes per trial (30 epochs)
 - **VRAM**: 8GB recommended for 224×224 resolution
-- **Architectures**: All (ResNet-18-Adapted, MiniCNN, EfficientNet-B0, ViT-Tiny)
+- **Architectures**: All (ResNet-18, MiniCNN, EfficientNet-B0, ViT-Tiny)
 
 > [!WARNING]
 > **224×224 training on CPU is not recommended** - it would take 10+ hours per trial. High-resolution training requires GPU acceleration. Only 28×28 resolution has been tested and validated for CPU training.
@@ -122,8 +123,8 @@
 | **Smoke Test** | MiniCNN | 28×28 | CPU/GPU | <30s | 1-epoch sanity check |
 | **Quick Training** | MiniCNN | 28×28 | GPU | ~2-3 min | 60 epochs |
 | **Quick Training** | MiniCNN | 28×28 | CPU (16 cores) | ~30 min | 60 epochs, CPU-validated |
-| **Transfer Learning** | ResNet-18-Adapted | 28×28 | GPU | ~5 min | 60 epochs |
-| **Transfer Learning** | ResNet-18-Adapted | 28×28 | CPU (16 cores) | ~2.5h | 60 epochs, CPU-validated |
+| **Transfer Learning** | ResNet-18 | 28×28 | GPU | ~5 min | 60 epochs |
+| **Transfer Learning** | ResNet-18 | 28×28 | CPU (16 cores) | ~2.5h | 60 epochs, CPU-validated |
 | **High-Res Training** | EfficientNet-B0 | 224×224 | GPU | ~30 min | 15 epochs, **GPU required** |
 | **High-Res Training** | ViT-Tiny | 224×224 | GPU | ~25-35 min | 30 epochs, **GPU required** |
 | **Optimization Study** | EfficientNet-B0 | 224×224 | GPU | ~2h | 4 trials (early stop at AUC≥0.9999) |
@@ -169,7 +170,7 @@ VisionForge uses `forge.py` as the **single entry point** for all workflows. The
 ```bash
 # 28×28 resolution (CPU-compatible)
 python forge.py --config recipes/config_mini_cnn.yaml              # ~2-3 min GPU, ~10 min CPU
-python forge.py --config recipes/config_resnet_18_adapted.yaml     # ~15 min GPU, ~2.5h CPU
+python forge.py --config recipes/config_resnet_18.yaml     # ~15 min GPU, ~2.5h CPU
 
 # 224×224 resolution (GPU required)
 python forge.py --config recipes/config_efficientnet_b0.yaml       # ~30 min GPU
@@ -188,7 +189,7 @@ python forge.py --config recipes/config_vit_tiny.yaml              # ~25-35 min 
 ```bash
 # 28×28 resolution - fast iteration
 python forge.py --config recipes/optuna_mini_cnn.yaml              # ~5 min GPU, ~10 min CPU
-python forge.py --config recipes/optuna_resnet_18_adapted.yaml     # ~5-10 min GPU
+python forge.py --config recipes/optuna_resnet_18.yaml     # ~20-30 min GPU
 
 # 224×224 resolution - requires GPU
 python forge.py --config recipes/optuna_efficientnet_b0.yaml       # ~1.5-5h*, GPU
@@ -245,6 +246,7 @@ See the [full artifact tree](docs/artifacts/artifacts_structure.png) for the com
 Copy the closest recipe, tweak the parameters, and run:
 ```bash
 cp recipes/config_efficientnet_b0.yaml my_run.yaml
+# modify your recipe
 python forge.py --config my_run.yaml
 ```
 

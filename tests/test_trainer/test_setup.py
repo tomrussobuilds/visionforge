@@ -40,7 +40,7 @@ def base_cfg():
         weighted_loss=True,
         criterion_type="cross_entropy",
     )
-    cfg.architecture = SimpleNamespace(name="resnet_18_adapted")
+    cfg.architecture = SimpleNamespace(name="resnet_18")
     return cfg
 
 
@@ -67,7 +67,7 @@ def test_get_criterion_invalid_type(base_cfg):
 @pytest.mark.unit
 def test_get_optimizer_resnet(base_cfg, simple_model):
     """Test SGD optimizer for ResNet variants."""
-    base_cfg.architecture.name = "resnet_18_adapted"
+    base_cfg.architecture.name = "resnet_18"
     optimizer = setup.get_optimizer(simple_model, base_cfg)
     assert isinstance(optimizer, optim.SGD)
 

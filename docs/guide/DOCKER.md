@@ -45,7 +45,7 @@ docker run -it --rm \
   -v $(pwd)/dataset:/app/dataset \
   -v $(pwd)/outputs:/app/outputs \
   visionforge:latest \
-  --config recipes/config_resnet_18_adapted.yaml
+  --config recipes/config_resnet_18.yaml
 ```
 
 **Strict Reproducibility Mode** (Bit-Perfect Determinism):
@@ -59,7 +59,7 @@ docker run -it --rm \
   -v $(pwd)/dataset:/app/dataset \
   -v $(pwd)/outputs:/app/outputs \
   visionforge:latest \
-  --config recipes/config_resnet_18_adapted.yaml
+  --config recipes/config_resnet_18.yaml
 ```
 
 > [!NOTE]

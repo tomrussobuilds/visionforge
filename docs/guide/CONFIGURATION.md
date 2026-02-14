@@ -13,7 +13,7 @@
 python -m tests.smoke_test
 
 # Train with presets (28×28 resolution, CPU-compatible)
-python forge.py --config recipes/config_resnet_18_adapted.yaml     # ~15 min GPU, ~2.5h CPU
+python forge.py --config recipes/config_resnet_18.yaml     # ~15 min GPU, ~2.5h CPU
 python forge.py --config recipes/config_mini_cnn.yaml              # ~2-3 min GPU, ~10 min CPU
 
 # Train with presets (224×224 resolution, GPU required)
@@ -78,7 +78,7 @@ python forge.py --mixup_alpha 0 --no_tta
 
 | Parameter | Type | Default | Options |
 |-----------|------|---------|---------|
-| `model_name` | str | "resnet_18_adapted" | `resnet_18_adapted`, `mini_cnn` (28×28); `efficientnet_b0`, `vit_tiny` (224×224) |
+| `model_name` | str | "resnet_18" | `resnet_18`, `mini_cnn` (28×28); `efficientnet_b0`, `vit_tiny` (224×224) |
 | `pretrained` | bool | True | Use ImageNet weights (N/A for MiniCNN) |
 | `weight_variant` | str | None | ViT-specific pretrained variant (e.g., `augreg_in21k_ft_in1k`) |
 | `force_rgb` | bool | True | Convert grayscale to 3-channel |

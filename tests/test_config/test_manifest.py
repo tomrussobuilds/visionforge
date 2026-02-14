@@ -34,38 +34,38 @@ def test_config_from_args_basic(basic_args):
     config = Config.from_args(basic_args)
 
     assert config.dataset.dataset_name == "bloodmnist"
-    assert config.architecture.name == "resnet_18_adapted"
+    assert config.architecture.name == "resnet_18"
     assert config.training.epochs == 60
 
 
 # CONFIG: CROSS-VALIDATION
 @pytest.mark.unit
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
-def test_resnet_18_adapted_requires_resolution_28_direct(device):
+def test_resnet_18_supports_both_resolutions(device):
     """
-    resnet_18_adapted uses a modified stem and is only compatible with 28x28 inputs,
-    regardless of the execution device.
+    resnet_18 supports both 28x28 and 224x224 resolutions.
     """
-    with pytest.raises(
-        ValidationError,
-        match="'resnet_18_adapted' requires resolution=28",
-    ):
-        Config(
-            dataset=DatasetConfig(
-                name="bloodmnist",
-                resolution=224,
-            ),
-            architecture=ArchitectureConfig(
-                name="resnet_18_adapted",
-                pretrained=True,
-            ),
-            training=TrainingConfig(),
-            hardware=HardwareConfig(device=device),
-        )
+    # Should work at 28x28
+    config_28 = Config(
+        dataset=DatasetConfig(name="bloodmnist", resolution=28),
+        architecture=ArchitectureConfig(name="resnet_18", pretrained=False),
+        training=TrainingConfig(),
+        hardware=HardwareConfig(device=device),
+    )
+    assert config_28.dataset.resolution == 28
+
+    # Should work at 224x224
+    config_224 = Config(
+        dataset=DatasetConfig(name="bloodmnist", resolution=224, force_rgb=True),
+        architecture=ArchitectureConfig(name="resnet_18", pretrained=False),
+        training=TrainingConfig(),
+        hardware=HardwareConfig(device=device),
+    )
+    assert config_224.dataset.resolution == 224
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize("architecture_name", ["efficientnet_b0", "vit_tiny"])
+@pytest.mark.parametrize("architecture_name", ["efficientnet_b0", "vit_tiny", "convnext_tiny"])
 def test_224_models_require_resolution_224(architecture_name):
     """
     efficientnet_b0 and vit_tiny require 224x224 resolution.
@@ -84,6 +84,36 @@ def test_224_models_require_resolution_224(architecture_name):
                 name=architecture_name,
                 pretrained=False,
             ),
+            training=TrainingConfig(),
+            hardware=HardwareConfig(device="cpu"),
+        )
+
+
+@pytest.mark.unit
+def test_mini_cnn_requires_resolution_28():
+    """mini_cnn only supports 28x28 resolution."""
+    with pytest.raises(
+        ValidationError,
+        match="'mini_cnn' requires resolution=28",
+    ):
+        Config(
+            dataset=DatasetConfig(name="bloodmnist", resolution=224, force_rgb=True),
+            architecture=ArchitectureConfig(name="mini_cnn", pretrained=False),
+            training=TrainingConfig(),
+            hardware=HardwareConfig(device="cpu"),
+        )
+
+
+@pytest.mark.unit
+def test_resnet_18_rejects_invalid_resolution():
+    """resnet_18 only supports 28 or 224, not arbitrary resolutions."""
+    with pytest.raises(
+        ValidationError,
+        match="'resnet_18' supports resolutions 28 or 224",
+    ):
+        Config(
+            dataset=DatasetConfig(name="bloodmnist", resolution=112),
+            architecture=ArchitectureConfig(name="resnet_18", pretrained=False),
             training=TrainingConfig(),
             hardware=HardwareConfig(device="cpu"),
         )
@@ -150,7 +180,7 @@ def test_pretrained_requires_rgb():
     """Test pretrained model validation enforces RGB channels."""
     args = argparse.Namespace(
         dataset="organcmnist",
-        model_name="resnet_18_adapted",
+        model_name="resnet_18",
         pretrained=True,
         force_rgb=False,
         resolution=28,
@@ -213,7 +243,7 @@ def test_from_yaml_loads_correctly(temp_yaml_config, mock_metadata_28):
     config = Config.from_yaml(temp_yaml_config, metadata=mock_metadata_28)
 
     assert config.dataset.dataset_name == "bloodmnist"
-    assert config.architecture.name == "resnet_18_adapted"
+    assert config.architecture.name == "resnet_18"
     assert config.training.epochs == 60
     assert config.training.batch_size == 128
 
@@ -421,7 +451,7 @@ def test_config_from_yaml_with_img_size_override():
             "force_rgb": True,
         },
         "architecture": {
-            "name": "resnet_18_adapted",
+            "name": "resnet_18",
             "pretrained": False,
         },
         "training": {
@@ -462,7 +492,7 @@ def test_config_from_yaml_without_img_size():
             "force_rgb": True,
         },
         "architecture": {
-            "name": "resnet_18_adapted",
+            "name": "resnet_18",
             "pretrained": False,
         },
         "training": {
@@ -503,7 +533,7 @@ def test_config_yaml_img_size_none_explicit():
             "force_rgb": True,
         },
         "architecture": {
-            "name": "resnet_18_adapted",
+            "name": "resnet_18",
             "pretrained": False,
         },
         "training": {

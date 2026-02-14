@@ -27,9 +27,10 @@ import torch.nn as nn
 
 from orchard.core import LOGGER_NAME, Config
 
+from .convnext_tiny import build_convnext_tiny
 from .efficientnet_b0 import build_efficientnet_b0
 from .mini_cnn import build_mini_cnn
-from .resnet_18_adapted import build_resnet18_adapted
+from .resnet_18 import build_resnet18
 from .vit_tiny import build_vit_tiny
 
 # LOGGER CONFIGURATION
@@ -64,8 +65,10 @@ def get_model(device: torch.device, cfg: Config, verbose: bool = True) -> nn.Mod
     """
     # Internal Imports
     _MODEL_REGISTRY = {
-        "resnet_18_adapted": build_resnet18_adapted,
+        "resnet_18": build_resnet18,
+        "resnet_18_adapted": build_resnet18,  # Backward-compat alias (deprecated)
         "efficientnet_b0": build_efficientnet_b0,
+        "convnext_tiny": build_convnext_tiny,
         "vit_tiny": build_vit_tiny,
         "mini_cnn": build_mini_cnn,
     }

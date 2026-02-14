@@ -24,7 +24,7 @@ def test_parse_args_defaults():
         assert args.epochs == 60
         assert args.batch_size == 16
         assert args.resolution == 28
-        assert args.model_name == "resnet_18_adapted"
+        assert args.model_name == "resnet_18"
 
 
 @pytest.mark.unit

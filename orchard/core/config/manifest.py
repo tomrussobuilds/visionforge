@@ -141,9 +141,10 @@ class Config(BaseModel):
         """
         Validates architecture-resolution compatibility.
 
-        Enforces that each model is used with its supported resolution:
-            - 28x28: resnet_18_adapted, mini_cnn
-            - 224x224: efficientnet_b0, vit_tiny
+        Enforces that each model is used with its supported resolution(s):
+            - 28x28 only: mini_cnn
+            - 224x224 only: efficientnet_b0, vit_tiny, convnext_tiny
+            - Multi-resolution (28x28, 224x224): resnet_18
 
         Raises:
             ValueError: If architecture and resolution are incompatible
@@ -151,20 +152,27 @@ class Config(BaseModel):
         model_name = self.architecture.name.lower()
         resolution = self.dataset.resolution
 
-        # Architecture -> required resolution mapping
-        resolution_28_models = {"resnet_18_adapted", "mini_cnn"}
-        resolution_224_models = {"efficientnet_b0", "vit_tiny"}
+        # Architecture -> supported resolutions mapping
+        resolution_28_only = {"mini_cnn"}
+        resolution_224_only = {"efficientnet_b0", "vit_tiny", "convnext_tiny"}
+        multi_resolution = {"resnet_18", "resnet_18_adapted"}
 
-        if model_name in resolution_28_models and resolution != 28:
+        if model_name in resolution_28_only and resolution != 28:
             raise ValueError(
                 f"'{self.architecture.name}' requires resolution=28, got {resolution}. "
-                f"Use a 224x224 architecture (efficientnet_b0, vit_tiny) for high resolution."
+                f"Use a 224x224 architecture (efficientnet_b0, vit_tiny, convnext_tiny) "
+                f"or resnet_18 for high resolution."
             )
 
-        if model_name in resolution_224_models and resolution != 224:
+        if model_name in resolution_224_only and resolution != 224:
             raise ValueError(
                 f"'{self.architecture.name}' requires resolution=224, got {resolution}. "
-                f"Use a 28x28 architecture (resnet_18_adapted, mini_cnn) for low resolution."
+                f"Use resnet_18 or mini_cnn for low resolution."
+            )
+
+        if model_name in multi_resolution and resolution not in (28, 224):
+            raise ValueError(
+                f"'{self.architecture.name}' supports resolutions 28 or 224, got {resolution}."
             )
 
     @property
