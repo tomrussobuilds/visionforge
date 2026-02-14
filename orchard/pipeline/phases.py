@@ -96,9 +96,8 @@ def run_optimization_phase(
     )
 
     # Best config path is in reports dir (exported by orchestrator if save_best_config=True)
-    best_config_path = paths.reports / "best_config.yaml"
-    if not best_config_path.exists():
-        best_config_path = None
+    candidate = paths.reports / "best_config.yaml"
+    best_config_path: Path | None = candidate if candidate.exists() else None
 
     return study, best_config_path
 

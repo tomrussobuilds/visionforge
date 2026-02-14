@@ -37,7 +37,7 @@ jobs:
 
       - name: Install linting tools
         run: |
-          pip install black flake8 isort
+          pip install black flake8 isort mypy types-PyYAML types-requests
 
       - name: Run Black
         run: black --check --diff .
@@ -50,6 +50,9 @@ jobs:
       - name: Run Flake8
         run: flake8 --max-line-length=100 --ignore=E203,W503,E501 orchard/ tests/
         continue-on-error: true
+
+      - name: Run mypy (type checking)
+        run: mypy orchard/
 
   # Job 2: Pytest Suite
   test-pytest:
@@ -184,10 +187,10 @@ jobs:
           bandit -r orchard/ -ll -s B101 || true
         continue-on-error: true
 
-      - name: Run Safety scan
+      - name: Run pip-audit (dependency vulnerability scan)
         run: |
-          pip install safety
-          safety scan --output screen || true
+          pip install pip-audit
+          pip-audit || true
         continue-on-error: true
 
   # Job 6: Build Status Summary

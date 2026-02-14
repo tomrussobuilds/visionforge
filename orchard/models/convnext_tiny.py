@@ -73,7 +73,7 @@ def build_convnext_tiny(
                 w = w.mean(dim=1, keepdim=True)  # [96, 1, 4, 4]
 
             new_conv.weight.copy_(w)
-            if b is not None:
+            if b is not None and new_conv.bias is not None:
                 new_conv.bias.copy_(b)
 
     # Replace entry layer with adapted version

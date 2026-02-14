@@ -145,9 +145,7 @@ The framework implements **Separation of Concerns (SoC)** with five core layers:
 
 > *Generated via `pydeps`. Highlights the centralized Config hub and modular architecture.*
 
-<details>
-<summary>Regenerate Dependency Graph</summary>
-
+**Regenerate:**
 ```bash
 pydeps orchard \
     --cluster \
@@ -159,8 +157,6 @@ pydeps orchard \
     -o docs/framework_map.svg
 ```
 
-**Requirements:** `pydeps` + Graphviz (`sudo apt install graphviz` or `brew install graphviz`)
-
-</details>
+> **Requirements:** `pydeps` + Graphviz (`sudo apt install graphviz` or `brew install graphviz`)
 
 ---
