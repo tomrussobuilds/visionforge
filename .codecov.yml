@@ -13,6 +13,7 @@ ignore:
   - "**/__init__.py"
   - "**/conftest.py"
   - "tests/"
+  - "forge.py"
 
 comment:
   require_changes: false

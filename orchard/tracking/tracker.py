@@ -23,9 +23,7 @@ except ImportError:  # pragma: no cover
     _MLFLOW_AVAILABLE = False
 
 
-def _flatten_dict(  # pragma: no cover
-    d: Dict[str, Any], parent_key: str = "", sep: str = "."
-) -> Dict[str, Any]:
+def _flatten_dict(d: Dict[str, Any], parent_key: str = "", sep: str = ".") -> Dict[str, Any]:
     """Flatten a nested dict into dot-separated keys for MLflow params."""
     items: list[tuple[str, Any]] = []
     for k, v in d.items():

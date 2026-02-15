@@ -10,6 +10,45 @@ from unittest.mock import MagicMock
 import pytest
 
 from orchard.tracking import NoOpTracker, create_tracker
+from orchard.tracking.tracker import _flatten_dict
+
+# --- _flatten_dict TESTS ---
+
+
+@pytest.mark.unit
+def test_flatten_dict_empty():
+    """_flatten_dict returns empty dict for empty input."""
+    assert _flatten_dict({}) == {}
+
+
+@pytest.mark.unit
+def test_flatten_dict_flat():
+    """_flatten_dict returns same keys for a flat dict."""
+    d = {"a": 1, "b": "hello", "c": 3.14}
+    assert _flatten_dict(d) == {"a": 1, "b": "hello", "c": 3.14}
+
+
+@pytest.mark.unit
+def test_flatten_dict_nested():
+    """_flatten_dict flattens nested dicts with dot-separated keys."""
+    d = {"training": {"lr": 0.01, "epochs": 10}, "model": "resnet"}
+    result = _flatten_dict(d)
+    assert result == {"training.lr": 0.01, "training.epochs": 10, "model": "resnet"}
+
+
+@pytest.mark.unit
+def test_flatten_dict_deeply_nested():
+    """_flatten_dict handles multiple nesting levels."""
+    d = {"a": {"b": {"c": 42}}}
+    assert _flatten_dict(d) == {"a.b.c": 42}
+
+
+@pytest.mark.unit
+def test_flatten_dict_custom_separator():
+    """_flatten_dict respects custom separator."""
+    d = {"a": {"b": 1}}
+    assert _flatten_dict(d, sep="/") == {"a/b": 1}
+
 
 # --- FACTORY TESTS ---
 
