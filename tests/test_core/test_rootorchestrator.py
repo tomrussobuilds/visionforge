@@ -200,25 +200,21 @@ def test_context_manager_exit_propagates_exception():
 
 
 @pytest.mark.unit
-def test_context_manager_exit_logs_duration():
-    """Test __exit__ logs pipeline duration when run_logger is present."""
+def test_context_manager_exit_stops_timer():
+    """Test __exit__ stops the time tracker and runs cleanup."""
     mock_cfg = MagicMock()
     mock_cfg.hardware.use_deterministic_algorithms = False
     mock_cfg.hardware.effective_num_workers = 4
 
-    mock_logger = MagicMock()
     mock_time_tracker = MagicMock()
-    mock_time_tracker.elapsed_formatted = "5m 30s"
 
     orch = RootOrchestrator(cfg=mock_cfg, time_tracker=mock_time_tracker)
-    orch.run_logger = mock_logger
     orch.cleanup = MagicMock()
 
     orch.__exit__(None, None, None)
 
     mock_time_tracker.stop.assert_called_once()
-    mock_logger.info.assert_called_once()
-    assert "5m 30s" in mock_logger.info.call_args[0][0]
+    orch.cleanup.assert_called_once()
 
 
 # GET DEVICE

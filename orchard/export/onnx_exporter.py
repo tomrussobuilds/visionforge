@@ -101,6 +101,7 @@ def export_to_onnx(
         with (
             warnings.catch_warnings(),
             contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
         ):
             # Suppress warnings and stdout prints (e.g. ONNX rewrite rules)
             warnings.simplefilter("ignore")

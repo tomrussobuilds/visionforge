@@ -235,10 +235,8 @@ class RootOrchestrator:
         Returns:
             Always False — exceptions are never suppressed.
         """
-        # Stop timer and log duration
+        # Stop timer (duration already shown in pipeline summary)
         self.time_tracker.stop()
-        if self.run_logger:
-            self.run_logger.info(f"Pipeline duration: {self.time_tracker.elapsed_formatted}")
 
         self.cleanup()
         return False
