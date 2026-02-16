@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Protocol
 
 from orchard.core import LOGGER_NAME
 
@@ -33,6 +33,30 @@ def _flatten_dict(d: Dict[str, Any], parent_key: str = "", sep: str = ".") -> Di
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+class TrackerProtocol(Protocol):
+    """Protocol defining the experiment tracker interface.
+
+    Both MLflowTracker and NoOpTracker implement this protocol,
+    enabling type-safe dependency injection without inheritance.
+    """
+
+    def start_run(self, cfg: Any, run_name: str, tracking_uri: str) -> None: ...
+
+    def log_epoch(self, epoch: int, train_loss: float, val_metrics: dict, lr: float) -> None: ...
+
+    def log_test_metrics(self, test_acc: float, macro_f1: float) -> None: ...
+
+    def log_artifact(self, path: Path) -> None: ...
+
+    def log_artifacts_dir(self, directory: Path) -> None: ...
+
+    def start_optuna_trial(self, trial_number: int, params: Dict[str, Any]) -> None: ...
+
+    def end_optuna_trial(self, best_metric: float) -> None: ...
+
+    def end_run(self) -> None: ...
 
 
 class NoOpTracker:  # pragma: no cover
@@ -115,10 +139,7 @@ class MLflowTracker:  # pragma: no cover
         safe_params = {k: str(v)[:500] for k, v in flat_params.items() if v is not None}
         mlflow.log_params(safe_params)
 
-        # Extract DB path from sqlite URI (sqlite:///path/to/db)
-        db_path = tracking_uri.replace("sqlite:///", "")
-        logger.info(f"MLflow tracking active (experiment={self.experiment_name!r})")
-        logger.info(f"  » Tracking DB : {db_path}")
+        logger.debug(f"MLflow run started (experiment={self.experiment_name!r})")
 
     def log_epoch(self, epoch: int, train_loss: float, val_metrics: dict, lr: float) -> None:
         """Log per-epoch training metrics.
@@ -203,7 +224,7 @@ class MLflowTracker:  # pragma: no cover
         self.end_run()
 
 
-def create_tracker(cfg: Any) -> MLflowTracker | NoOpTracker:
+def create_tracker(cfg: Any) -> TrackerProtocol:
     """Factory: returns MLflowTracker if tracking is configured, else NoOpTracker.
 
     Args:

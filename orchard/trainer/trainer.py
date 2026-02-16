@@ -17,6 +17,8 @@ Key Features:
       evolution, and resource utilization.
 """
 
+from __future__ import annotations
+
 import logging
 from functools import partial
 from pathlib import Path
@@ -30,7 +32,7 @@ from torch.utils.data import DataLoader
 from orchard.core import LOGGER_NAME, Config, load_model_weights
 
 if TYPE_CHECKING:  # pragma: no cover
-    from orchard.tracking import MLflowTracker, NoOpTracker
+    from orchard.tracking import TrackerProtocol
 
 from .engine import mixup_data, train_one_epoch, validate_epoch
 
@@ -105,7 +107,7 @@ class ModelTrainer:
         device: torch.device,
         cfg: Config,
         output_path: Path | None = None,
-        tracker: "MLflowTracker | NoOpTracker | None" = None,
+        tracker: TrackerProtocol | None = None,
     ):
         """
         Initializes the ModelTrainer with all required training components.

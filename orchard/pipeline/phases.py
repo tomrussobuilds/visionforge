@@ -30,7 +30,7 @@ from orchard.core import (
 
 if TYPE_CHECKING:  # pragma: no cover
     from orchard.core import RootOrchestrator
-    from orchard.tracking import MLflowTracker, NoOpTracker
+    from orchard.tracking import TrackerProtocol
 
 from orchard.data_handler import (
     get_augmentations_description,
@@ -53,7 +53,7 @@ _ERR_PATHS_NOT_INIT = "Paths not initialized"
 def run_optimization_phase(
     orchestrator: RootOrchestrator,
     cfg: Config | None = None,
-    tracker: "MLflowTracker | NoOpTracker | None" = None,
+    tracker: TrackerProtocol | None = None,
 ) -> Tuple[optuna.Study, Path | None]:
     """
     Execute hyperparameter optimization phase.
@@ -108,7 +108,7 @@ def run_optimization_phase(
 def run_training_phase(
     orchestrator: RootOrchestrator,
     cfg: Config | None = None,
-    tracker: "MLflowTracker | NoOpTracker | None" = None,
+    tracker: TrackerProtocol | None = None,
 ) -> Tuple[Path, List[float], List[dict], nn.Module, float, float]:
     """
     Execute model training phase.

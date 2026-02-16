@@ -111,6 +111,15 @@ class Reporter(BaseModel):
         logger_instance.info(f"{LogStyle.INDENT}{LogStyle.ARROW} {'Initial LR':<18}: {lr_str}")
         logger_instance.info("")
 
+        # Tracking Section (only if configured)
+        self._log_tracking_section(logger_instance, cfg)
+
+        # Optimization Section (only if configured)
+        self._log_optimization_section(logger_instance, cfg)
+
+        # Export Section (only if configured)
+        self._log_export_section(logger_instance, cfg)
+
         # Filesystem Section
         logger_instance.info("[FILESYSTEM]")
         logger_instance.info(f"{LogStyle.INDENT}{LogStyle.ARROW} {'Run Root':<18}: {paths.root}")
@@ -215,3 +224,65 @@ class Reporter(BaseModel):
         logger_instance.info(f"{LogStyle.INDENT}{LogStyle.ARROW} {'TTA Mode':<18}: {tta_status}")
         logger_instance.info(f"{LogStyle.INDENT}{LogStyle.ARROW} {'Repro. Mode':<18}: {repro_mode}")
         logger_instance.info(f"{LogStyle.INDENT}{LogStyle.ARROW} {'Global Seed':<18}: {train.seed}")
+
+    def _log_tracking_section(self, logger_instance: logging.Logger, cfg: "Config") -> None:
+        """Logs tracking configuration if enabled."""
+        tracking_cfg = getattr(cfg, "tracking", None)
+        if tracking_cfg is None:
+            return
+
+        logger_instance.info("[TRACKING]")
+        status = "Active" if tracking_cfg.enabled else "Disabled"
+        logger_instance.info(f"{LogStyle.INDENT}{LogStyle.ARROW} {'Status':<18}: {status}")
+        if tracking_cfg.enabled:
+            logger_instance.info(
+                f"{LogStyle.INDENT}{LogStyle.ARROW} "
+                f"{'Experiment':<18}: {tracking_cfg.experiment_name}"
+            )
+        logger_instance.info("")
+
+    def _log_optimization_section(self, logger_instance: logging.Logger, cfg: "Config") -> None:
+        """Logs optimization configuration if enabled."""
+        optuna_cfg = getattr(cfg, "optuna", None)
+        if optuna_cfg is None:
+            return
+
+        logger_instance.info("[OPTIMIZATION]")
+        logger_instance.info(
+            f"{LogStyle.INDENT}{LogStyle.ARROW} {'Trials':<18}: {optuna_cfg.n_trials}"
+        )
+        logger_instance.info(
+            f"{LogStyle.INDENT}{LogStyle.ARROW} {'Epochs/Trial':<18}: {optuna_cfg.epochs}"
+        )
+        logger_instance.info(
+            f"{LogStyle.INDENT}{LogStyle.ARROW} "
+            f"{'Metric':<18}: {optuna_cfg.metric_name} ({optuna_cfg.direction})"
+        )
+        logger_instance.info(
+            f"{LogStyle.INDENT}{LogStyle.ARROW} {'Sampler':<18}: {optuna_cfg.sampler_type.upper()}"
+        )
+        if optuna_cfg.enable_pruning:
+            logger_instance.info(
+                f"{LogStyle.INDENT}{LogStyle.ARROW} {'Pruner':<18}: {optuna_cfg.pruner_type}"
+            )
+        logger_instance.info("")
+
+    def _log_export_section(self, logger_instance: logging.Logger, cfg: "Config") -> None:
+        """Logs export configuration if enabled."""
+        export_cfg = getattr(cfg, "export", None)
+        if export_cfg is None:
+            return
+
+        logger_instance.info("[EXPORT]")
+        logger_instance.info(
+            f"{LogStyle.INDENT}{LogStyle.ARROW} {'Format':<18}: {export_cfg.format.upper()}"
+        )
+        logger_instance.info(
+            f"{LogStyle.INDENT}{LogStyle.ARROW} {'Quantize':<18}: {export_cfg.quantize}"
+        )
+        if export_cfg.quantize:
+            logger_instance.info(
+                f"{LogStyle.INDENT}{LogStyle.ARROW} "
+                f"{'Backend':<18}: {export_cfg.quantization_backend}"
+            )
+        logger_instance.info("")

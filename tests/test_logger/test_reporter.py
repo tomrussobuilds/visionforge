@@ -816,5 +816,140 @@ def test_log_pipeline_summary_uses_module_logger_when_none():
         assert mock_module_logger.info.call_count > 0
 
 
+# REPORTER: TRACKING SECTION
+@pytest.mark.unit
+def test_reporter_log_tracking_section_enabled():
+    """Test _log_tracking_section logs experiment name when tracking is enabled."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock()
+    mock_cfg.tracking.enabled = True
+    mock_cfg.tracking.experiment_name = "my_experiment"
+
+    reporter._log_tracking_section(mock_logger, mock_cfg)
+
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+    assert "TRACKING" in log_output
+    assert "Active" in log_output
+    assert "my_experiment" in log_output
+
+
+@pytest.mark.unit
+def test_reporter_log_tracking_section_disabled():
+    """Test _log_tracking_section logs disabled status."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock()
+    mock_cfg.tracking.enabled = False
+
+    reporter._log_tracking_section(mock_logger, mock_cfg)
+
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+    assert "Disabled" in log_output
+    assert "Experiment" not in log_output
+
+
+@pytest.mark.unit
+def test_reporter_log_tracking_section_absent():
+    """Test _log_tracking_section does nothing when tracking is not configured."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock(spec=[])
+
+    reporter._log_tracking_section(mock_logger, mock_cfg)
+
+    mock_logger.info.assert_not_called()
+
+
+# REPORTER: OPTIMIZATION SECTION
+@pytest.mark.unit
+def test_reporter_log_optimization_section():
+    """Test _log_optimization_section logs optimization parameters."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock()
+    mock_cfg.optuna.n_trials = 20
+    mock_cfg.optuna.epochs = 15
+    mock_cfg.optuna.metric_name = "auc"
+    mock_cfg.optuna.direction = "maximize"
+    mock_cfg.optuna.sampler_type = "tpe"
+    mock_cfg.optuna.enable_pruning = True
+    mock_cfg.optuna.pruner_type = "median"
+
+    reporter._log_optimization_section(mock_logger, mock_cfg)
+
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+    assert "OPTIMIZATION" in log_output
+    assert "20" in log_output
+    assert "auc" in log_output
+    assert "TPE" in log_output
+    assert "median" in log_output
+
+
+@pytest.mark.unit
+def test_reporter_log_optimization_section_absent():
+    """Test _log_optimization_section does nothing when optuna is not configured."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock(spec=[])
+
+    reporter._log_optimization_section(mock_logger, mock_cfg)
+
+    mock_logger.info.assert_not_called()
+
+
+# REPORTER: EXPORT SECTION
+@pytest.mark.unit
+def test_reporter_log_export_section_without_quantization():
+    """Test _log_export_section logs export format without quantization."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock()
+    mock_cfg.export.format = "onnx"
+    mock_cfg.export.quantize = False
+
+    reporter._log_export_section(mock_logger, mock_cfg)
+
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+    assert "EXPORT" in log_output
+    assert "ONNX" in log_output
+    assert "Backend" not in log_output
+
+
+@pytest.mark.unit
+def test_reporter_log_export_section_with_quantization():
+    """Test _log_export_section logs quantization backend when enabled."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock()
+    mock_cfg.export.format = "onnx"
+    mock_cfg.export.quantize = True
+    mock_cfg.export.quantization_backend = "fbgemm"
+
+    reporter._log_export_section(mock_logger, mock_cfg)
+
+    calls = [str(call) for call in mock_logger.info.call_args_list]
+    log_output = " ".join(calls)
+    assert "ONNX" in log_output
+    assert "True" in log_output
+    assert "fbgemm" in log_output
+
+
+@pytest.mark.unit
+def test_reporter_log_export_section_absent():
+    """Test _log_export_section does nothing when export is not configured."""
+    reporter = Reporter()
+    mock_logger = MagicMock()
+    mock_cfg = MagicMock(spec=[])
+
+    reporter._log_export_section(mock_logger, mock_cfg)
+
+    mock_logger.info.assert_not_called()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

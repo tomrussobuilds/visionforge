@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from orchard.core import LOGGER_NAME, Config, RunPaths
 
 if TYPE_CHECKING:  # pragma: no cover
-    from orchard.tracking import MLflowTracker, NoOpTracker
+    from orchard.tracking import TrackerProtocol
 
 from .evaluator import evaluate_model
 from .reporting import create_structured_report
@@ -39,7 +39,7 @@ def run_final_evaluation(
     cfg: Config,
     aug_info: str = "N/A",
     log_path: Path | None = None,
-    tracker: MLflowTracker | NoOpTracker | None = None,
+    tracker: TrackerProtocol | None = None,
 ) -> Tuple[float, float]:
     """
     Executes the complete evaluation pipeline.

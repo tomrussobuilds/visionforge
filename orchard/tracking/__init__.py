@@ -9,10 +9,11 @@ skips all logging operations, ensuring zero overhead for users without the
 tracking dependency.
 """
 
-from .tracker import MLflowTracker, NoOpTracker, create_tracker
+from .tracker import MLflowTracker, NoOpTracker, TrackerProtocol, create_tracker
 
 __all__ = [
     "MLflowTracker",
     "NoOpTracker",
+    "TrackerProtocol",
     "create_tracker",
 ]

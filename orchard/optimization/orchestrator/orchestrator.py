@@ -36,7 +36,7 @@ from orchard.core import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from orchard.tracking import MLflowTracker, NoOpTracker
+    from orchard.tracking import TrackerProtocol
 
 from ..objective.objective import OptunaObjective
 from ..search_spaces import get_search_space
@@ -78,7 +78,7 @@ class OptunaOrchestrator:
         cfg: Config,
         device,
         paths: RunPaths,
-        tracker: MLflowTracker | NoOpTracker | None = None,
+        tracker: TrackerProtocol | None = None,
     ):
         """Initialize orchestrator.
 
@@ -187,7 +187,7 @@ def run_optimization(
     cfg: Config,
     device,
     paths: RunPaths,
-    tracker: MLflowTracker | NoOpTracker | None = None,
+    tracker: TrackerProtocol | None = None,
 ) -> optuna.Study:
     """
     Convenience function to run complete optimization pipeline.

@@ -28,7 +28,7 @@ import torch
 from orchard.core import LOGGER_NAME, Config, log_trial_start
 
 if TYPE_CHECKING:  # pragma: no cover
-    from orchard.tracking import MLflowTracker, NoOpTracker
+    from orchard.tracking import TrackerProtocol
 from orchard.data_handler import DatasetData, get_dataloaders, load_dataset
 from orchard.models import get_model
 from orchard.trainer import get_criterion, get_optimizer, get_scheduler
@@ -108,7 +108,7 @@ class OptunaObjective:
         dataset_loader: Optional[DatasetLoaderProtocol] = None,
         dataloader_factory: Optional[DataloaderFactoryProtocol] = None,
         model_factory: Optional[ModelFactoryProtocol] = None,
-        tracker: MLflowTracker | NoOpTracker | None = None,
+        tracker: TrackerProtocol | None = None,
     ):
         """
         Initialize Optuna objective.
