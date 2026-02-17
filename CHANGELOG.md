@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - resolve mypy type errors and pin version to 1.19.1
 - default recipe to mini_cnn without pretrained/strict mode
 - add MPS support to reproducibility, mixup, and memory cleanup
+- use [[ in changelog script, move permissions to job level
 
 ### Miscellaneous
 
