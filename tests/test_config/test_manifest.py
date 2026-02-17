@@ -383,6 +383,21 @@ def test_run_slug_property():
 
 
 @pytest.mark.unit
+def test_run_slug_sanitizes_timm_slash():
+    """Test run_slug replaces / with _ for timm model names."""
+    config = Config(
+        architecture=ArchitectureConfig(name="timm/convnext_base", pretrained=False),
+        dataset=DatasetConfig(name="bloodmnist", resolution=224, force_rgb=True),
+        hardware=HardwareConfig(device="cpu"),
+    )
+
+    slug = config.run_slug
+
+    assert "/" not in slug
+    assert "timm_convnext_base" in slug
+
+
+@pytest.mark.unit
 def test_num_workers_property():
     """Test num_workers delegates to hardware config."""
     config = Config()

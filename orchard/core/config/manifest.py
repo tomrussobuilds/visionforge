@@ -60,20 +60,28 @@ class _CrossDomainValidator:
         """
         Validate architecture-resolution compatibility.
 
-        Enforces that each model is used with its supported resolution(s):
+        Enforces that each built-in model is used with its supported resolution(s):
             - 28x28 only: mini_cnn
             - 224x224 only: efficientnet_b0, vit_tiny, convnext_tiny
-            - Multi-resolution (28x28, 224x224): resnet_18, resnet_18_adapted
+            - Multi-resolution (28x28, 224x224): resnet_18
+
+        timm models (prefixed with ``timm/``) bypass this check as they
+        support variable resolutions managed by the user.
 
         Raises:
             ValueError: If architecture and resolution are incompatible.
         """
         model_name = config.architecture.name.lower()
+
+        # timm models handle their own resolution requirements
+        if model_name.startswith("timm/"):
+            return
+
         resolution = config.dataset.resolution
 
         resolution_28_only = {"mini_cnn"}
         resolution_224_only = {"efficientnet_b0", "vit_tiny", "convnext_tiny"}
-        multi_resolution = {"resnet_18", "resnet_18_adapted"}
+        multi_resolution = {"resnet_18"}
 
         if model_name in resolution_28_only and resolution != 28:
             raise ValueError(
@@ -226,12 +234,15 @@ class Config(BaseModel):
         Generate unique experiment folder identifier.
 
         Combines dataset name and model name for human-readable
-        run identification in output directories.
+        run identification in output directories. Slashes in
+        architecture names (e.g. ``timm/convnext_base``) are
+        replaced with underscores to keep paths flat.
 
         Returns:
             String in format '{dataset_name}_{model_name}'.
         """
-        return f"{self.dataset.dataset_name}_{self.architecture.name}"
+        safe_name = self.architecture.name.replace("/", "_")
+        return f"{self.dataset.dataset_name}_{safe_name}"
 
     @property
     def num_workers(self) -> int:

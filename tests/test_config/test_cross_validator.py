@@ -72,6 +72,24 @@ class TestCheckArchitectureResolution:
                 hardware=HardwareConfig(device="cpu"),
             )
 
+    def test_timm_model_bypasses_resolution_check(self):
+        """timm/ models skip architecture-resolution validation."""
+        cfg = Config(
+            dataset=DatasetConfig(name="bloodmnist", resolution=224, force_rgb=True),
+            architecture=ArchitectureConfig(name="timm/resnet10t", pretrained=False),
+            hardware=HardwareConfig(device="cpu"),
+        )
+        assert cfg.architecture.name == "timm/resnet10t"
+
+    def test_timm_model_accepts_any_resolution(self):
+        """timm/ models accept resolutions that would fail for built-in models."""
+        cfg = Config(
+            dataset=DatasetConfig(name="bloodmnist", resolution=28),
+            architecture=ArchitectureConfig(name="timm/resnet10t", pretrained=False),
+            hardware=HardwareConfig(device="cpu"),
+        )
+        assert cfg.dataset.resolution == 28
+
 
 # MIXUP EPOCHS
 @pytest.mark.unit

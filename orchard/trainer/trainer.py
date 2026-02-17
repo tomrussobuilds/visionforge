@@ -254,23 +254,7 @@ class ModelTrainer:
             f"| Acc: {self.best_acc:.4f}"
         )
 
-        if self._checkpoint_saved and self.best_path.exists():
-            self.load_best_weights()
-        elif self.best_path.exists():
-            # Checkpoint exists but wasn't saved during this training run
-            # (could be from a previous run or manual placement)
-            logger.warning(
-                "No checkpoint was saved during training (model never improved). "
-                "Loading existing checkpoint file."
-            )
-            self.load_best_weights()
-        else:
-            # No checkpoint exists - save current weights as fallback
-            logger.warning(
-                "No checkpoint was saved during training (model never improved). "
-                "Saving current model state as fallback."
-            )
-            torch.save(self.model.state_dict(), self.best_path)
+        self._finalize_weights()
 
         return self.best_path, self.train_losses, self.val_metrics_history
 
@@ -321,21 +305,34 @@ class ModelTrainer:
 
         return self.epochs_no_improve >= self.patience
 
+    def _finalize_weights(self) -> None:
+        """
+        Decide which weights to keep after training ends.
+
+        Handles three scenarios:
+            1. Checkpoint saved during training → load best
+            2. No improvement but checkpoint file exists (prior run) → load it
+            3. No checkpoint at all → save current weights as fallback
+        """
+        if self._checkpoint_saved and self.best_path.exists():
+            self.load_best_weights()
+            return
+
+        no_improve_msg = "No checkpoint was saved during training (model never improved)."
+        if self.best_path.exists():
+            logger.warning(f"{no_improve_msg} Loading existing checkpoint file.")
+            self.load_best_weights()
+        else:
+            logger.warning(f"{no_improve_msg} Saving current model state as fallback.")
+            torch.save(self.model.state_dict(), self.best_path)
+
     def load_best_weights(self) -> None:
         """
-        Restores the optimal parameters into the model from the best checkpoint.
-
-        After the training loop completes or is interrupted by early stopping,
-        the model instance in memory retains the weights from the final epoch.
-        This method reloads the 'best' state-dict saved during the execution
-        to ensure subsequent evaluations or inference tasks use the top-performing
-        model iteration.
-
-        The restoration process is device-aware, ensuring weights are mapped
-        correctly to the active compute device (CUDA/MPS/CPU).
+        Load the best checkpoint from disk into the model (device-aware).
 
         Raises:
-            Exception: If weight restoration fails (logged and re-raised)
+            RuntimeError: If the state-dict is incompatible with the model.
+            FileNotFoundError: If the checkpoint file does not exist.
         """
         try:
             load_model_weights(model=self.model, path=self.best_path, device=self.device)

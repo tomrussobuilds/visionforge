@@ -34,6 +34,7 @@ from .convnext_tiny import build_convnext_tiny
 from .efficientnet_b0 import build_efficientnet_b0
 from .mini_cnn import build_mini_cnn
 from .resnet_18 import build_resnet18
+from .timm_backbone import build_timm_model
 from .vit_tiny import build_vit_tiny
 
 # LOGGER CONFIGURATION
@@ -92,7 +93,6 @@ def get_model(device: torch.device, cfg: Config, verbose: bool = True) -> nn.Mod
     # Internal Imports
     _MODEL_REGISTRY = {
         "resnet_18": build_resnet18,
-        "resnet_18_adapted": build_resnet18,  # Backward-compat alias (deprecated)
         "efficientnet_b0": build_efficientnet_b0,
         "convnext_tiny": build_convnext_tiny,
         "vit_tiny": build_vit_tiny,
@@ -111,12 +111,15 @@ def get_model(device: torch.device, cfg: Config, verbose: bool = True) -> nn.Mod
             f"Output: {num_classes} classes"
         )
 
-    # Architecture resolution via Registry lookup
-    builder = _MODEL_REGISTRY.get(model_name_lower)
-    if not builder:
-        error_msg = f"Architecture '{cfg.architecture.name}' is not registered in the Factory."
-        logger.error(f" [!] {error_msg}")
-        raise ValueError(error_msg)
+    # Resolve builder: timm pass-through or internal registry
+    if model_name_lower.startswith("timm/"):
+        builder = build_timm_model
+    else:
+        builder = _MODEL_REGISTRY.get(model_name_lower)
+        if not builder:
+            error_msg = f"Architecture '{cfg.architecture.name}' is not registered in the Factory."
+            logger.error(f" [!] {error_msg}")
+            raise ValueError(error_msg)
 
     # Instance construction and adaptation
     # When verbose=False (e.g. export phase), suppress builder-internal logs

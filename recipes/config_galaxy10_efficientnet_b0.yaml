@@ -4,7 +4,7 @@
 # ==============================================================================
 # Usage: python forge.py --config recipes/config_galaxy10_efficientnet_b0.yaml
 # Dataset: Galaxy10 DECals - 10 galaxy morphology classes from DESI Legacy Surveys
-# Estimated Time: ~50 minutes (60 epochs on RTX 5070)
+# Estimated Time: ~50 min GPU (60 epochs, RTX 5070, GPU required)
 # Memory Usage: ~4.5GB VRAM with AMP
 
 dataset:

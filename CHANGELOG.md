@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - update ConvNeXt-Tiny params to ~27.8M, clarify per-trial timings, add tracking module to package docs and architecture diagram
+- streamline OPTIMIZATION.md, remove duplicate sections
 
 ### Fixed
 

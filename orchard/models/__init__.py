@@ -12,6 +12,7 @@ from .efficientnet_b0 import build_efficientnet_b0
 from .factory import get_model
 from .mini_cnn import build_mini_cnn
 from .resnet_18 import build_resnet18
+from .timm_backbone import build_timm_model
 from .vit_tiny import build_vit_tiny
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "build_convnext_tiny",
     "build_vit_tiny",
     "build_mini_cnn",
+    "build_timm_model",
 ]

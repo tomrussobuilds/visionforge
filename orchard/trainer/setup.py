@@ -49,7 +49,10 @@ def get_optimizer(model: nn.Module, cfg: Config) -> optim.Optimizer:
     """
     model_name = cfg.architecture.name.lower()
 
-    if "resnet" in model_name:
+    # Strip timm/ prefix so heuristic works on the actual model identifier
+    bare_name = model_name.removeprefix("timm/")
+
+    if "resnet" in bare_name:
         return optim.SGD(
             model.parameters(),
             lr=cfg.training.learning_rate,
