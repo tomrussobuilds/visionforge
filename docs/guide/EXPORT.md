@@ -1,3 +1,5 @@
+← [Back to Main README](../../README.md)
+
 <h1 align="center">Model Export Guide</h1>
 
 Convert trained Orchard ML models to ONNX format for production deployment.
@@ -39,25 +41,6 @@ python forge.py \
     --resolution 224 \
     --model_name efficientnet_b0 \
     --format onnx
-```
-
-**Output** (clean, no warnings with opset 18):
-```
-2026-02-14 13:12:37 - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2026-02-14 13:12:37 - INFO -                       MODEL EXPORT
-2026-02-14 13:12:37 - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2026-02-14 13:12:37 - INFO -   [Source]
-2026-02-14 13:12:37 - INFO -     • Checkpoint        : best_minicnn.pth
-2026-02-14 13:12:37 - INFO -   [Export Settings]
-2026-02-14 13:12:37 - INFO -     • Format            : ONNX (opset 18)
-2026-02-14 13:12:37 - INFO -     • Input shape       : (1, 3, 28, 28)
-2026-02-14 13:12:37 - INFO -     • Dynamic axes      : True
-2026-02-14 13:12:38 - INFO -   [Validation]
-2026-02-14 13:12:38 - INFO -     • ONNX check        : ✓ Valid
-2026-02-14 13:12:38 - INFO -     • Model size        : 0.02 MB
-2026-02-14 13:12:38 - INFO -
-2026-02-14 13:12:38 - INFO -   ✓ Export completed
-2026-02-14 13:12:38 - INFO -     » Output            : model.onnx
 ```
 
 **Important**: The `--dataset` parameter is used only to determine model architecture metadata (resolution, channels, classes). No actual data is loaded during export.

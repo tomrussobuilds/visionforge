@@ -13,7 +13,7 @@
 python -m tests.smoke_test
 
 # Train with presets (28×28 resolution, CPU-compatible)
-orchard run recipes/config_resnet_18.yaml     # ~15 min GPU, ~2.5h CPU
+orchard run recipes/config_resnet_18.yaml     # ~10-15 min GPU, ~2.5h CPU
 orchard run recipes/config_mini_cnn.yaml              # ~2-3 min GPU, ~10 min CPU
 
 # Train with presets (224×224 resolution, GPU required)
@@ -101,7 +101,7 @@ The framework is designed for zero-code dataset integration via the registry sys
 
 <h3>1. Add Dataset Metadata</h3>
 
-Edit `orchard/core/metadata/medmnist_v2_28x28.py` or `medmnist_v2_224x224.py`:
+Edit the appropriate domain file in `orchard/core/metadata/domains/` (e.g., `medical.py` or `space.py`):
 
 ```python
 DATASET_REGISTRY = {

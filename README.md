@@ -159,18 +159,23 @@
 
 <h3>Step 1: Environment Setup</h3>
 
+**Option A**: Install from PyPI
 ```bash
-# Option A: Install from PyPI
 pip install orchard-ml
+```
 
-# Option B: Install from source
+**Option B**: Install from source
+```bash
 git clone https://github.com/tomrussobuilds/orchard-ml.git
+```
 
-# Enter the project directory and install in editable mode
+```bash
 cd orchard-ml
 pip install -e .
+```
 
-# With development tools (linting, testing, type checking)
+With development tools (linting, testing, type checking):
+```bash
 pip install -e ".[dev]"
 ```
 

@@ -60,10 +60,10 @@ pytest tests/ -n auto
 GitHub Actions automatically run on every push:
 
 - ✅ **Code Quality**: Black, isort, Flake8 formatting and linting checks
-- ✅ **Multi-Python Testing**: Unit tests across Python 3.10, 3.11, 3.12 (1,100+ tests)
+- ✅ **Multi-Python Testing**: Unit tests across Python 3.10–3.14 (1,100+ tests)
 - ✅ **Smoke Test**: 1-epoch end-to-end validation (~30s, CPU-only)
 - ✅ **Documentation**: README.md presence verification
-- ✅ **Security Scanning**: Bandit (code analysis) and Safety (dependency vulnerabilities)
+- ✅ **Security Scanning**: Bandit (code analysis) and pip-audit (dependency vulnerabilities)
 - ✅ **Code Coverage**: Automated reporting to Codecov (99%+ coverage)
 
 **Pipeline Status:**
@@ -71,10 +71,10 @@ GitHub Actions automatically run on every push:
 | Job | Description | Status |
 |-----|-------------|--------|
 | **Code Quality** | Black, isort, Flake8 | Continue-on-error (advisory) |
-| **Pytest Suite** | ~1,100 tests, 3 Python versions | ✅ Required to pass |
+| **Pytest Suite** | ~1,100 tests, 5 Python versions | ✅ Required to pass |
 | **Smoke Test** | 1-epoch E2E validation | ✅ Required to pass |
 | **Documentation** | README verification | ✅ Required to pass |
-| **Security Scan** | Bandit + Safety | Continue-on-error (advisory) |
+| **Security Scan** | Bandit + pip-audit | Continue-on-error (advisory) |
 | **Build Status** | Aggregate summary | ✅ Fails if pytest or smoke test fails |
 
 View the latest build: [![CI/CD](https://github.com/tomrussobuilds/orchard-ml/actions/workflows/ci.yml/badge.svg)](https://github.com/tomrussobuilds/orchard-ml/actions/workflows/ci.yml)
