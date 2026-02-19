@@ -1,13 +1,16 @@
 """
 Health Check and Integrity Module (Multi-Resolution with Visualization)
 Performs integrity checks across MedMNIST datasets, supports 28x28 and 224x224 resolutions.
+
+Usage:
+    python -m tests.health_check
+    python -m tests.health_check --dataset bloodmnist --resolution 28
 """
 
 import argparse
 import logging
 
-from orchard.core import RootOrchestrator
-from orchard.core.config import Config
+from orchard.core import Config, RootOrchestrator
 from orchard.core.metadata import DatasetRegistryWrapper
 from orchard.core.paths import HEALTHCHECK_LOGGER_NAME
 from orchard.data_handler.data_explorer import show_samples_for_dataset
@@ -36,6 +39,25 @@ def parse_health_check_args():
         help="Target resolution (28 or 224). If not specified, checks both resolutions.",
     )
     return parser.parse_args()
+
+
+def _build_health_check_config(dataset: str, resolution: int) -> Config:
+    """Build a minimal Config for health check (no YAML needed)."""
+    arch = "mini_cnn" if resolution == 28 else "efficientnet_b0"
+    return Config(
+        dataset={"name": dataset, "resolution": resolution, "max_samples": 100},
+        architecture={"name": arch, "pretrained": False},
+        training={
+            "epochs": 1,
+            "batch_size": 32,
+            "learning_rate": 0.001,
+            "use_amp": False,
+            "mixup_alpha": 0.0,
+            "mixup_epochs": 0,
+        },
+        hardware={"device": "cpu", "project_name": "health-check", "reproducible": True},
+        telemetry={"data_dir": "./dataset", "output_dir": "./outputs"},
+    )
 
 
 def health_check_single_dataset(ds_meta, orchestrator, resolution: int = 28) -> None:
@@ -104,27 +126,11 @@ def fetch_all_datasets_health_check() -> None:
     args = parse_health_check_args()
     resolutions = [args.resolution] if args.resolution is not None else [28, 224]
 
-    from types import SimpleNamespace
-
-    dummy_args = SimpleNamespace(
-        config=None,
-        dataset=args.dataset or "bloodmnist",
-        resolution=28,
-        model_name="mini_cnn",
-        epochs=1,
-        batch_size=32,
-        max_samples=100,
-        num_workers=0,
-        no_amp=True,
-        mixup_epochs=0,
-        mixup_alpha=0.0,
-    )
-
     for resolution in resolutions:
-        dummy_args.resolution = resolution
-        dummy_args.model_name = "mini_cnn" if resolution == 28 else "efficientnet_b0"
-
-        cfg = Config.from_args(dummy_args)
+        cfg = _build_health_check_config(
+            dataset=args.dataset or "bloodmnist",
+            resolution=resolution,
+        )
 
         with RootOrchestrator(cfg) as orchestrator:
             run_logger = orchestrator.run_logger

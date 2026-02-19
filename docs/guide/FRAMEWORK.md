@@ -27,8 +27,10 @@ The `RootOrchestrator` (`orchard/core/orchestrator.py`) is the central coordinat
 - **Rank-Aware Phase Gating**: Injectable `rank` parameter enables DDP/torchrun awareness -- rank 0 executes all 7 phases, non-main ranks execute only phases 1-2 (seeding + threads), skipping filesystem provisioning, logging, and infrastructure locks
 
 ```python
-args = parse_args()
-cfg = Config.from_args(args)
+from pathlib import Path
+from orchard import Config, RootOrchestrator
+
+cfg = Config.from_recipe(Path("recipes/config_mini_cnn.yaml"))
 with RootOrchestrator(cfg) as orch:
     device = orch.get_device()
     paths = orch.paths
