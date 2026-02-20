@@ -46,6 +46,7 @@ commit_parsers = [
     { message = "^style", group = "Styling" },
     { message = "^test", skip = true },
     { message = "^chore\\(tests\\)", skip = true },
+    { message = "^chore: release", skip = true },
     { message = "^chore", group = "Miscellaneous" },
 ]
 protect_breaking_commits = false
