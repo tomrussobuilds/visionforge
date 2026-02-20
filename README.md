@@ -6,22 +6,11 @@
 <!-- Badges Section -->
 <table align="center">
 <tr>
-<td align="right"><strong>CI/CD & Coverage</strong></td>
+<td align="right"><strong>CI & Quality</strong></td>
 <td>
   <a href="https://github.com/tomrussobuilds/orchard-ml/actions/workflows/ci.yml"><img src="https://github.com/tomrussobuilds/orchard-ml/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline"></a>
   <a href="https://codecov.io/gh/tomrussobuilds/orchard-ml"><img src="https://codecov.io/gh/tomrussobuilds/orchard-ml/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=alert_status" alt="Quality Gate"></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=coverage" alt="SonarCloud Coverage"></a>
-</td>
-</tr>
-<tr>
-<td align="right"><strong>Code Quality</strong></td>
-<td>
-  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=reliability_rating" alt="Reliability"></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=security_rating" alt="Security"></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=sqale_rating" alt="Maintainability"></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=bugs" alt="Bugs"></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=code_smells" alt="Code Smells"></a>
 </td>
 </tr>
 <tr>
@@ -33,10 +22,10 @@
 </td>
 </tr>
 <tr>
-<td align="right"><strong>Tech Stack</strong></td>
+<td align="right"><strong>Stack</strong></td>
 <td>
   <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-2.0%2B-orange?logo=pytorch&logoColor=white" alt="PyTorch"></a>
-  <a href="https://huggingface.co/docs/timm"><img src="https://img.shields.io/badge/timm-1000%2B%20models-FF9D00?logo=huggingface&logoColor=white" alt="timm"></a>
+  <a href="https://huggingface.co/docs/timm"><img src="https://img.shields.io/badge/timm-models-FF9D00?logo=huggingface&logoColor=white" alt="timm"></a>
   <a href="https://docs.pydantic.dev/"><img src="https://img.shields.io/badge/Pydantic-v2-e92063?logo=pydantic&logoColor=white" alt="Pydantic"></a>
   <a href="https://optuna.org/"><img src="https://img.shields.io/badge/Optuna-3.0%2B-00ADD8?logo=optuna&logoColor=white" alt="Optuna"></a>
   <a href="https://onnx.ai/"><img src="https://img.shields.io/badge/ONNX-export-005CED?logo=onnx&logoColor=white" alt="ONNX"></a>
@@ -52,17 +41,7 @@
   <a href="https://flake8.pycqa.org/"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/tomrussobuilds/7835190af6011e9051b673c8be974f8a/raw/flake8.json" alt="Flake8"></a>
   <a href="https://mypy-lang.org/"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/tomrussobuilds/7835190af6011e9051b673c8be974f8a/raw/mypy.json" alt="mypy"></a>
   <a href="https://radon.readthedocs.io/"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/tomrussobuilds/7835190af6011e9051b673c8be974f8a/raw/radon.json" alt="Radon"></a>
-</td>
-</tr>
-<tr>
-<td align="right"><strong>Project</strong></td>
-<td>
-  <a href="https://docs.pytest.org/"><img src="https://img.shields.io/badge/tested%20with-pytest-blue?logo=pytest&logoColor=white" alt="Tested with pytest"></a>
-  <img src="https://img.shields.io/badge/tests-1175+-success" alt="Tests">
-  <img src="https://img.shields.io/badge/Architecture-Decoupled-blueviolet" alt="Architecture">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
-  <img src="https://img.shields.io/badge/status-Active-success" alt="Status">
-  <a href="https://github.com/tomrussobuilds/orchard-ml/issues"><img src="https://img.shields.io/github/issues/tomrussobuilds/orchard-ml" alt="GitHub Issues"></a>
 </td>
 </tr>
 </table>

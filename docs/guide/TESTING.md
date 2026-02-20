@@ -195,6 +195,19 @@ GitHub Actions automatically run on every push:
 - ✅ **Code Coverage**: Automated reporting to Codecov (99%+ coverage)
 - ✅ **SonarCloud**: Continuous code quality inspection (reliability, security, maintainability)
 
+**SonarCloud Metrics:**
+
+<p>
+  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=reliability_rating" alt="Reliability"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=security_rating" alt="Security"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=sqale_rating" alt="Maintainability"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=coverage" alt="Coverage"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=bugs" alt="Bugs"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tomrussobuilds_orchard-ml"><img src="https://sonarcloud.io/api/project_badges/measure?project=tomrussobuilds_orchard-ml&metric=code_smells" alt="Code Smells"></a>
+</p>
+
+> All badges above are dynamic and updated automatically by SonarCloud on every push to `main`.
+
 **Pipeline Status:**
 
 | Job | Description | Status |
