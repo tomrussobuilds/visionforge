@@ -179,9 +179,6 @@ def test_save_flags_default_true():
     assert config.save_predictions_grid is True
 
 
-# EVALUATION CONFIG: FROM ARGS
-
-
 # EVALUATION CONFIG: IMMUTABILITY
 @pytest.mark.unit
 def test_config_is_frozen():

@@ -245,6 +245,7 @@ class _CrossDomainValidator:
         cls._check_pretrained_channels(config)
         cls._check_lr_bounds(config)
         cls._check_cpu_highres_performance(config)
+        cls._check_min_dataset_size(config)
         return config
 
     @classmethod
@@ -316,7 +317,7 @@ class _CrossDomainValidator:
         Auto-disables AMP on CPU with a warning instead of failing,
         since this is a recoverable misconfiguration.
         """
-        if config.hardware.device == "cpu" and config.training.use_amp:
+        if config.hardware.device.lower().startswith("cpu") and config.training.use_amp:
             import warnings
 
             warnings.warn(
@@ -367,12 +368,38 @@ class _CrossDomainValidator:
         dataset resolution is 224px or above, as this combination
         results in significantly slower training.
         """
-        if config.hardware.device == "cpu" and config.dataset.resolution >= 224:
+        if config.hardware.device.lower().startswith("cpu") and config.dataset.resolution >= 224:
             import warnings
 
             warnings.warn(
                 f"Training at resolution {config.dataset.resolution}px on CPU "
                 f"will be significantly slower than on a GPU accelerator.",
+                UserWarning,
+                stacklevel=4,
+            )
+
+    @classmethod
+    def _check_min_dataset_size(cls, config: Config) -> None:
+        """
+        Warn when max_samples is too small for reliable class-balanced training.
+
+        Emits a UserWarning when max_samples is set but less than 10 per class,
+        which may cause unreliable class balancing and noisy metrics.
+        """
+        if config.dataset.max_samples is None:
+            return
+        num_classes = config.dataset.num_classes
+        if config.dataset.max_samples < num_classes:
+            raise ValueError(
+                f"max_samples ({config.dataset.max_samples}) must be >= num_classes "
+                f"({num_classes}). Class balancing requires at least one sample per class."
+            )
+        if config.dataset.max_samples < 10 * num_classes:
+            import warnings
+
+            warnings.warn(
+                f"max_samples ({config.dataset.max_samples}) is less than "
+                f"10x num_classes ({num_classes}). Class balancing may be unreliable.",
                 UserWarning,
                 stacklevel=4,
             )

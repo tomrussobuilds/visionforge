@@ -118,9 +118,6 @@ def test_common_architecture_names():
         assert config.name == arch
 
 
-# ARCHITECTURE CONFIG: FROM ARGS
-
-
 # ARCHITECTURE CONFIG: DESCRIPTION FIELD
 @pytest.mark.unit
 def test_field_descriptions_present():

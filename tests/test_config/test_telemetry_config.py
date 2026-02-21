@@ -166,9 +166,6 @@ def test_handle_empty_config_with_values():
     assert result == data
 
 
-# TELEMETRY CONFIG: FROM ARGS
-
-
 # TELEMETRY CONFIG: IMMUTABILITY
 @pytest.mark.unit
 def test_config_is_frozen():

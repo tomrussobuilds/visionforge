@@ -15,7 +15,7 @@ Key Responsibilities:
 
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ..metadata import DatasetMetadata, DatasetRegistryWrapper
 from ..paths import DATASET_DIR, SUPPORTED_RESOLUTIONS
@@ -65,6 +65,17 @@ class DatasetConfig(BaseModel):
         default=28,
         description=f"Target dataset resolution {sorted(SUPPORTED_RESOLUTIONS)}",
     )
+
+    @field_validator("max_samples")
+    @classmethod
+    def validate_min_samples(cls, v: int | None) -> int | None:
+        """Enforce minimum sample count for meaningful train/val/test splits."""
+        if v is not None and v < 20:
+            raise ValueError(
+                f"max_samples={v} is too small for meaningful train/val/test splits. "
+                f"Use max_samples >= 20 or None to load all samples."
+            )
+        return v
 
     @model_validator(mode="before")
     @classmethod

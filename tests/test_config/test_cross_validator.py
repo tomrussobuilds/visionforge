@@ -288,6 +288,74 @@ class TestCheckCpuHighresPerformance:
             )
 
 
+# MIN DATASET SIZE
+@pytest.mark.unit
+class TestCheckMinDatasetSize:
+    """Tests for _check_min_dataset_size."""
+
+    def test_max_samples_less_than_num_classes_raises(self, mock_metadata_many_classes):
+        """max_samples < num_classes (50) should raise ValueError."""
+        with pytest.raises(ValidationError, match="must be >= num_classes"):
+            Config(
+                dataset=DatasetConfig(
+                    name="organamnist",
+                    resolution=28,
+                    metadata=mock_metadata_many_classes,
+                    force_rgb=True,
+                    max_samples=30,
+                ),
+                architecture=ArchitectureConfig(name="resnet_18", pretrained=False),
+                training=TrainingConfig(use_amp=False),
+                hardware=HardwareConfig(device="cpu"),
+            )
+
+    def test_max_samples_sparse_emits_warning(self, mock_metadata_28):
+        """max_samples < 10 * num_classes (8) should warn."""
+        with pytest.warns(UserWarning, match="less than 10x num_classes"):
+            Config(
+                dataset=DatasetConfig(
+                    name="bloodmnist",
+                    resolution=28,
+                    metadata=mock_metadata_28,
+                    max_samples=50,
+                ),
+                architecture=ArchitectureConfig(name="resnet_18", pretrained=False),
+                training=TrainingConfig(use_amp=False),
+                hardware=HardwareConfig(device="cpu"),
+            )
+
+    def test_max_samples_sufficient_no_warning(self, mock_metadata_28):
+        """max_samples >= 10 * num_classes (80) should not warn."""
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            Config(
+                dataset=DatasetConfig(
+                    name="bloodmnist",
+                    resolution=28,
+                    metadata=mock_metadata_28,
+                    max_samples=100,
+                ),
+                architecture=ArchitectureConfig(name="resnet_18", pretrained=False),
+                training=TrainingConfig(use_amp=False),
+                hardware=HardwareConfig(device="cpu"),
+            )
+
+    def test_max_samples_none_no_check(self):
+        """max_samples=None should skip validation entirely."""
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            Config(
+                dataset=DatasetConfig(name="bloodmnist", resolution=28),
+                architecture=ArchitectureConfig(name="resnet_18", pretrained=False),
+                training=TrainingConfig(use_amp=False),
+                hardware=HardwareConfig(device="cpu"),
+            )
+
+
 # DIRECT VALIDATOR CALL
 @pytest.mark.unit
 class TestValidatorDirectCall:

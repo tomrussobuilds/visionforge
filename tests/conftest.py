@@ -72,6 +72,25 @@ def mock_grayscale_metadata(tmp_path):
     )
 
 
+@pytest.fixture
+def mock_metadata_many_classes(tmp_path):
+    """Mock dataset with many classes for min dataset size validation tests."""
+    return DatasetMetadata(
+        name="organamnist",
+        display_name="OrganAMNIST",
+        md5_checksum="test_many",
+        url="https://example.com/organamnist.npz",
+        path=tmp_path / "organamnist_28.npz",
+        classes=[f"organ_{i}" for i in range(50)],
+        mean=(0.5,),
+        std=(0.5,),
+        in_channels=1,
+        native_resolution=28,
+        is_anatomical=True,
+        is_texture_based=False,
+    )
+
+
 # YAML CONFIGURATION FIXTURES
 @pytest.fixture
 def temp_yaml_config(tmp_path):

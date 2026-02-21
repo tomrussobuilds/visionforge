@@ -290,9 +290,6 @@ def test_direction_minimize():
     assert config.direction == "minimize"
 
 
-# OPTUNA CONFIG: FROM ARGS
-
-
 # OPTUNA CONFIG: MODEL SEARCH
 @pytest.mark.unit
 def test_enable_model_search_default():

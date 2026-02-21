@@ -180,7 +180,7 @@ class DataLoaderFactory:
         # Proportional downsizing for validation/testing if max_samples is set
         sub_samples = None
         if self.cfg.dataset.max_samples:
-            sub_samples = max(1, int(self.cfg.dataset.max_samples * 0.10))
+            sub_samples = max(10, int(self.cfg.dataset.max_samples * 0.10))
 
         val_ds = VisionDataset(
             **ds_params, split="val", transform=val_trans, max_samples=sub_samples

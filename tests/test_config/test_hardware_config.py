@@ -240,9 +240,6 @@ def test_project_name_validation_invalid():
         HardwareConfig(project_name="UPPERCASE")
 
 
-# HARDWARE CONFIG: FROM ARGS
-
-
 # HARDWARE CONFIG: DEFAULTS
 @pytest.mark.unit
 def test_hardware_config_defaults():

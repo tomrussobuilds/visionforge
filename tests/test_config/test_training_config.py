@@ -190,9 +190,6 @@ def test_grad_clip_too_large_rejected():
         TrainingConfig(grad_clip=150.0)
 
 
-# UNIT TESTS: FROM_ARGS FACTORY
-
-
 # EDGE CASES & REGRESSION TESTS
 @pytest.mark.unit
 def test_frozen_immutability():

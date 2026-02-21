@@ -125,12 +125,6 @@ def test_processing_mode_classification(mock_grayscale_metadata, mock_metadata_2
     assert config_rgb.processing_mode == "NATIVE-RGB"
 
 
-# UNIT TESTS: FROM_ARGS FACTORY
-
-
-# INTEGRATION TESTS: VALIDATION
-
-
 # EDGE CASES & REGRESSION TESTS
 @pytest.mark.unit
 def test_frozen_immutability():
@@ -157,3 +151,42 @@ def test_sync_validator_runs_before_frozen():
     config = DatasetConfig(resolution=224)
 
     assert config.img_size == 224
+
+
+# UNIT TESTS: MAX_SAMPLES VALIDATION
+@pytest.mark.unit
+def test_max_samples_none_allowed():
+    """Test max_samples=None (load all) is valid."""
+    config = DatasetConfig(max_samples=None)
+
+    assert config.max_samples is None
+
+
+@pytest.mark.unit
+def test_max_samples_valid_value():
+    """Test max_samples with valid value >= 20."""
+    config = DatasetConfig(max_samples=100)
+
+    assert config.max_samples == 100
+
+
+@pytest.mark.unit
+def test_max_samples_minimum_boundary():
+    """Test max_samples=20 is accepted (boundary)."""
+    config = DatasetConfig(max_samples=20)
+
+    assert config.max_samples == 20
+
+
+@pytest.mark.unit
+def test_max_samples_too_small_rejected():
+    """Test max_samples < 20 is rejected."""
+    with pytest.raises(ValidationError, match="max_samples=19 is too small"):
+        DatasetConfig(max_samples=19)
+
+
+@pytest.mark.unit
+def test_max_samples_one_rejected():
+    """Test max_samples=1 is rejected."""
+    with pytest.raises(ValidationError, match="max_samples=1 is too small"):
+        DatasetConfig(max_samples=1)

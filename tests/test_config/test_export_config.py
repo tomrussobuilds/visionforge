@@ -209,9 +209,6 @@ def test_output_path_accepts_string():
     assert config.output_path == Path("/mock/model.onnx")
 
 
-# EXPORT CONFIG: FROM_ARGS FACTORY
-
-
 # EXPORT CONFIG: IMMUTABILITY
 @pytest.mark.unit
 def test_config_is_frozen():

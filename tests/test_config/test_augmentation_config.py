@@ -148,9 +148,6 @@ def test_tta_blur_sigma_bounds():
         AugmentationConfig(tta_blur_sigma=10.0)
 
 
-# AUGMENTATION CONFIG: FROM ARGS
-
-
 # AUGMENTATION CONFIG: IMMUTABILITY
 @pytest.mark.unit
 def test_config_is_frozen():

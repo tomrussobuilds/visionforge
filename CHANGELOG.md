@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix Dockerfile entry point and update project documentation
 - reorganize README badges and move SonarCloud metrics to TESTING.md
 
+### Fixed
+
+- strict config validation and cleanup
+
 ### Miscellaneous
 
 - skip release commits from changelog

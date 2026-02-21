@@ -76,7 +76,7 @@ dev = [
     "orchard-ml[test]",
     "black>=26.1.0",
     "flake8>=7.0.0",
-    "isort>=7.0.0",
+    "isort>=8.0.0",
     "mypy==1.19.1",
     "bandit>=1.8.0",
     "radon>=6.0.0",
@@ -104,6 +104,7 @@ filterwarnings = [
     "ignore:CUDA was explicitly requested.*:UserWarning",
     "ignore:MPS was explicitly requested.*:UserWarning",
     "ignore:Training at resolution.*on CPU.*:UserWarning",
+    "ignore:max_samples.*is less than 10x num_classes.*:UserWarning",
     "ignore:`isinstance\\(treespec, LeafSpec\\)` is deprecated.*:FutureWarning",
 ]
 testpaths = ["tests"]
