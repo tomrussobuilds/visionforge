@@ -34,6 +34,7 @@ class TrialConfigBuilder:
     # Mapping of parameter names to config sections
     PARAM_MAPPING = {
         "training": [
+            "optimizer_type",
             "learning_rate",
             "weight_decay",
             "momentum",

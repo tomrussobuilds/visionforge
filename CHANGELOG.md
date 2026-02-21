@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add CIFAR-10/100 support at 32×32 native resolution
 - add timm weight sources, pretrained trial logging, and update docs
 - add explicit warnings for GPU-to-CPU device fallback
+- add dataset size validation and robust device comparison
 
 ### Changed
 

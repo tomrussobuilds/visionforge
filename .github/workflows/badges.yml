@@ -30,7 +30,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install black isort flake8 mypy radon types-PyYAML types-requests
+          pip install black isort flake8 mypy radon bandit types-PyYAML types-requests
 
       # --- Black ---
       - name: Run Black
@@ -125,6 +125,30 @@ jobs:
           label: mypy
           message: "${{ steps.mypy.outputs.status }}"
           color: "${{ steps.mypy.outputs.color }}"
+          namedLogo: python
+          logoColor: white
+
+      # --- Bandit ---
+      - name: Run Bandit
+        id: bandit
+        run: |
+          if bandit -r orchard/ -ll -q 2>/dev/null; then
+            echo "status=passing" >> "$GITHUB_OUTPUT"
+            echo "color=brightgreen" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failing" >> "$GITHUB_OUTPUT"
+            echo "color=e74c3c" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update Bandit badge
+        uses: schneegans/dynamic-badges-action@e9a478b16159b4d31420099ba146cdc50f134483  # v1.7.0
+        with:
+          auth: "${{ env.GIST_AUTH }}"
+          gistID: "7835190af6011e9051b673c8be974f8a"
+          filename: bandit.json
+          label: bandit
+          message: "${{ steps.bandit.outputs.status }}"
+          color: "${{ steps.bandit.outputs.color }}"
           namedLogo: python
           logoColor: white
 

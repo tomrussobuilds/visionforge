@@ -38,20 +38,15 @@ def get_criterion(cfg: Config, class_weights: torch.Tensor | None = None) -> nn.
 
 def get_optimizer(model: nn.Module, cfg: Config) -> optim.Optimizer:
     """
-    Factory function to instantiate a task-specific optimizer.
+    Factory function to instantiate optimizer from config.
 
-    Decision Logic:
-        - ResNet Variants: Uses SGD with Momentum for better generalization
-          in convolutional landscapes.
-        - Other (ViT/Transformers): Defaults to AdamW to handle decoupled
-          weight decay and adaptive learning rates.
+    Dispatches on cfg.training.optimizer_type:
+        - sgd: SGD with momentum, suited for convolutional architectures.
+        - adamw: AdamW with decoupled weight decay, suited for transformers.
     """
-    model_name = cfg.architecture.name.lower()
+    opt_type = cfg.training.optimizer_type.lower()
 
-    # Strip timm/ prefix so heuristic works on the actual model identifier
-    bare_name = model_name.removeprefix("timm/")
-
-    if "resnet" in bare_name:
+    if opt_type == "sgd":
         return optim.SGD(
             model.parameters(),
             lr=cfg.training.learning_rate,
@@ -59,18 +54,17 @@ def get_optimizer(model: nn.Module, cfg: Config) -> optim.Optimizer:
             weight_decay=cfg.training.weight_decay,
         )
 
-    # Extension point: add your custom optimizer here
-    # if "your_model" in bare_name:
-    #     return optim.Adam(
-    #         model.parameters(),
-    #         lr=cfg.training.learning_rate,
-    #         weight_decay=cfg.training.weight_decay,
-    #     )
+    elif opt_type == "adamw":
+        return optim.AdamW(
+            model.parameters(),
+            lr=cfg.training.learning_rate,
+            weight_decay=cfg.training.weight_decay,
+        )
 
-    # Robust default for modern attention-based or hybrid architectures
-    return optim.AdamW(
-        model.parameters(), lr=cfg.training.learning_rate, weight_decay=cfg.training.weight_decay
-    )
+    else:
+        raise ValueError(
+            f"Unknown optimizer type: '{opt_type}'. " "Available options: ['sgd', 'adamw']"
+        )
 
 
 def get_scheduler(

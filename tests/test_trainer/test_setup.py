@@ -31,6 +31,7 @@ def base_cfg():
         min_lr=0.001,
         momentum=0.9,
         weight_decay=1e-4,
+        optimizer_type="sgd",
         scheduler_type="cosine",
         scheduler_factor=0.5,
         scheduler_patience=2,
@@ -65,19 +66,36 @@ def test_get_criterion_invalid_type(base_cfg):
 
 # TESTS: OPTIMIZER
 @pytest.mark.unit
-def test_get_optimizer_resnet(base_cfg, simple_model):
-    """Test SGD optimizer for ResNet variants."""
-    base_cfg.architecture.name = "resnet_18"
+def test_get_optimizer_sgd(base_cfg, simple_model):
+    """Test SGD optimizer via optimizer_type config."""
+    base_cfg.training.optimizer_type = "sgd"
     optimizer = setup.get_optimizer(simple_model, base_cfg)
     assert isinstance(optimizer, optim.SGD)
 
 
 @pytest.mark.unit
-def test_get_optimizer_other_model(base_cfg, simple_model):
-    """Test AdamW optimizer for non-ResNet models."""
-    base_cfg.architecture.name = "vit_tiny"
+def test_get_optimizer_adamw(base_cfg, simple_model):
+    """Test AdamW optimizer via optimizer_type config."""
+    base_cfg.training.optimizer_type = "adamw"
     optimizer = setup.get_optimizer(simple_model, base_cfg)
     assert isinstance(optimizer, optim.AdamW)
+
+
+@pytest.mark.unit
+def test_get_optimizer_adamw_with_resnet_name(base_cfg, simple_model):
+    """Test AdamW is used when optimizer_type=adamw regardless of model name."""
+    base_cfg.training.optimizer_type = "adamw"
+    base_cfg.architecture.name = "resnet_18"
+    optimizer = setup.get_optimizer(simple_model, base_cfg)
+    assert isinstance(optimizer, optim.AdamW)
+
+
+@pytest.mark.unit
+def test_get_optimizer_invalid_type(base_cfg, simple_model):
+    """Test unknown optimizer type raises ValueError."""
+    base_cfg.training.optimizer_type = "invalid_opt"
+    with pytest.raises(ValueError, match="Unknown optimizer type"):
+        setup.get_optimizer(simple_model, base_cfg)
 
 
 # TESTS: SCHEDULER

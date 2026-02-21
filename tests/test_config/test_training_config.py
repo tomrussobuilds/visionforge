@@ -224,3 +224,25 @@ def test_cosine_fraction_probability():
 
     with pytest.raises(ValidationError):
         TrainingConfig(cosine_fraction=1.5)
+
+
+# UNIT TESTS: OPTIMIZER TYPE
+@pytest.mark.unit
+def test_optimizer_type_default():
+    """Test optimizer_type defaults to sgd."""
+    config = TrainingConfig()
+    assert config.optimizer_type == "sgd"
+
+
+@pytest.mark.unit
+def test_optimizer_type_adamw():
+    """Test optimizer_type accepts adamw."""
+    config = TrainingConfig(optimizer_type="adamw")
+    assert config.optimizer_type == "adamw"
+
+
+@pytest.mark.unit
+def test_optimizer_type_invalid_rejected():
+    """Test invalid optimizer_type is rejected by Literal."""
+    with pytest.raises(ValidationError):
+        TrainingConfig(optimizer_type="adam")

@@ -47,6 +47,7 @@ class TrainingConfig(BaseModel):
         epochs: Maximum training epochs.
         patience: Early stopping patience in epochs.
         use_tqdm: Enable progress bar display.
+        optimizer_type: Optimizer algorithm ('sgd' or 'adamw').
         learning_rate: Initial learning rate (1e-8 to 1.0).
         min_lr: Minimum learning rate for scheduler.
         momentum: SGD momentum coefficient.
@@ -79,6 +80,9 @@ class TrainingConfig(BaseModel):
     use_tqdm: bool = Field(default=True, description="Progress Bar activation / deactivation")
 
     # ==================== Optimization ====================
+    optimizer_type: Literal["sgd", "adamw"] = Field(
+        default="sgd", description="Optimizer algorithm"
+    )
     learning_rate: LearningRate = Field(default=0.008, description="Initial learning rate")
     min_lr: LearningRate = Field(default=1e-6, description="Minimum learning rate")
     momentum: Momentum = Field(default=0.9, description="SGD momentum")

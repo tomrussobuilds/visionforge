@@ -19,6 +19,7 @@
   <img src="https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13%20|%203.14--dev-blue?logo=python&logoColor=white" alt="Python">
   <a href="https://pypi.org/project/orchard-ml/"><img src="https://img.shields.io/pypi/v/orchard-ml?color=blue&logo=pypi&logoColor=white&v=1" alt="PyPI"></a>
   <a href="docs/guide/DOCKER.md"><img src="https://img.shields.io/badge/Docker-CUDA%2012.1-2496ED?logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
 </td>
 </tr>
 <tr>
@@ -40,8 +41,8 @@
   <a href="https://pycqa.github.io/isort/"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/tomrussobuilds/7835190af6011e9051b673c8be974f8a/raw/isort.json" alt="isort"></a>
   <a href="https://flake8.pycqa.org/"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/tomrussobuilds/7835190af6011e9051b673c8be974f8a/raw/flake8.json" alt="Flake8"></a>
   <a href="https://mypy-lang.org/"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/tomrussobuilds/7835190af6011e9051b673c8be974f8a/raw/mypy.json" alt="mypy"></a>
+  <a href="https://bandit.readthedocs.io/"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/tomrussobuilds/7835190af6011e9051b673c8be974f8a/raw/bandit.json" alt="Bandit"></a>
   <a href="https://radon.readthedocs.io/"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/tomrussobuilds/7835190af6011e9051b673c8be974f8a/raw/radon.json" alt="Radon"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
 </td>
 </tr>
 </table>
